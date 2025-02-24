@@ -12,7 +12,10 @@ export interface TestWorkspace {
   cleanup: () => Promise<void>;
   writeJson: (path: string, content: unknown) => Promise<void>;
   writeYaml: (path: string, content: unknown) => Promise<void>;
-  yarn: (args: string[]) => Promise<{ stdout: string; stderr: string }>;
+  yarn: {
+    (args: string[]): Promise<{ stdout: string; stderr: string }>;
+    install(): Promise<{ stdout: string; stderr: string }>;
+  };
 }
 
 /**
@@ -22,6 +25,8 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
   const yarn = async (args: string[]) => {
     return execFileAsync("yarn", args, { cwd: path });
   };
+
+  yarn.install = async () => await yarn(["install", "--no-immutable"]);
 
   const { path, cleanup } = await tmpDir({ unsafeCleanup: true });
 

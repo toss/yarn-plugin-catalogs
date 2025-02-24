@@ -45,7 +45,7 @@ describe("yarn-plugin-catalog", () => {
     });
 
     // Install dependencies
-    await workspace.yarn(["install"]);
+    await workspace.yarn.install();
 
     // Verify that the correct version was resolved
     const { stdout: listOutput } = await workspace.yarn(["info"]);
@@ -80,6 +80,6 @@ describe("yarn-plugin-catalog", () => {
     });
 
     // Install should fail with an error about the missing alias
-    await expect(workspace.yarn(["install"])).rejects.toThrow();
+    await expect(workspace.yarn.install()).rejects.toThrow();
   });
 });
