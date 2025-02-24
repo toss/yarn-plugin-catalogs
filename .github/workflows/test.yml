@@ -1,0 +1,29 @@
+name: Test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "22.11.0"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup yarn
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Test
+        run: |
+          yarn test
