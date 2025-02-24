@@ -1,5 +1,5 @@
 import { dir as tmpDir } from "tmp-promise";
-import { writeFile, mkdir, symlink } from "fs/promises";
+import { writeFile } from "fs/promises";
 import { join } from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";

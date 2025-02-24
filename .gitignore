@@ -12,5 +12,4 @@
 #!.yarn/cache
 .pnp.*
 
-bundles
 node_modules
