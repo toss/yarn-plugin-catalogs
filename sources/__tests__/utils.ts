@@ -15,6 +15,7 @@ export interface TestWorkspace {
   yarn: {
     (args: string[]): Promise<{ stdout: string; stderr: string }>;
     install(): Promise<{ stdout: string; stderr: string }>;
+    info(): Promise<{ stdout: string; stderr: string }>;
   };
 }
 
@@ -27,6 +28,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
   };
 
   yarn.install = async () => await yarn(["install", "--no-immutable"]);
+  yarn.info = async () => await yarn(["info", "--json"]);
 
   const { path, cleanup } = await tmpDir({ unsafeCleanup: true });
 

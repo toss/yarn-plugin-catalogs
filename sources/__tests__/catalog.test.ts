@@ -18,11 +18,11 @@ describe("yarn-plugin-catalog", () => {
       stable: {
         react: "npm:18.0.0",
         "react-dom": "npm:18.0.0",
-        "es-toolkit": "npm:latest",
+        "es-toolkit": "npm:1.32.0",
       },
       legacy: {
-        next: "npm:^12",
-        lodash: "npm:^4",
+        next: "npm:12.0.0",
+        lodash: "npm:4.0.0",
       },
       beta: {
         "@rspack/core": "npm:1.2.0",
@@ -48,13 +48,25 @@ describe("yarn-plugin-catalog", () => {
     await workspace.yarn.install();
 
     // Verify that the correct version was resolved
-    const { stdout: listOutput } = await workspace.yarn(["info"]);
-    expect(listOutput).toContain("react@npm:18.0.0");
-    expect(listOutput).toContain("react-dom@npm:18.0.0");
-    expect(listOutput).toContain("es-toolkit@npm:latest");
-    expect(listOutput).toContain("next@npm:^12");
-    expect(listOutput).toContain("lodash@npm:^4");
-    expect(listOutput).toContain("@rspack/core@npm:1.2.0");
+    const { stdout: listOutput } = await workspace.yarn.info();
+
+    const dependencies = listOutput
+      .split("\n")
+      .filter((str) => str != null && str.length > 0)
+      .map(
+        (depsString) =>
+          JSON.parse(depsString) as { value: string; children: object }
+      )
+      .reduce((result, item) => {
+        return [...result, item.value];
+      }, [] as string[]);
+
+    expect(dependencies).includes("react@npm:18.0.0");
+    expect(dependencies).includes("react-dom@npm:18.0.0");
+    expect(dependencies).includes("es-toolkit@npm:1.32.0");
+    expect(dependencies).includes("next@npm:12.0.0");
+    expect(dependencies).includes("lodash@npm:4.0.0");
+    expect(dependencies).includes("@rspack/core@npm:1.2.0");
   });
 
   it("should fail when catalog alias does not exist", async () => {
