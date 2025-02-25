@@ -22,7 +22,7 @@ const plugin: Plugin = {
         const dependencyName = structUtils.stringifyDescriptor(dependency);
 
         // Get the actual version from catalog.yml
-        const version = await configReader.getVersion(
+        const range = await configReader.getRange(
           project,
           catalogAlias,
           dependencyName
@@ -31,14 +31,16 @@ const plugin: Plugin = {
         // Create a new descriptor with the resolved version
         const newDescriptor = structUtils.makeDescriptor(
           structUtils.makeIdent(dependency.scope, dependency.name),
-          version
+          range
         );
 
         return newDescriptor;
       } catch (error) {
         if (error instanceof CatalogConfigurationError) {
           throw new Error(
-            `Failed to resolve ${structUtils.stringifyDescriptor(dependency)}: ${error.message}`
+            `Failed to resolve ${structUtils.stringifyDescriptor(
+              dependency
+            )}: ${error.message}`
           );
         }
         throw error;

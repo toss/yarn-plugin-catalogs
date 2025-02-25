@@ -104,7 +104,7 @@ export class CatalogConfigurationReader {
   /**
    * Get a specific version from the configuration
    */
-  async getVersion(
+  async getRange(
     project: Project,
     aliasGroup: string,
     packageName: string
