@@ -1,6 +1,17 @@
 # yarn-plugin-catalog
 
-Inspired by [pnpm Catalogs](https://pnpm.io/catalogs).
+A Yarn plugin that enables "Catalogs" - a workspace feature for defining dependency version ranges as reusable constants across your project.
+
+Highly inspired by [pnpm Catalogs](https://pnpm.io/catalogs).
+
+## Why use Catalogs?
+
+In larger projects, especially monorepos, it's common to have the same dependencies used across multiple packages. Catalogs help you:
+
+- **Maintain consistent versions** across your workspace
+- **Simplify upgrades** by editing versions in just one place
+- **Reduce merge conflicts** in package.json files
+- **Standardize dependencies** across teams and repositories
 
 ## Installation
 
@@ -10,25 +21,81 @@ yarn plugin import https://raw.githubusercontent.com/toss/yarn-plugin-catalog/ma
 
 ## Usage
 
-You can make `catalog.yml` in the root of your project (in the location where `.yarnrc.yml` exist) like below.
+### 1. Create a catalog.yml file
+
+Create a `catalog.yml` file in the root of your project (where your `.yarnrc.yml` exists):
 
 ```yaml
-# in catalog.yml
-
-# Can use root catalog without group name, e.g "react": "catalog:"
+# Root catalog (can be referenced with just "catalog:")
 react: 18.0.0
+react-dom: 18.0.0
+typescript: 5.1.6
 
-# Grouped catalog should be referenced with theh name, e.g "react": "catalog:beta"
+# Named catalogs (must be referenced with "catalog:name")
 beta:
   react: 19.0.0
+  react-dom: 19.0.0
+
+legacy:
+  react: 17.0.2
+  react-dom: 17.0.2
 ```
 
-To use the catalog version, change the version in the `package.json`.
+### 2. Reference catalog versions in your package.json
 
 ```json
 {
   "dependencies": {
-    "react": "catalog:"
+    "react": "catalog:", // Uses version from root catalog
+    "react-dom": "catalog:", // Uses version from root catalog
+    "typescript": "catalog:", // Uses version from root catalog
+
+    "next": "catalog:beta", // Uses version from beta catalog
+    "styled-components": "catalog:legacy" // Uses version from legacy catalog
   }
 }
 ```
+
+### Advanced Usage
+
+#### Protocol Support
+
+The plugin automatically adds the `npm:` protocol if none is specified in the catalog:
+
+```yaml
+# In catalog.yml
+react: 18.0.0           // Will be transformed to "npm:18.0.0"
+next: "npm:13.4.9"      // Protocol explicitly specified
+lodash: "patch:lodash@4.17.21#./.patches/lodash.patch"  // Custom protocol
+```
+
+#### Scoped Packages
+
+Scoped packages work as expected:
+
+```yaml
+# In catalog.yml
+"@emotion/react": 11.11.1
+"@types/react": 18.2.15
+
+beta:
+  "@tanstack/react-query": 5.0.0
+```
+
+```json
+{
+  "dependencies": {
+    "@emotion/react": "catalog:",
+    "@types/react": "catalog:",
+    "@tanstack/react-query": "catalog:beta"
+  }
+}
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT
