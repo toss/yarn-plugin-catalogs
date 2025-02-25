@@ -38,7 +38,7 @@ const plugin: Plugin = {
       } catch (error) {
         if (error instanceof CatalogConfigurationError) {
           throw new Error(
-            `Failed to resolve ${dependency.name}@${dependency.range}: ${error.message}`
+            `Failed to resolve ${structUtils.stringifyDescriptor(dependency)}: ${error.message}`
           );
         }
         throw error;
