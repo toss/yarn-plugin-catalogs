@@ -6,16 +6,16 @@ import { join } from "path";
 const DEFAULT_ALIAS_GROUP = "YARN__PLUGIN__CATALOG__DEFAULT__GROUP";
 
 /**
- * Configuration structure for catalog.yml
+ * Configuration structure for catalogs.yml
  */
-export interface CatalogConfiguration {
+export interface CatalogsConfiguration {
   [alias: string]: {
     [packageName: string]: string;
   };
 }
 
 /**
- * Error thrown when catalog.yml is invalid or missing
+ * Error thrown when catalogs.yml is invalid or missing
  */
 export class CatalogConfigurationError extends Error {
   constructor(message: string, public readonly code: string) {
@@ -29,15 +29,15 @@ export class CatalogConfigurationError extends Error {
 }
 
 /**
- * Handles reading and parsing of catalog.yml configuration
+ * Handles reading and parsing of catalogs.yml configuration
  */
 export class CatalogConfigurationReader {
-  private configCache: Map<string, CatalogConfiguration> = new Map();
+  private configCache: Map<string, CatalogsConfiguration> = new Map();
 
   /**
-   * Read and parse the catalog.yml file
+   * Read and parse the catalogs.yml file
    */
-  async readConfiguration(project: Project): Promise<CatalogConfiguration> {
+  async readConfiguration(project: Project): Promise<CatalogsConfiguration> {
     const workspaceRoot = project.cwd;
     const cacheKey = workspaceRoot;
 
@@ -47,7 +47,7 @@ export class CatalogConfigurationReader {
       return cached;
     }
 
-    const configPath = join(workspaceRoot, "catalog.yml");
+    const configPath = join(workspaceRoot, "catalogs.yml");
 
     // Read and parse the file
     try {
@@ -75,7 +75,7 @@ export class CatalogConfigurationReader {
       // Validate configuration structure
       if (!this.isValidConfiguration(config)) {
         throw new CatalogConfigurationError(
-          "Invalid catalog.yml format. Expected structure: { [alias: string]: { [packageName: string]: string } }",
+          "Invalid catalogs.yml format. Expected structure: { [alias: string]: { [packageName: string]: string } }",
           CatalogConfigurationError.INVALID_FORMAT
         );
       }
@@ -90,12 +90,12 @@ export class CatalogConfigurationReader {
       }
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         throw new CatalogConfigurationError(
-          "catalog.yml not found in the workspace root",
+          "catalogs.yml not found in the workspace root",
           CatalogConfigurationError.FILE_NOT_FOUND
         );
       }
       throw new CatalogConfigurationError(
-        `Failed to parse catalog.yml: ${error.message}`,
+        `Failed to parse catalogs.yml: ${error.message}`,
         CatalogConfigurationError.INVALID_FORMAT
       );
     }
@@ -118,7 +118,7 @@ export class CatalogConfigurationReader {
 
     if (!aliasConfig) {
       throw new CatalogConfigurationError(
-        `Alias "${aliasGroupToFind}" not found in catalog.yml`,
+        `Alias "${aliasGroupToFind}" not found in catalogs.yml`,
         CatalogConfigurationError.INVALID_ALIAS
       );
     }
@@ -148,7 +148,7 @@ export class CatalogConfigurationReader {
 
   private isValidConfiguration(
     config: unknown
-  ): config is CatalogConfiguration {
+  ): config is CatalogsConfiguration {
     if (!config || typeof config !== "object") {
       return false;
     }

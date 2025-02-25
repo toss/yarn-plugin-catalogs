@@ -1,5 +1,5 @@
 {
-  "name": "yarn-plugin-catalog",
+  "name": "yarn-plugin-catalogs",
   "private": true,
   "main": "./sources/index.ts",
   "dependencies": {
