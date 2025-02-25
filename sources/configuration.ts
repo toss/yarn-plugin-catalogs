@@ -133,7 +133,7 @@ export class CatalogConfigurationReader {
 
     // If version doesn't have a protocol prefix (e.g., "npm:"), add "npm:" as default
     if (!/^[^:]+:/.test(version)) {
-      return `npm:${version}`;
+      return `${project.configuration.get("defaultProtocol")}${version}`;
     }
 
     return version;
