@@ -1,5 +1,9 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { createTestWorkspace, TestWorkspace } from "./utils";
+import {
+  createTestWorkspace,
+  TestWorkspace,
+  createTestProtocolPlugin,
+} from "./utils";
 
 describe("yarn-plugin-catalog", () => {
   let workspace: TestWorkspace;
@@ -171,5 +175,77 @@ describe("yarn-plugin-catalog", () => {
 
     // Install should fail with an error about the missing alias
     await expect(workspace.yarn.install()).rejects.toThrow();
+  });
+
+  // Test for nested protocol resolution
+  it("should demonstrate nested protocol resolution support", async () => {
+    workspace = await createTestWorkspace();
+
+    // Create a simple test-protocol plugin
+    await createTestProtocolPlugin(workspace, "test-protocol");
+
+    // Create catalog.yml with version using the test protocol
+    await workspace.writeYaml("catalog.yml", {
+      test: {
+        react: "test-protocol:18.0.0", // Uses our custom protocol
+      },
+    });
+
+    // Create package.json referencing the catalog version
+    await workspace.writeJson("package.json", {
+      name: "test-workspace",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "catalog:test",
+      },
+    });
+
+    // Try to install - our implementation should handle this
+    await workspace.yarn.install();
+
+    // Verify that the resolution worked correctly
+    const { stdout } = await workspace.yarn(["why", "react"]);
+
+    // The final npm version should be in the output
+    expect(stdout).toContain("npm:18.0.0");
+
+    // The original catalog: protocol was properly resolved
+    expect(stdout).not.toContain("catalog:test");
+  });
+
+  it("should successfully resolve nested protocols through multiple plugins", async () => {
+    workspace = await createTestWorkspace();
+
+    // Create a simple test-protocol plugin
+    await createTestProtocolPlugin(workspace, "test-protocol");
+
+    // Create catalog.yml with version using the test protocol
+    await workspace.writeYaml("catalog.yml", {
+      test: {
+        react: "test-protocol:18.0.0", // Uses our custom protocol
+      },
+    });
+
+    // Create package.json referencing the catalog version
+    await workspace.writeJson("package.json", {
+      name: "test-workspace",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "catalog:test",
+      },
+    });
+
+    // Install dependencies with the JSON flag to get structured output
+    await workspace.yarn.install();
+
+    // Run yarn info to check resolution without installing
+    const { stdout } = await workspace.yarn(["info", "react", "--json"]);
+
+    const info = JSON.parse(stdout.trim());
+
+    // The version should ultimately be resolved to npm:18.0.0
+    expect(info.value).toBe("react@npm:18.0.0");
   });
 });

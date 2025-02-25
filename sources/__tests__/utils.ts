@@ -4,6 +4,7 @@ import { join } from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { dump as yamlDump } from "js-yaml";
+import * as fs from "fs/promises";
 
 const execFileAsync = promisify(execFile);
 
@@ -56,4 +57,50 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
     writeYaml,
     yarn,
   };
+}
+
+/**
+ * Creates a simple test protocol plugin for testing chained protocol resolution
+ */
+export async function createTestProtocolPlugin(
+  workspace: TestWorkspace,
+  protocolName: string
+): Promise<string> {
+  const pluginCode = `
+module.exports = {
+  name: 'plugin-${protocolName}',
+  factory: function(require) {
+    const {structUtils} = require('@yarnpkg/core');
+    
+    return {
+      default: {
+        hooks: {
+          reduceDependency(dependency, project) {
+            // Only handle ${protocolName}: prefixed dependencies
+            if (!dependency.range.startsWith('${protocolName}:')) {
+              return dependency;
+            }
+            
+            // Extract the version from the range
+            const version = dependency.range.slice('${protocolName}:'.length);
+            
+            // Create a new descriptor with the resolved version
+            return structUtils.makeDescriptor(
+              structUtils.makeIdent(dependency.scope, dependency.name),
+              \`npm:\$\{version\}\`
+            );
+          }
+        }
+      }
+    };
+  }
+};`;
+
+  const pluginPath = join(workspace.path, `${protocolName}-plugin.js`);
+  await fs.writeFile(pluginPath, pluginCode, "utf8");
+
+  // Import the plugin
+  await workspace.yarn(["plugin", "import", pluginPath]);
+
+  return pluginPath;
 }
