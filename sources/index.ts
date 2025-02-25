@@ -19,7 +19,7 @@ const plugin: Plugin = {
       try {
         // Extract the alias from the range
         const catalogAlias = dependency.range.slice(CATALOG_PROTOCOL.length);
-        const dependencyName = structUtils.stringifyDescriptor(dependency);
+        const dependencyName = structUtils.stringifyIdent(dependency);
 
         // Get the actual version from catalog.yml
         const range = await configReader.getRange(
