@@ -1,38 +1,3 @@
-/**
- * Yarn plugin for mapping package versions through a catalog.yml file using a custom protocol.
- *
- * Features:
- * - Allows defining sets of package versions in a central catalog.yml file
- * - Provides a "catalog:" protocol for referencing these versions
- * - Supports nesting of protocols for integration with other custom protocol plugins
- * - Automatically falls back to npm: protocol for unqualified versions
- *
- * Usage:
- * 1. Create a catalog.yml file in your workspace root
- * 2. Define version aliases in the file (e.g., stable: { react: "18.0.0" })
- * 3. Reference these versions in package.json using the catalog: protocol
- *    (e.g., "react": "catalog:stable")
- *
- * Chained Protocol Resolution:
- * This plugin also supports resolving nested custom protocols. For example:
- *
- * catalog.yml:
- * ```
- * stable:
- *   react: "custom-protocol:18.0.0"
- * ```
- *
- * package.json:
- * ```
- * "dependencies": {
- *   "react": "catalog:stable"
- * }
- * ```
- *
- * This will first resolve to "custom-protocol:18.0.0" and then further resolve
- * that protocol using any other plugins that handle the custom-protocol.
- */
-
 import { Plugin, Project, Descriptor, structUtils, Hooks } from "@yarnpkg/core";
 import {
   CatalogConfigurationReader,
@@ -44,23 +9,6 @@ const CATALOG_PROTOCOL = "catalog:";
 // Create a singleton instance of our configuration reader
 const configReader = new CatalogConfigurationReader();
 
-/**
- * Determines whether a version string contains a protocol that needs further resolution
- * from another plugin.
- *
- * This function uses a more sophisticated approach than hardcoding a list of known protocols:
- * 1. It attempts to parse the version as a descriptor using Yarn's structUtils
- * 2. If parsing succeeds and the result isn't identical to the input (meaning it was recognized),
- *    and it's not our own protocol, it's likely a protocol handled by another plugin
- * 3. If parsing fails, it might be a custom protocol that needs special handling
- *
- * This approach is more future-proof than hardcoding known protocols, as it will
- * automatically work with new protocols added in future Yarn versions.
- *
- * @param version - The version string to check (e.g., "npm:1.0.0", "test-protocol:1.0.0")
- * @param project - The Yarn project instance
- * @returns True if the version contains a protocol that needs further resolution
- */
 function isNestedProtocol(version: string): boolean {
   // If no protocol indicator, it's not a protocol
   if (!version.includes(":")) return false;
