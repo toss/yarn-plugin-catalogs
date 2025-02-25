@@ -61,7 +61,7 @@ const configReader = new CatalogConfigurationReader();
  * @param project - The Yarn project instance
  * @returns True if the version contains a protocol that needs further resolution
  */
-function isNestedProtocol(version: string, project: Project): boolean {
+function isNestedProtocol(version: string): boolean {
   // If no protocol indicator, it's not a protocol
   if (!version.includes(":")) return false;
 
@@ -121,7 +121,7 @@ const plugin: Plugin = {
         );
 
         // Check if this version contains another protocol that needs resolution
-        if (isNestedProtocol(range, project)) {
+        if (isNestedProtocol(range)) {
           // Store a reference to our own hook
           const ourHook = plugin.hooks.reduceDependency;
 
