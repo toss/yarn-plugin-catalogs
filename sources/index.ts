@@ -33,7 +33,7 @@
  * that protocol using any other plugins that handle the custom-protocol.
  */
 
-import { Plugin, Project, Descriptor, structUtils } from "@yarnpkg/core";
+import { Plugin, Project, Descriptor, structUtils, Hooks } from "@yarnpkg/core";
 import {
   CatalogConfigurationReader,
   CatalogConfigurationError,
@@ -87,18 +87,15 @@ function isNestedProtocol(version: string): boolean {
   }
 }
 
-const plugin: Plugin = {
+const plugin: Plugin<Hooks> = {
   hooks: {
     reduceDependency: async (
       dependency: Descriptor,
       project: Project,
-      initialContext: any
+      ...extraArgs
     ) => {
       // Skip if not our protocol or if this is a recursive call
-      if (
-        !dependency.range.startsWith(CATALOG_PROTOCOL) ||
-        initialContext?.isRecursive
-      ) {
+      if (!dependency.range.startsWith(CATALOG_PROTOCOL)) {
         return dependency;
       }
 
@@ -134,9 +131,7 @@ const plugin: Plugin = {
             const result = await p.hooks.reduceDependency(
               resolvedDescriptor,
               project,
-              null,
-              null,
-              {}
+              ...extraArgs
             );
 
             // If another plugin handled it, return the result
