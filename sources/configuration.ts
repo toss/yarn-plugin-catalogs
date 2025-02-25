@@ -3,6 +3,8 @@ import { Project } from "@yarnpkg/core";
 import { promises as fs } from "fs";
 import { join } from "path";
 
+const DEFAULT_ALIAS_GROUP = "YARN__PLUGIN__CATALOG__DEFAULT__GROUP";
+
 /**
  * Configuration structure for catalog.yml
  */
@@ -50,7 +52,25 @@ export class CatalogConfigurationReader {
     // Read and parse the file
     try {
       const content = await fs.readFile(configPath, "utf8");
-      const config = yamlLoad(content) as unknown;
+      const rawConfig = yamlLoad(content) as unknown;
+
+      // Transform config to handle root-level string values
+      const config = Object.entries(rawConfig as Record<string, object>).reduce(
+        (acc, [key, value]) => {
+          if (typeof value === "string") {
+            // If value is a string, put it under DEFAULT_ALIAS_GROUP
+            acc[DEFAULT_ALIAS_GROUP] = {
+              ...(acc[DEFAULT_ALIAS_GROUP] || {}),
+              [key]: value,
+            };
+          } else {
+            // Otherwise keep the original structure
+            acc[key] = value;
+          }
+          return acc;
+        },
+        {} as Record<string, object>
+      );
 
       // Validate configuration structure
       if (!this.isValidConfiguration(config)) {
@@ -86,15 +106,19 @@ export class CatalogConfigurationReader {
    */
   async getVersion(
     project: Project,
-    alias: string,
+    aliasGroup: string,
     packageName: string
   ): Promise<string> {
     const config = await this.readConfiguration(project);
 
-    const aliasConfig = config[alias];
+    const aliasGroupToFind =
+      aliasGroup.length === 0 ? DEFAULT_ALIAS_GROUP : aliasGroup;
+
+    const aliasConfig = config[aliasGroupToFind];
+
     if (!aliasConfig) {
       throw new CatalogConfigurationError(
-        `Alias "${alias}" not found in catalog.yml`,
+        `Alias "${aliasGroupToFind}" not found in catalog.yml`,
         CatalogConfigurationError.INVALID_ALIAS
       );
     }
@@ -102,7 +126,7 @@ export class CatalogConfigurationReader {
     const version = aliasConfig[packageName];
     if (!version) {
       throw new CatalogConfigurationError(
-        `Package "${packageName}" not found in alias "${alias}"`,
+        `Package "${packageName}" not found in alias "${aliasGroupToFind}"`,
         CatalogConfigurationError.INVALID_ALIAS
       );
     }
