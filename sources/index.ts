@@ -105,14 +105,10 @@ const plugin: Plugin = {
       try {
         // Extract the alias from the range
         const catalogAlias = dependency.range.slice(CATALOG_PROTOCOL.length);
-
-        const dependencyName =
-          dependency.scope?.length > 0
-            ? `@${dependency.scope}/${dependency.name}`
-            : dependency.name;
+        const dependencyName = structUtils.stringifyIdent(dependency);
 
         // Get the actual version from catalog.yml
-        const version = await configReader.getVersion(
+        const range = await configReader.getRange(
           project,
           catalogAlias,
           dependencyName
@@ -121,11 +117,11 @@ const plugin: Plugin = {
         // Create a new descriptor with the resolved version
         const resolvedDescriptor = structUtils.makeDescriptor(
           structUtils.makeIdent(dependency.scope, dependency.name),
-          version
+          range
         );
 
         // Check if this version contains another protocol that needs resolution
-        if (isNestedProtocol(version, project)) {
+        if (isNestedProtocol(range, project)) {
           // Store a reference to our own hook
           const ourHook = plugin.hooks.reduceDependency;
 
@@ -157,7 +153,9 @@ const plugin: Plugin = {
       } catch (error) {
         if (error instanceof CatalogConfigurationError) {
           throw new Error(
-            `Failed to resolve ${dependency.name}@${dependency.range}: ${error.message}`
+            `Failed to resolve ${structUtils.stringifyDescriptor(
+              dependency
+            )}: ${error.message}`
           );
         }
         throw error;

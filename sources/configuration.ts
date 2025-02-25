@@ -104,7 +104,7 @@ export class CatalogConfigurationReader {
   /**
    * Get a specific version from the configuration
    */
-  async getVersion(
+  async getRange(
     project: Project,
     aliasGroup: string,
     packageName: string
@@ -133,7 +133,7 @@ export class CatalogConfigurationReader {
 
     // If version doesn't have a protocol prefix (e.g., "npm:"), add "npm:" as default
     if (!/^[^:]+:/.test(version)) {
-      return `npm:${version}`;
+      return `${project.configuration.get("defaultProtocol")}${version}`;
     }
 
     return version;
