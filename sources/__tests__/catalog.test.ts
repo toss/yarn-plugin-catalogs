@@ -69,6 +69,46 @@ describe("yarn-plugin-catalog", () => {
     expect(dependencies).includes("@rspack/core@npm:1.2.0");
   });
 
+  it("fallback to default protocol 'npm' if no protocol is provided", async () => {
+    workspace = await createTestWorkspace();
+
+    // Create catalog.yml with version mappings
+    await workspace.writeYaml("catalog.yml", {
+      npm: {
+        react: "18.0.0",
+      },
+    });
+
+    // Create package.json with catalog version
+    await workspace.writeJson("package.json", {
+      name: "test-package",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "catalog:npm",
+      },
+    });
+
+    // Install dependencies
+    await workspace.yarn.install();
+
+    // Verify that the correct version was resolved
+    const { stdout: listOutput } = await workspace.yarn.info();
+
+    const dependencies = listOutput
+      .split("\n")
+      .filter((str) => str != null && str.length > 0)
+      .map(
+        (depsString) =>
+          JSON.parse(depsString) as { value: string; children: object }
+      )
+      .reduce((result, item) => {
+        return [...result, item.value];
+      }, [] as string[]);
+
+    expect(dependencies).includes("react@npm:18.0.0");
+  });
+
   it("should fail when catalog alias does not exist", async () => {
     workspace = await createTestWorkspace();
 
