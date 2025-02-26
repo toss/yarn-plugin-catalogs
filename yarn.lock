@@ -735,6 +735,12 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@yarn-plugin-catalogs/monorepo@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@yarn-plugin-catalogs/monorepo@workspace:."
+  languageName: unknown
+  linkType: soft
+
 "@yarnpkg/builder@npm:^4.2.0":
   version: 4.2.0
   resolution: "@yarnpkg/builder@npm:4.2.0"
@@ -4011,9 +4017,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yarn-plugin-catalogs@workspace:.":
+"yarn-plugin-catalogs@workspace:packages/plugin":
   version: 0.0.0-use.local
-  resolution: "yarn-plugin-catalogs@workspace:."
+  resolution: "yarn-plugin-catalogs@workspace:packages/plugin"
   dependencies:
     "@types/js-yaml": "npm:^4.0.9"
     "@types/node": "npm:^22.0.0"
