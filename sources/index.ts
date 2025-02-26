@@ -52,7 +52,7 @@ const plugin: Plugin<Hooks> = {
         const catalogAlias = dependency.range.slice(CATALOG_PROTOCOL.length);
         const dependencyName = structUtils.stringifyIdent(dependency);
 
-        // Get the actual version from catalog.yml
+        // Get the actual version from catalogs.yml
         const range = await configReader.getRange(
           project,
           catalogAlias,

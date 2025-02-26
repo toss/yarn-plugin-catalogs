@@ -1,4 +1,4 @@
-# yarn-plugin-catalog
+# yarn-plugin-catalogs
 
 A Yarn plugin that enables "Catalogs" - a workspace feature for defining dependency version ranges as reusable constants across your project.
 
@@ -16,17 +16,17 @@ In larger projects, especially monorepos, it's common to have the same dependenc
 ## Installation
 
 ```bash
-yarn plugin import https://raw.githubusercontent.com/toss/yarn-plugin-catalog/main/bundles/%40yarnpkg/plugin-catalog.js
+yarn plugin import https://raw.githubusercontent.com/toss/yarn-plugin-catalogs/main/bundles/%40yarnpkg/plugin-catalogs.js
 ```
 
 ## Usage
 
-### 1. Create a catalog.yml file
+### 1. Create a catalogs.yml file
 
-Create a `catalog.yml` file in the root of your project (where your `.yarnrc.yml` exists):
+Create a `catalogs.yml` file in the root of your project (where your `.yarnrc.yml` exists):
 
 ```yaml
-# Root catalog (can be referenced with just "catalog:")
+# Root catalogs (can be referenced with just "catalog:")
 react: 18.0.0
 react-dom: 18.0.0
 typescript: 5.1.6
@@ -63,7 +63,7 @@ legacy:
 The plugin automatically adds the `npm:` protocol if none is specified in the catalog:
 
 ```yaml
-# In catalog.yml
+# In catalogs.yml
 react: 18.0.0           // Will be transformed to "npm:18.0.0"
 next: "npm:13.4.9"      // Protocol explicitly specified
 lodash: "patch:lodash@4.17.21#./.patches/lodash.patch"  // Custom protocol
@@ -74,7 +74,7 @@ lodash: "patch:lodash@4.17.21#./.patches/lodash.patch"  // Custom protocol
 Scoped packages work as expected:
 
 ```yaml
-# In catalog.yml
+# In catalogs.yml
 "@emotion/react": 11.11.1
 "@types/react": 18.2.15
 

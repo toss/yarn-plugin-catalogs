@@ -39,7 +39,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
   await yarn([
     "plugin",
     "import",
-    join(process.cwd(), "bundles/@yarnpkg/plugin-catalog.js"),
+    join(process.cwd(), "bundles/@yarnpkg/plugin-catalogs.js"),
   ]);
 
   const writeJson = async (filePath: string, content: unknown) => {
