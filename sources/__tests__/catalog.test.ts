@@ -184,7 +184,7 @@ describe("yarn-plugin-catalogs", () => {
     await createTestProtocolPlugin(workspace, "test-protocol");
 
     // Create catalog.yml with version using the test protocol
-    await workspace.writeYaml("catalog.yml", {
+    await workspace.writeYaml("catalogs.yml", {
       test: {
         react: "test-protocol:18.0.0", // Uses our custom protocol
       },
