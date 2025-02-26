@@ -68,27 +68,18 @@ const plugin: Plugin<Hooks> = {
         // Check if this version contains another protocol that needs resolution
         if (isNestedProtocol(range)) {
           // Store a reference to our own hook
-          const ourHook = plugin.hooks.reduceDependency;
 
-          // Use a different approach: manually iterate through plugins' hooks
-          for (const p of project.configuration.plugins.values()) {
-            if (!p.hooks?.reduceDependency) continue;
-            if (p.hooks.reduceDependency === ourHook) continue; // Skip ourselves
+          const result = await project.configuration.reduceHook(
+            (hooks) => hooks.reduceDependency,
+            resolvedDescriptor,
+            project,
+            ...extraArgs
+          );
 
-            // Try to resolve with other plugins
-            const result = await p.hooks.reduceDependency(
-              resolvedDescriptor,
-              project,
-              ...extraArgs
-            );
-
-            // If another plugin handled it, return the result
-            if (result !== resolvedDescriptor) {
-              return result;
-            }
+          if (result !== resolvedDescriptor) {
+            return result;
           }
 
-          // No plugin handled it - return as is
           return resolvedDescriptor;
         }
 
