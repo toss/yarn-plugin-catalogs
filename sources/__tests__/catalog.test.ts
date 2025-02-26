@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { createTestWorkspace, TestWorkspace } from "./utils";
 
-describe("yarn-plugin-catalog", () => {
+describe("yarn-plugin-catalogs", () => {
   let workspace: TestWorkspace;
 
   afterEach(async () => {
@@ -10,11 +10,11 @@ describe("yarn-plugin-catalog", () => {
     }
   });
 
-  it("should resolve catalog version from catalog.yml", async () => {
+  it("should resolve catalog version from catalogs.yml", async () => {
     workspace = await createTestWorkspace();
 
-    // Create catalog.yml with version mappings
-    await workspace.writeYaml("catalog.yml", {
+    // Create catalogs.yml with version mappings
+    await workspace.writeYaml("catalogs.yml", {
       stable: {
         react: "npm:18.0.0",
         "react-dom": "npm:18.0.0",
@@ -72,8 +72,8 @@ describe("yarn-plugin-catalog", () => {
   it("fallback to default protocol 'npm' if no protocol is provided", async () => {
     workspace = await createTestWorkspace();
 
-    // Create catalog.yml with version mappings
-    await workspace.writeYaml("catalog.yml", {
+    // Create catalogs.yml with version mappings
+    await workspace.writeYaml("catalogs.yml", {
       npm: {
         react: "18.0.0",
       },
@@ -109,11 +109,11 @@ describe("yarn-plugin-catalog", () => {
     expect(dependencies).includes("react@npm:18.0.0");
   });
 
-  it("fallback to root catalog if no catalog group is provided", async () => {
+  it("fallback to root catalogs if no catalog group is provided", async () => {
     workspace = await createTestWorkspace();
 
-    // Create catalog.yml with version mappings
-    await workspace.writeYaml("catalog.yml", {
+    // Create catalogs.yml with version mappings
+    await workspace.writeYaml("catalogs.yml", {
       react: "18.0.0",
     });
 
@@ -150,7 +150,7 @@ describe("yarn-plugin-catalog", () => {
   it("should fail when catalog alias does not exist", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYaml("catalog.yml", {
+    await workspace.writeYaml("catalogs.yml", {
       stable: {
         react: "npm:18.0.0",
       },

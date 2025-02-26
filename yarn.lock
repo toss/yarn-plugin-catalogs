@@ -4011,9 +4011,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yarn-plugin-catalog@workspace:.":
+"yarn-plugin-catalogs@workspace:.":
   version: 0.0.0-use.local
-  resolution: "yarn-plugin-catalog@workspace:."
+  resolution: "yarn-plugin-catalogs@workspace:."
   dependencies:
     "@types/js-yaml": "npm:^4.0.9"
     "@types/node": "npm:^22.0.0"
