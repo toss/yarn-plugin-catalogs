@@ -1,5 +1,9 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { createTestWorkspace, TestWorkspace } from "./utils";
+import {
+  createTestWorkspace,
+  TestWorkspace,
+  createTestProtocolPlugin,
+} from "./utils";
 
 describe("yarn-plugin-catalogs", () => {
   let workspace: TestWorkspace;
@@ -171,5 +175,40 @@ describe("yarn-plugin-catalogs", () => {
 
     // Install should fail with an error about the missing alias
     await expect(workspace.yarn.install()).rejects.toThrow();
+  });
+
+  it("should successfully resolve nested protocols through multiple plugins", async () => {
+    workspace = await createTestWorkspace();
+
+    // Create a simple test-protocol plugin
+    await createTestProtocolPlugin(workspace, "test-protocol");
+
+    // Create catalog.yml with version using the test protocol
+    await workspace.writeYaml("catalogs.yml", {
+      test: {
+        react: "test-protocol:18.0.0", // Uses our custom protocol
+      },
+    });
+
+    // Create package.json referencing the catalog version
+    await workspace.writeJson("package.json", {
+      name: "test-workspace",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "catalog:test",
+      },
+    });
+
+    // Install dependencies with the JSON flag to get structured output
+    await workspace.yarn.install();
+
+    // Run yarn info to check resolution without installing
+    const { stdout } = await workspace.yarn(["info", "react", "--json"]);
+
+    const info = JSON.parse(stdout.trim());
+
+    // The version should ultimately be resolved to npm:18.0.0
+    expect(info.value).toBe("react@npm:18.0.0");
   });
 });

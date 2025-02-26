@@ -1,4 +1,4 @@
-import { Plugin, Project, Descriptor, structUtils } from "@yarnpkg/core";
+import { Plugin, Project, Descriptor, structUtils, Hooks } from "@yarnpkg/core";
 import {
   CatalogConfigurationReader,
   CatalogConfigurationError,
@@ -9,9 +9,14 @@ const CATALOG_PROTOCOL = "catalog:";
 // Create a singleton instance of our configuration reader
 const configReader = new CatalogConfigurationReader();
 
-const plugin: Plugin = {
+const plugin: Plugin<Hooks> = {
   hooks: {
-    reduceDependency: async (dependency: Descriptor, project: Project) => {
+    reduceDependency: async (
+      dependency: Descriptor,
+      project: Project,
+      ...extraArgs
+    ) => {
+      // Skip if not our protocol or if this is a recursive call
       if (!dependency.range.startsWith(CATALOG_PROTOCOL)) {
         return dependency;
       }
@@ -29,12 +34,24 @@ const plugin: Plugin = {
         );
 
         // Create a new descriptor with the resolved version
-        const newDescriptor = structUtils.makeDescriptor(
+        const resolvedDescriptor = structUtils.makeDescriptor(
           structUtils.makeIdent(dependency.scope, dependency.name),
           range
         );
 
-        return newDescriptor;
+        // Trigger other hooks to be sure the descriptor is fully resolved
+        const result = await project.configuration.reduceHook(
+          (hooks) => hooks.reduceDependency,
+          resolvedDescriptor,
+          project,
+          ...extraArgs
+        );
+
+        if (result !== resolvedDescriptor) {
+          return result;
+        }
+
+        return resolvedDescriptor;
       } catch (error) {
         if (error instanceof CatalogConfigurationError) {
           throw new Error(
