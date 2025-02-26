@@ -27,4 +27,4 @@ jobs:
 
       - name: Test
         run: |
-          yarn test
+          yarn workspaces foreach -A run test
