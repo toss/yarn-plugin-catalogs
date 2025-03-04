@@ -1,8 +1,22 @@
-import { Plugin, Project, Descriptor, structUtils, Hooks } from "@yarnpkg/core";
+import {
+  Plugin,
+  Project,
+  Descriptor,
+  structUtils,
+  Hooks,
+  SettingsType,
+} from "@yarnpkg/core";
 import {
   CatalogConfigurationReader,
   CatalogConfigurationError,
+  CatalogsConfiguration,
 } from "./configuration";
+
+declare module "@yarnpkg/core" {
+  interface ConfigurationValueMap {
+    catalogs: CatalogsConfiguration;
+  }
+}
 
 const CATALOG_PROTOCOL = "catalog:";
 
@@ -10,6 +24,14 @@ const CATALOG_PROTOCOL = "catalog:";
 const configReader = new CatalogConfigurationReader();
 
 const plugin: Plugin<Hooks> = {
+  configuration: {
+    catalogs: {
+      description:
+        "Define dependency version ranges as reusable constants across your project.",
+      type: SettingsType.ANY,
+      default: {},
+    },
+  },
   hooks: {
     reduceDependency: async (
       dependency: Descriptor,
@@ -26,7 +48,7 @@ const plugin: Plugin<Hooks> = {
         const catalogAlias = dependency.range.slice(CATALOG_PROTOCOL.length);
         const dependencyName = structUtils.stringifyIdent(dependency);
 
-        // Get the actual version from catalogs.yml
+        // Get the actual version from .yarnrc.yml
         const range = await configReader.getRange(
           project,
           catalogAlias,

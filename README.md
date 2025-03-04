@@ -21,24 +21,25 @@ yarn plugin import https://raw.githubusercontent.com/toss/yarn-plugin-catalogs/m
 
 ## Usage
 
-### 1. Create a catalogs.yml file
-
-Create a `catalogs.yml` file in the root of your project (where your `.yarnrc.yml` exists):
+### 1. Add `catalogs` to `.yarnrc.yml`
 
 ```yaml
-# Root catalogs (can be referenced with just "catalog:")
-react: 18.0.0
-react-dom: 18.0.0
-typescript: 5.1.6
+# in .yarnrc.yml
 
-# Named catalogs (must be referenced with "catalog:name")
-beta:
-  react: 19.0.0
-  react-dom: 19.0.0
+catalogs:
+  # Root catalogs (can be referenced with just "catalog:")
+  react: 18.0.0
+  react-dom: 18.0.0
+  typescript: 5.1.6
 
-legacy:
-  react: 17.0.2
-  react-dom: 17.0.2
+  # Named catalogs (must be referenced with "catalog:name")
+  beta:
+    react: 19.0.0
+    react-dom: 19.0.0
+
+  legacy:
+    react: 17.0.2
+    react-dom: 17.0.2
 ```
 
 ### 2. Reference catalog versions in your package.json
@@ -63,10 +64,11 @@ legacy:
 The plugin automatically adds the `npm:` protocol if none is specified in the catalog:
 
 ```yaml
-# In catalogs.yml
-react: 18.0.0           // Will be transformed to "npm:18.0.0"
-next: "npm:13.4.9"      // Protocol explicitly specified
-lodash: "patch:lodash@4.17.21#./.patches/lodash.patch"  // Custom protocol
+# In .yarnrc.yml
+catalogs:
+  react: 18.0.0           // Will be transformed to "npm:18.0.0"
+  next: "npm:13.4.9"      // Protocol explicitly specified
+  lodash: "patch:lodash@4.17.21#./.patches/lodash.patch"  // Custom protocol
 ```
 
 #### Scoped Packages
@@ -74,12 +76,13 @@ lodash: "patch:lodash@4.17.21#./.patches/lodash.patch"  // Custom protocol
 Scoped packages work as expected:
 
 ```yaml
-# In catalogs.yml
-"@emotion/react": 11.11.1
-"@types/react": 18.2.15
+# In .yarnrc.yml
+catalogs:
+  "@emotion/react": 11.11.1
+  "@types/react": 18.2.15
 
-beta:
-  "@tanstack/react-query": 5.0.0
+  beta:
+    "@tanstack/react-query": 5.0.0
 ```
 
 ```json

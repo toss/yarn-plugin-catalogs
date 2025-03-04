@@ -12,7 +12,7 @@ export interface TestWorkspace {
   path: string;
   cleanup: () => Promise<void>;
   writeJson: (path: string, content: unknown) => Promise<void>;
-  writeYaml: (path: string, content: unknown) => Promise<void>;
+  writeYarnrc: (content: unknown) => Promise<void>;
   yarn: {
     (args: string[]): Promise<{ stdout: string; stderr: string }>;
     install(): Promise<{ stdout: string; stderr: string }>;
@@ -46,15 +46,19 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
     await writeFile(join(path, filePath), JSON.stringify(content, null, 2));
   };
 
-  const writeYaml = async (filePath: string, content: unknown) => {
-    await writeFile(join(path, filePath), yamlDump(content));
+  const writeYaml = async (content: unknown) => {
+    const yarnrcPath = join(path, ".yarnrc.yml");
+    const existingContent = await fs
+      .readFile(yarnrcPath, "utf8")
+      .catch(() => "");
+    await writeFile(yarnrcPath, existingContent + "\n" + yamlDump(content));
   };
 
   return {
     path,
     cleanup,
     writeJson,
-    writeYaml,
+    writeYarnrc: writeYaml,
     yarn,
   };
 }

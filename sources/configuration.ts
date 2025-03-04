@@ -1,21 +1,26 @@
-import { load as yamlLoad } from "js-yaml";
 import { Project } from "@yarnpkg/core";
-import { promises as fs } from "fs";
-import { join } from "path";
 
 const DEFAULT_ALIAS_GROUP = "YARN__PLUGIN__CATALOG__DEFAULT__GROUP";
 
-/**
- * Configuration structure for catalogs.yml
- */
-export interface CatalogsConfiguration {
-  [alias: string]: {
-    [packageName: string]: string;
-  };
+declare module "@yarnpkg/core" {
+  interface ConfigurationValueMap {
+    catalogs: CatalogsConfiguration;
+  }
 }
 
 /**
- * Error thrown when catalogs.yml is invalid or missing
+ * Configuration structure for .yarnrc.yml#catalogs
+ */
+export interface CatalogsConfiguration {
+  [alias: string]:
+    | {
+        [packageName: string]: string;
+      }
+    | string;
+}
+
+/**
+ * Error thrown when .yarnrc.yml#catalogs is invalid or missing
  */
 export class CatalogConfigurationError extends Error {
   constructor(message: string, public readonly code: string) {
@@ -29,13 +34,13 @@ export class CatalogConfigurationError extends Error {
 }
 
 /**
- * Handles reading and parsing of catalogs.yml configuration
+ * Handles reading and parsing of .yarnrc.yml#catalogs configuration
  */
 export class CatalogConfigurationReader {
   private configCache: Map<string, CatalogsConfiguration> = new Map();
 
   /**
-   * Read and parse the catalogs.yml file
+   * Read and parse the .yarnrc.yml#catalogs file
    */
   async readConfiguration(project: Project): Promise<CatalogsConfiguration> {
     const workspaceRoot = project.cwd;
@@ -47,58 +52,39 @@ export class CatalogConfigurationReader {
       return cached;
     }
 
-    const configPath = join(workspaceRoot, "catalogs.yml");
+    // Get config from project configuration
+    const rawConfig = project.configuration.get("catalogs") as unknown;
 
-    // Read and parse the file
-    try {
-      const content = await fs.readFile(configPath, "utf8");
-      const rawConfig = yamlLoad(content) as unknown;
+    // Transform config to handle root-level string values
+    const config = Object.entries(rawConfig as Record<string, object>).reduce(
+      (acc, [key, value]) => {
+        if (typeof value === "string") {
+          // If value is a string, put it under DEFAULT_ALIAS_GROUP
+          acc[DEFAULT_ALIAS_GROUP] = {
+            ...(acc[DEFAULT_ALIAS_GROUP] || {}),
+            [key]: value,
+          };
+        } else {
+          // Otherwise keep the original structure
+          acc[key] = value;
+        }
+        return acc;
+      },
+      {} as Record<string, object>
+    );
 
-      // Transform config to handle root-level string values
-      const config = Object.entries(rawConfig as Record<string, object>).reduce(
-        (acc, [key, value]) => {
-          if (typeof value === "string") {
-            // If value is a string, put it under DEFAULT_ALIAS_GROUP
-            acc[DEFAULT_ALIAS_GROUP] = {
-              ...(acc[DEFAULT_ALIAS_GROUP] || {}),
-              [key]: value,
-            };
-          } else {
-            // Otherwise keep the original structure
-            acc[key] = value;
-          }
-          return acc;
-        },
-        {} as Record<string, object>
-      );
-
-      // Validate configuration structure
-      if (!this.isValidConfiguration(config)) {
-        throw new CatalogConfigurationError(
-          "Invalid catalogs.yml format. Expected structure: { [alias: string]: { [packageName: string]: string } }",
-          CatalogConfigurationError.INVALID_FORMAT
-        );
-      }
-
-      // Cache the configuration
-      this.configCache.set(cacheKey, config);
-
-      return config;
-    } catch (error) {
-      if (error instanceof CatalogConfigurationError) {
-        throw error;
-      }
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new CatalogConfigurationError(
-          "catalogs.yml not found in the workspace root",
-          CatalogConfigurationError.FILE_NOT_FOUND
-        );
-      }
+    // Validate configuration structure
+    if (!this.isValidConfiguration(config)) {
       throw new CatalogConfigurationError(
-        `Failed to parse catalogs.yml: ${error.message}`,
+        "Invalid catalogs configuration format. Expected structure: { [alias: string]: { [packageName: string]: string } }",
         CatalogConfigurationError.INVALID_FORMAT
       );
     }
+
+    // Cache the configuration
+    this.configCache.set(cacheKey, config);
+
+    return config;
   }
 
   /**
@@ -118,7 +104,7 @@ export class CatalogConfigurationReader {
 
     if (!aliasConfig) {
       throw new CatalogConfigurationError(
-        `Alias "${aliasGroupToFind}" not found in catalogs.yml`,
+        `Alias "${aliasGroupToFind}" not found in .yarnrc.yml catalogs.`,
         CatalogConfigurationError.INVALID_ALIAS
       );
     }
