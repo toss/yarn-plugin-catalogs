@@ -9,7 +9,14 @@ import {
 import {
   CatalogConfigurationReader,
   CatalogConfigurationError,
+  CatalogsConfiguration,
 } from "./configuration";
+
+declare module "@yarnpkg/core" {
+  interface ConfigurationValueMap {
+    catalogs: CatalogsConfiguration;
+  }
+}
 
 const CATALOG_PROTOCOL = "catalog:";
 
