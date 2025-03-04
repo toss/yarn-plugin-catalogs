@@ -1,7 +1,4 @@
-import { load as yamlLoad } from "js-yaml";
 import { Project } from "@yarnpkg/core";
-import { promises as fs } from "fs";
-import { join } from "path";
 
 const DEFAULT_ALIAS_GROUP = "YARN__PLUGIN__CATALOG__DEFAULT__GROUP";
 
