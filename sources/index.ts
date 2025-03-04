@@ -1,4 +1,11 @@
-import { Plugin, Project, Descriptor, structUtils, Hooks } from "@yarnpkg/core";
+import {
+  Plugin,
+  Project,
+  Descriptor,
+  structUtils,
+  Hooks,
+  SettingsType,
+} from "@yarnpkg/core";
 import {
   CatalogConfigurationReader,
   CatalogConfigurationError,
@@ -10,6 +17,14 @@ const CATALOG_PROTOCOL = "catalog:";
 const configReader = new CatalogConfigurationReader();
 
 const plugin: Plugin<Hooks> = {
+  configuration: {
+    catalogs: {
+      description:
+        "Define dependency version ranges as reusable constants across your project.",
+      type: SettingsType.ANY,
+      default: {},
+    },
+  },
   hooks: {
     reduceDependency: async (
       dependency: Descriptor,

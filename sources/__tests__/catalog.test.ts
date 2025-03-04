@@ -18,18 +18,20 @@ describe("yarn-plugin-catalogs", () => {
     workspace = await createTestWorkspace();
 
     // Create catalogs.yml with version mappings
-    await workspace.writeYaml("catalogs.yml", {
-      stable: {
-        react: "npm:18.0.0",
-        "react-dom": "npm:18.0.0",
-        "es-toolkit": "npm:1.32.0",
-      },
-      legacy: {
-        next: "npm:12.0.0",
-        lodash: "npm:4.0.0",
-      },
-      beta: {
-        "@rspack/core": "npm:1.2.0",
+    await workspace.writeYarnrc({
+      catalogs: {
+        stable: {
+          react: "npm:18.0.0",
+          "react-dom": "npm:18.0.0",
+          "es-toolkit": "npm:1.32.0",
+        },
+        legacy: {
+          next: "npm:12.0.0",
+          lodash: "npm:4.0.0",
+        },
+        beta: {
+          "@rspack/core": "npm:1.2.0",
+        },
       },
     });
 
@@ -77,9 +79,11 @@ describe("yarn-plugin-catalogs", () => {
     workspace = await createTestWorkspace();
 
     // Create catalogs.yml with version mappings
-    await workspace.writeYaml("catalogs.yml", {
-      npm: {
-        react: "18.0.0",
+    await workspace.writeYarnrc({
+      catalogs: {
+        npm: {
+          react: "18.0.0",
+        },
       },
     });
 
@@ -117,8 +121,10 @@ describe("yarn-plugin-catalogs", () => {
     workspace = await createTestWorkspace();
 
     // Create catalogs.yml with version mappings
-    await workspace.writeYaml("catalogs.yml", {
-      react: "18.0.0",
+    await workspace.writeYarnrc({
+      catalogs: {
+        react: "18.0.0",
+      },
     });
 
     // Create package.json with catalog version
@@ -154,12 +160,14 @@ describe("yarn-plugin-catalogs", () => {
   it("should fail when catalog alias does not exist", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYaml("catalogs.yml", {
-      stable: {
-        react: "npm:18.0.0",
-      },
-      legacy: {
-        react: "npm:16.0.0",
+    await workspace.writeYarnrc({
+      catalogs: {
+        stable: {
+          react: "npm:18.0.0",
+        },
+        legacy: {
+          react: "npm:16.0.0",
+        },
       },
     });
 
@@ -184,9 +192,11 @@ describe("yarn-plugin-catalogs", () => {
     await createTestProtocolPlugin(workspace, "test-protocol");
 
     // Create catalog.yml with version using the test protocol
-    await workspace.writeYaml("catalogs.yml", {
-      test: {
-        react: "test-protocol:18.0.0", // Uses our custom protocol
+    await workspace.writeYarnrc({
+      catalogs: {
+        test: {
+          react: "test-protocol:18.0.0", // Uses our custom protocol
+        },
       },
     });
 

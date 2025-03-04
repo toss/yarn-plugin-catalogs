@@ -5,13 +5,21 @@ import { join } from "path";
 
 const DEFAULT_ALIAS_GROUP = "YARN__PLUGIN__CATALOG__DEFAULT__GROUP";
 
+declare module "@yarnpkg/core" {
+  interface ConfigurationValueMap {
+    catalogs: CatalogsConfiguration;
+  }
+}
+
 /**
  * Configuration structure for catalogs.yml
  */
 export interface CatalogsConfiguration {
-  [alias: string]: {
-    [packageName: string]: string;
-  };
+  [alias: string]:
+    | {
+        [packageName: string]: string;
+      }
+    | string;
 }
 
 /**
@@ -47,58 +55,39 @@ export class CatalogConfigurationReader {
       return cached;
     }
 
-    const configPath = join(workspaceRoot, "catalogs.yml");
+    // Get config from project configuration
+    const rawConfig = project.configuration.get("catalogs") as unknown;
 
-    // Read and parse the file
-    try {
-      const content = await fs.readFile(configPath, "utf8");
-      const rawConfig = yamlLoad(content) as unknown;
+    // Transform config to handle root-level string values
+    const config = Object.entries(rawConfig as Record<string, object>).reduce(
+      (acc, [key, value]) => {
+        if (typeof value === "string") {
+          // If value is a string, put it under DEFAULT_ALIAS_GROUP
+          acc[DEFAULT_ALIAS_GROUP] = {
+            ...(acc[DEFAULT_ALIAS_GROUP] || {}),
+            [key]: value,
+          };
+        } else {
+          // Otherwise keep the original structure
+          acc[key] = value;
+        }
+        return acc;
+      },
+      {} as Record<string, object>
+    );
 
-      // Transform config to handle root-level string values
-      const config = Object.entries(rawConfig as Record<string, object>).reduce(
-        (acc, [key, value]) => {
-          if (typeof value === "string") {
-            // If value is a string, put it under DEFAULT_ALIAS_GROUP
-            acc[DEFAULT_ALIAS_GROUP] = {
-              ...(acc[DEFAULT_ALIAS_GROUP] || {}),
-              [key]: value,
-            };
-          } else {
-            // Otherwise keep the original structure
-            acc[key] = value;
-          }
-          return acc;
-        },
-        {} as Record<string, object>
-      );
-
-      // Validate configuration structure
-      if (!this.isValidConfiguration(config)) {
-        throw new CatalogConfigurationError(
-          "Invalid catalogs.yml format. Expected structure: { [alias: string]: { [packageName: string]: string } }",
-          CatalogConfigurationError.INVALID_FORMAT
-        );
-      }
-
-      // Cache the configuration
-      this.configCache.set(cacheKey, config);
-
-      return config;
-    } catch (error) {
-      if (error instanceof CatalogConfigurationError) {
-        throw error;
-      }
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new CatalogConfigurationError(
-          "catalogs.yml not found in the workspace root",
-          CatalogConfigurationError.FILE_NOT_FOUND
-        );
-      }
+    // Validate configuration structure
+    if (!this.isValidConfiguration(config)) {
       throw new CatalogConfigurationError(
-        `Failed to parse catalogs.yml: ${error.message}`,
+        "Invalid catalogs configuration format. Expected structure: { [alias: string]: { [packageName: string]: string } }",
         CatalogConfigurationError.INVALID_FORMAT
       );
     }
+
+    // Cache the configuration
+    this.configCache.set(cacheKey, config);
+
+    return config;
   }
 
   /**
