@@ -12,7 +12,7 @@ declare module "@yarnpkg/core" {
 }
 
 /**
- * Configuration structure for catalogs.yml
+ * Configuration structure for .yarnrc.yml#catalogs
  */
 export interface CatalogsConfiguration {
   [alias: string]:
@@ -23,7 +23,7 @@ export interface CatalogsConfiguration {
 }
 
 /**
- * Error thrown when catalogs.yml is invalid or missing
+ * Error thrown when .yarnrc.yml#catalogs is invalid or missing
  */
 export class CatalogConfigurationError extends Error {
   constructor(message: string, public readonly code: string) {
@@ -37,13 +37,13 @@ export class CatalogConfigurationError extends Error {
 }
 
 /**
- * Handles reading and parsing of catalogs.yml configuration
+ * Handles reading and parsing of .yarnrc.yml#catalogs configuration
  */
 export class CatalogConfigurationReader {
   private configCache: Map<string, CatalogsConfiguration> = new Map();
 
   /**
-   * Read and parse the catalogs.yml file
+   * Read and parse the .yarnrc.yml#catalogs file
    */
   async readConfiguration(project: Project): Promise<CatalogsConfiguration> {
     const workspaceRoot = project.cwd;
@@ -107,7 +107,7 @@ export class CatalogConfigurationReader {
 
     if (!aliasConfig) {
       throw new CatalogConfigurationError(
-        `Alias "${aliasGroupToFind}" not found in catalogs.yml`,
+        `Alias "${aliasGroupToFind}" not found in .yarnrc.yml catalogs.`,
         CatalogConfigurationError.INVALID_ALIAS
       );
     }

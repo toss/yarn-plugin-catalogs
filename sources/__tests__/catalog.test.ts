@@ -14,10 +14,10 @@ describe("yarn-plugin-catalogs", () => {
     }
   });
 
-  it("should resolve catalog version from catalogs.yml", async () => {
+  it("should resolve catalog version from .yarnrc.yml catalogs", async () => {
     workspace = await createTestWorkspace();
 
-    // Create catalogs.yml with version mappings
+    // Create .yarnrc.yml catalogs with version mappings
     await workspace.writeYarnrc({
       catalogs: {
         stable: {
@@ -78,7 +78,7 @@ describe("yarn-plugin-catalogs", () => {
   it("fallback to default protocol 'npm' if no protocol is provided", async () => {
     workspace = await createTestWorkspace();
 
-    // Create catalogs.yml with version mappings
+    // Create .yarnrc.yml catalogs with version mappings
     await workspace.writeYarnrc({
       catalogs: {
         npm: {
@@ -120,7 +120,7 @@ describe("yarn-plugin-catalogs", () => {
   it("fallback to root catalogs if no catalog group is provided", async () => {
     workspace = await createTestWorkspace();
 
-    // Create catalogs.yml with version mappings
+    // Create .yarnrc.yml catalogs with version mappings
     await workspace.writeYarnrc({
       catalogs: {
         react: "18.0.0",

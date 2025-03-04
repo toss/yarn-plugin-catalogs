@@ -41,7 +41,7 @@ const plugin: Plugin<Hooks> = {
         const catalogAlias = dependency.range.slice(CATALOG_PROTOCOL.length);
         const dependencyName = structUtils.stringifyIdent(dependency);
 
-        // Get the actual version from catalogs.yml
+        // Get the actual version from .yarnrc.yml
         const range = await configReader.getRange(
           project,
           catalogAlias,
