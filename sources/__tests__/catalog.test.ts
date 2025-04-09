@@ -221,4 +221,67 @@ describe("yarn-plugin-catalogs", () => {
     // The version should ultimately be resolved to npm:18.0.0
     expect(info.value).toBe("react@npm:18.0.0");
   });
+
+  it("should warn when adding a dependency without catalog protocol", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        groupA: {
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    const { stderr } = await workspace.yarn.add("react");
+    expect(stderr).toContain("groupA");
+    expect(stderr).toContain("react@catalog:groupA");
+  });
+
+  it("should warn when adding a dependency with multiple alias groups", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        groupA: {
+          react: "npm:18.0.0",
+        },
+        groupB: {
+          react: "npm:17.0.0",
+        },
+      },
+    });
+
+    const { stderr } = await workspace.yarn.add("react");
+    expect(stderr).toContain("groupA, groupB");
+    expect(stderr).toContain("react@catalog:groupA");
+  });
+
+  it("should not warn when adding a dependency with catalog protocol", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        groupA: {
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    const { stderr } = await workspace.yarn.add("react@catalog:groupA");
+    expect(stderr).toBe("");
+  });
+
+  it("should not warn when adding a dependency not in catalogs config", async () => {  
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        next: "npm:12.0.0",
+      },
+    });
+
+    const { stderr } = await workspace.yarn.add("react");
+    expect(stderr).toBe("");
+  });
 });
