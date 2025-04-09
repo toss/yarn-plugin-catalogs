@@ -134,7 +134,7 @@ export class CatalogConfigurationReader {
   async findDependency(
     project: Project,
     dependency: Descriptor,
-  ): Promise<[string, string][] | null> {
+  ): Promise<[string, string][]> {
     const config = await this.readConfiguration(project);
     
     const aliasGroups = Object.entries(config).filter(([_, value]) => {
@@ -145,7 +145,7 @@ export class CatalogConfigurationReader {
       }
     });
 
-    if (aliasGroups.length === 0) return null;
+    if (aliasGroups.length === 0) return [];
 
     return aliasGroups.map(([alias, aliasConfig]) => {
       const version = typeof aliasConfig === "string" ? aliasConfig : aliasConfig[dependency.name];

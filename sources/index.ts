@@ -106,7 +106,10 @@ async function recommendCatalogProtocol(workspace: Workspace, dependency: Descri
     aliasGroup === DEFAULT_ALIAS_GROUP ? "" : aliasGroup
   ));
 
-  console.warn(`${dependency.name} is listed in the catalogs config: ${aliasGroups.join(", ")}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`);
+  const aliasGroupsText = aliasGroups.filter(aliasGroup => aliasGroup !== "").length > 0
+    ? `: ${aliasGroups.join(", ")}` : "";
+
+  console.warn(`${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`);
 }
 
 // Export the plugin factory
