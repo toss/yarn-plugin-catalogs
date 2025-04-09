@@ -1,6 +1,8 @@
-import { Project } from "@yarnpkg/core";
+import { Descriptor, Project } from "@yarnpkg/core";
 
 const DEFAULT_ALIAS_GROUP = "YARN__PLUGIN__CATALOG__DEFAULT__GROUP";
+
+export const CATALOG_PROTOCOL = "catalog:";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {
@@ -123,6 +125,32 @@ export class CatalogConfigurationReader {
     }
 
     return version;
+  }
+
+  /**
+   * Check if a dependency is in the configuration,
+   * and return the alias group and the dependency's version if it is.
+   */
+  async hasDependency(
+    project: Project,
+    dependency: Descriptor,
+  ): Promise<[string, string] | null> {
+    const config = await this.readConfiguration(project);
+    
+    const aliasGroup = Object.entries(config).find(([_, value]) => {
+      if (typeof value === "string") {
+        return dependency.name === value;
+      } else {
+        return Object.keys(value).includes(dependency.name);
+      }
+    });
+
+    if (!aliasGroup) return null;
+
+    const [alias, aliasConfig] = aliasGroup;
+    const version = typeof aliasConfig === "string" ? aliasConfig : aliasConfig[dependency.name];
+
+    return [alias, version];
   }
 
   /**
