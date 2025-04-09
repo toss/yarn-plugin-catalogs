@@ -3,8 +3,10 @@
   "private": true,
   "main": "./sources/index.ts",
   "dependencies": {
-    "@yarnpkg/cli": "^4.4.1",
-    "@yarnpkg/core": "^4.1.2",
+    "@yarnpkg/cli": "^4.8.0",
+    "@yarnpkg/core": "^4.3.0",
+    "@yarnpkg/plugin-essentials": "^4.3.2",
+    "@yarnpkg/plugin-git": "^3.1.1",
     "clipanion": "^4.0.0-rc.2"
   },
   "devDependencies": {

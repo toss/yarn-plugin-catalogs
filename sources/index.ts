@@ -5,7 +5,9 @@ import {
   structUtils,
   Hooks,
   SettingsType,
+  Workspace,
 } from "@yarnpkg/core";
+import { Hooks as EssentialHooks } from '@yarnpkg/plugin-essentials';
 import {
   CatalogConfigurationReader,
   CatalogConfigurationError,
@@ -23,7 +25,7 @@ const CATALOG_PROTOCOL = "catalog:";
 // Create a singleton instance of our configuration reader
 const configReader = new CatalogConfigurationReader();
 
-const plugin: Plugin<Hooks> = {
+const plugin: Plugin<Hooks & EssentialHooks> = {
   configuration: {
     catalogs: {
       description:
@@ -84,6 +86,12 @@ const plugin: Plugin<Hooks> = {
         }
         throw error;
       }
+    },
+    afterWorkspaceDependencyAddition: async (_, __, dependency: Descriptor) => {
+      // do something
+    },
+    afterWorkspaceDependencyReplacement: async (_, __, ___, dependency: Descriptor) => {
+      // do something
     },
   },
 };
