@@ -99,10 +99,14 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
 async function recommendCatalogProtocol(workspace: Workspace, dependency: Descriptor) {
   if (dependency.range.startsWith(CATALOG_PROTOCOL)) return;
 
-  const [aliasGroup, version] = await configReader.hasDependency(workspace.project, dependency);
-  const aliasGroupText = aliasGroup === DEFAULT_ALIAS_GROUP ? "" : aliasGroup;
+  const aliases = await configReader.findDependency(workspace.project, dependency);
+  if (aliases.length === 0) return;
 
-  console.warn(`${dependency.name} is in the catalogs config (${version}), but it's not using the catalog protocol. You might want to run 'yarn add ${dependency.name}@catalogs:${aliasGroupText}' instead.`);
+  const aliasGroups = aliases.map(([aliasGroup]) => (
+    aliasGroup === DEFAULT_ALIAS_GROUP ? "" : aliasGroup
+  ));
+
+  console.warn(`${dependency.name} is listed in the catalogs config: ${aliasGroups.join(", ")}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`);
 }
 
 // Export the plugin factory

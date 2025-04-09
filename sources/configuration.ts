@@ -128,16 +128,16 @@ export class CatalogConfigurationReader {
   }
 
   /**
-   * Check if a dependency is in the configuration,
-   * and return the alias group and the dependency's version if it is.
+   * Find a specific dependency in the configuration
+   * and return the names of alias groups it belongs to, along with its versions.
    */
-  async hasDependency(
+  async findDependency(
     project: Project,
     dependency: Descriptor,
-  ): Promise<[string, string] | null> {
+  ): Promise<[string, string][] | null> {
     const config = await this.readConfiguration(project);
     
-    const aliasGroup = Object.entries(config).find(([_, value]) => {
+    const aliasGroups = Object.entries(config).filter(([_, value]) => {
       if (typeof value === "string") {
         return dependency.name === value;
       } else {
@@ -145,12 +145,12 @@ export class CatalogConfigurationReader {
       }
     });
 
-    if (!aliasGroup) return null;
+    if (aliasGroups.length === 0) return null;
 
-    const [alias, aliasConfig] = aliasGroup;
-    const version = typeof aliasConfig === "string" ? aliasConfig : aliasConfig[dependency.name];
-
-    return [alias, version];
+    return aliasGroups.map(([alias, aliasConfig]) => {
+      const version = typeof aliasConfig === "string" ? aliasConfig : aliasConfig[dependency.name];
+      return [alias, version];
+    });
   }
 
   /**
