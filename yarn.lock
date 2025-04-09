@@ -2129,6 +2129,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"chalk@npm:^5.4.1":
+  version: 5.4.1
+  resolution: "chalk@npm:5.4.1"
+  checksum: 10c0/b23e88132c702f4855ca6d25cb5538b1114343e41472d5263ee8a37cccfccd9c4216d111e1097c6a27830407a1dc81fecdf2a56f2c63033d4dbbd88c10b0dcef
+  languageName: node
+  linkType: hard
+
 "check-error@npm:^1.0.3":
   version: 1.0.3
   resolution: "check-error@npm:1.0.3"
@@ -4561,6 +4568,7 @@ __metadata:
     "@yarnpkg/core": "npm:^4.3.0"
     "@yarnpkg/plugin-essentials": "npm:^4.3.2"
     "@yarnpkg/plugin-git": "npm:^3.1.1"
+    chalk: "npm:^5.4.1"
     clipanion: "npm:^4.0.0-rc.2"
     js-yaml: "npm:^4.1.0"
     rimraf: "npm:5.0.0"

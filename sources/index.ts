@@ -8,6 +8,7 @@ import {
   Workspace,
 } from "@yarnpkg/core";
 import { Hooks as EssentialHooks } from '@yarnpkg/plugin-essentials';
+import chalk from 'chalk';
 import {
   CatalogConfigurationReader,
   CatalogConfigurationError,
@@ -107,9 +108,9 @@ async function recommendCatalogProtocol(workspace: Workspace, dependency: Descri
   ));
 
   const aliasGroupsText = aliasGroups.filter(aliasGroup => aliasGroup !== "").length > 0
-    ? `: ${aliasGroups.join(", ")}` : "";
+    ? `(${aliasGroups.join(", ")})` : "";
 
-  console.warn(`${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`);
+  console.warn(chalk.yellow(`➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`));
 }
 
 // Export the plugin factory
