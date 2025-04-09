@@ -1,6 +1,6 @@
 import { Descriptor, Project } from "@yarnpkg/core";
 
-const DEFAULT_ALIAS_GROUP = "YARN__PLUGIN__CATALOG__DEFAULT__GROUP";
+export const DEFAULT_ALIAS_GROUP = "YARN__PLUGIN__CATALOG__DEFAULT__GROUP";
 
 export const CATALOG_PROTOCOL = "catalog:";
 
