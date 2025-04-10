@@ -1,6 +1,8 @@
 import { Descriptor, Project } from "@yarnpkg/core";
 
-export const DEFAULT_ALIAS_GROUP = "YARN__PLUGIN__CATALOG__DEFAULT__GROUP";
+export const BASE_ALIAS_GROUP = "YARN__PLUGIN__CATALOG__DEFAULT__GROUP";
+
+const DEFAULT_ALIAS_GROUP = "default";
 
 export const CATALOG_PROTOCOL = "catalog:";
 
@@ -61,9 +63,9 @@ export class CatalogConfigurationReader {
     const config = Object.entries(rawConfig as Record<string, object>).reduce(
       (acc, [key, value]) => {
         if (typeof value === "string") {
-          // If value is a string, put it under DEFAULT_ALIAS_GROUP
-          acc[DEFAULT_ALIAS_GROUP] = {
-            ...(acc[DEFAULT_ALIAS_GROUP] || {}),
+          // If value is a string, put it under BASE_ALIAS_GROUP
+          acc[BASE_ALIAS_GROUP] = {
+            ...(acc[BASE_ALIAS_GROUP] || {}),
             [key]: value,
           };
         } else {
@@ -100,7 +102,7 @@ export class CatalogConfigurationReader {
     const config = await this.readConfiguration(project);
 
     const aliasGroupToFind =
-      aliasGroup.length === 0 ? DEFAULT_ALIAS_GROUP : aliasGroup;
+      aliasGroup.length === 0 ? BASE_ALIAS_GROUP : aliasGroup;
 
     const aliasConfig = config[aliasGroupToFind];
 
@@ -125,6 +127,19 @@ export class CatalogConfigurationReader {
     }
 
     return version;
+  }
+
+  /**
+   * Get the default alias group from the configuration if it exists
+   */
+  async getDefaultAliasGroup(project: Project): Promise<string | null> {
+    const config = await this.readConfiguration(project);
+
+    if (config[BASE_ALIAS_GROUP] && config[BASE_ALIAS_GROUP][DEFAULT_ALIAS_GROUP]) {
+      return config[BASE_ALIAS_GROUP][DEFAULT_ALIAS_GROUP] as string;
+    }
+
+    return null;
   }
 
   /**
@@ -176,6 +191,18 @@ export class CatalogConfigurationReader {
         if (typeof version !== "string") {
           return false;
         }
+      }
+    }
+
+    if (config[BASE_ALIAS_GROUP] && config[BASE_ALIAS_GROUP][DEFAULT_ALIAS_GROUP]) {
+      const defaultAliasGroup = config[BASE_ALIAS_GROUP][DEFAULT_ALIAS_GROUP];
+
+      if (typeof defaultAliasGroup !== "string") {
+        return false;
+      }
+
+      if (!Object.keys(config).includes(defaultAliasGroup)) {
+        return false;
       }
     }
 

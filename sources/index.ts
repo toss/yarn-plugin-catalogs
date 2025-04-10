@@ -14,7 +14,7 @@ import {
   CatalogConfigurationError,
   CatalogsConfiguration,
   CATALOG_PROTOCOL,
-  DEFAULT_ALIAS_GROUP,
+  BASE_ALIAS_GROUP,
 } from "./configuration";
 
 declare module "@yarnpkg/core" {
@@ -103,8 +103,15 @@ async function recommendCatalogProtocol(workspace: Workspace, dependency: Descri
   const aliases = await configReader.findDependency(workspace.project, dependency);
   if (aliases.length === 0) return;
 
+  // If there's a default alias group, fallback to it
+  const defaultAliasGroup = await configReader.getDefaultAliasGroup(workspace.project);
+  if (defaultAliasGroup !== null) {
+    dependency.range = `${CATALOG_PROTOCOL}${defaultAliasGroup}`;
+    return;
+  };
+
   const aliasGroups = aliases.map(([aliasGroup]) => (
-    aliasGroup === DEFAULT_ALIAS_GROUP ? "" : aliasGroup
+    aliasGroup === BASE_ALIAS_GROUP ? "" : aliasGroup
   ));
 
   const aliasGroupsText = aliasGroups.filter(aliasGroup => aliasGroup !== "").length > 0
