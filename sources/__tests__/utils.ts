@@ -110,3 +110,14 @@ module.exports = {
 
   return pluginPath;
 }
+
+export function extractDependencies(log: string): string[] {
+  return log
+    .split("\n")
+    .filter((str) => str != null && str.length > 0)
+    .map(
+      (depsString) =>
+        JSON.parse(depsString) as { value: string; children: object }
+    )
+    .reduce((result, item) => [...result, item.value], [] as string[]);
+}
