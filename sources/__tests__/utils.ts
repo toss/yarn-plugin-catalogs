@@ -17,6 +17,7 @@ export interface TestWorkspace {
     (args: string[]): Promise<{ stdout: string; stderr: string }>;
     install(): Promise<{ stdout: string; stderr: string }>;
     info(): Promise<{ stdout: string; stderr: string }>;
+    add(dep: string): Promise<{ stdout: string; stderr: string }>;
   };
 }
 
@@ -30,6 +31,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
 
   yarn.install = async () => await yarn(["install", "--no-immutable"]);
   yarn.info = async () => await yarn(["info", "--json"]);
+  yarn.add = async (dep: string) => await yarn(["add", dep]);
 
   const { path, cleanup } = await tmpDir({ unsafeCleanup: true });
 
@@ -107,4 +109,15 @@ module.exports = {
   await workspace.yarn(["plugin", "import", pluginPath]);
 
   return pluginPath;
+}
+
+export function extractDependencies(log: string): string[] {
+  return log
+    .split("\n")
+    .filter((str) => str != null && str.length > 0)
+    .map(
+      (depsString) =>
+        JSON.parse(depsString) as { value: string; children: object }
+    )
+    .reduce((result, item) => [...result, item.value], [] as string[]);
 }
