@@ -1,8 +1,6 @@
 import { Descriptor, Project } from "@yarnpkg/core";
 
-export const BASE_ALIAS_GROUP = "YARN__PLUGIN__CATALOG__DEFAULT__GROUP";
-
-const DEFAULT_ALIAS_GROUP = "default";
+export const ROOT_ALIAS_GROUP = "root";
 
 export const CATALOG_PROTOCOL = "catalog:";
 
@@ -16,11 +14,16 @@ declare module "@yarnpkg/core" {
  * Configuration structure for .yarnrc.yml#catalogs
  */
 export interface CatalogsConfiguration {
-  [alias: string]:
+  options?: {
+    default?: string[];
+  }
+  list: {
+    [alias: string]:
     | {
-        [packageName: string]: string;
-      }
+      [packageName: string]: string;
+    }
     | string;
+  }
 }
 
 /**
@@ -59,13 +62,14 @@ export class CatalogConfigurationReader {
     // Get config from project configuration
     const rawConfig = project.configuration.get("catalogs") as unknown;
 
+    let config = rawConfig;
     // Transform config to handle root-level string values
-    const config = Object.entries(rawConfig as Record<string, object>).reduce(
+    config["list"] = Object.entries(rawConfig["list"] as Record<string, object>).reduce(
       (acc, [key, value]) => {
         if (typeof value === "string") {
           // If value is a string, put it under BASE_ALIAS_GROUP
-          acc[BASE_ALIAS_GROUP] = {
-            ...(acc[BASE_ALIAS_GROUP] || {}),
+          acc[ROOT_ALIAS_GROUP] = {
+            ...(acc[ROOT_ALIAS_GROUP] || {}),
             [key]: value,
           };
         } else {
@@ -80,7 +84,7 @@ export class CatalogConfigurationReader {
     // Validate configuration structure
     if (!this.isValidConfiguration(config)) {
       throw new CatalogConfigurationError(
-        "Invalid catalogs configuration format. Expected structure: { [alias: string]: { [packageName: string]: string } }",
+        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] }, list: { [alias: string]: { [packageName: string]: string } } }",
         CatalogConfigurationError.INVALID_FORMAT
       );
     }
@@ -102,9 +106,9 @@ export class CatalogConfigurationReader {
     const config = await this.readConfiguration(project);
 
     const aliasGroupToFind =
-      aliasGroup.length === 0 ? BASE_ALIAS_GROUP : aliasGroup;
+      aliasGroup.length === 0 ? ROOT_ALIAS_GROUP : aliasGroup;
 
-    const aliasConfig = config[aliasGroupToFind];
+    const aliasConfig = config.list[aliasGroupToFind];
 
     if (!aliasConfig) {
       throw new CatalogConfigurationError(
@@ -132,14 +136,14 @@ export class CatalogConfigurationReader {
   /**
    * Get the default alias group from the configuration if it exists
    */
-  async getDefaultAliasGroup(project: Project): Promise<string | null> {
+  async getDefaultAliasGroups(project: Project): Promise<string[]> {
     const config = await this.readConfiguration(project);
 
-    if (config[BASE_ALIAS_GROUP] && config[BASE_ALIAS_GROUP][DEFAULT_ALIAS_GROUP]) {
-      return config[BASE_ALIAS_GROUP][DEFAULT_ALIAS_GROUP] as string;
+    if (config.options && config.options.default) {
+      return config.options.default as string[];
     }
 
-    return null;
+    return [];
   }
 
   /**
@@ -152,7 +156,7 @@ export class CatalogConfigurationReader {
   ): Promise<[string, string][]> {
     const config = await this.readConfiguration(project);
     
-    const aliasGroups = Object.entries(config).filter(([_, value]) => {
+    const aliasGroups = Object.entries(config.list).filter(([_, value]) => {
       if (typeof value === "string") {
         return dependency.name === value;
       } else {
@@ -182,7 +186,12 @@ export class CatalogConfigurationReader {
       return false;
     }
 
-    for (const [_, aliasConfig] of Object.entries(config)) {
+    // The list property must be an object
+    if (!config["list"] || typeof config["list"] !== "object") {
+      return false;
+    }
+
+    for (const [_, aliasConfig] of Object.entries(config["list"])) {
       if (!aliasConfig || typeof aliasConfig !== "object") {
         return false;
       }
@@ -194,15 +203,21 @@ export class CatalogConfigurationReader {
       }
     }
 
-    if (config[BASE_ALIAS_GROUP] && config[BASE_ALIAS_GROUP][DEFAULT_ALIAS_GROUP]) {
-      const defaultAliasGroup = config[BASE_ALIAS_GROUP][DEFAULT_ALIAS_GROUP];
-
-      if (typeof defaultAliasGroup !== "string") {
+    // Check the default option if it exists
+    if (config["options"] && config["options"]["default"]) {
+      if (!Array.isArray(config["options"]["default"])) {
         return false;
       }
 
-      if (!Object.keys(config).includes(defaultAliasGroup)) {
+      if (config["options"]["default"].length === 0) {
         return false;
+      }
+
+      const aliasGroups = Object.keys(config["list"]);
+      for (const group of config["options"]["default"]) {
+        if (group !== "root" && !aliasGroups.includes(group)) {
+          return false;
+        }
       }
     }
 
