@@ -1,4 +1,4 @@
-import { Descriptor, Project } from "@yarnpkg/core";
+import { Descriptor, Project, Workspace } from "@yarnpkg/core";
 
 export const ROOT_ALIAS_GROUP = "root";
 
@@ -15,7 +15,12 @@ declare module "@yarnpkg/core" {
  */
 export interface CatalogsConfiguration {
   options?: {
-    default?: string[];
+    /**
+     * The default alias group to be used when no group is specified when adding a dependency
+     * - if list of alias groups, it will be used in order
+     * - if 'max', the most frequently used alias group will be used
+     */
+    default?: string[] | 'max';
   }
   list: {
     [alias: string]:
@@ -84,7 +89,7 @@ export class CatalogConfigurationReader {
     // Validate configuration structure
     if (!this.isValidConfiguration(config)) {
       throw new CatalogConfigurationError(
-        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] }, list: { [alias: string]: { [packageName: string]: string } } }",
+        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] | 'max' }, list: { [alias: string]: { [packageName: string]: string } } }",
         CatalogConfigurationError.INVALID_FORMAT
       );
     }
@@ -136,11 +141,34 @@ export class CatalogConfigurationReader {
   /**
    * Get the default alias group from the configuration if it exists
    */
-  async getDefaultAliasGroups(project: Project): Promise<string[]> {
-    const config = await this.readConfiguration(project);
+  async getDefaultAliasGroups(workspace: Workspace): Promise<string[]> {
+    const config = await this.readConfiguration(workspace.project);
 
     if (config.options && config.options.default) {
-      return config.options.default as string[];
+      // If default value is an list of alias groups, return it
+      if (Array.isArray(config.options.default)) {
+        return config.options.default;
+      }
+
+      // If default value is "max", find the most frequently used alias group
+      if (config.options.default === "max") {
+        const aliasGroups = Object.keys(config.list);
+
+        const dependencies = [...workspace.manifest.dependencies, ...workspace.manifest.devDependencies];
+        const counts: Record<string, number> = Object.fromEntries(aliasGroups.map((aliasGroup) => [aliasGroup, 0]));
+
+        // Count the occurrences of each alias group in the dependencies
+        for (const [_, descriptor] of dependencies) {
+          if (descriptor.range.startsWith(CATALOG_PROTOCOL)) {
+            const aliasGroup = descriptor.range.substring(CATALOG_PROTOCOL.length);
+            counts[aliasGroup] = (counts[aliasGroup] || 0) + 1;
+          }
+        }
+
+        // Find the alias group with the maximum count of dependencies
+        const maxCount = Math.max(...Object.values(counts));
+        return Object.keys(counts).filter((aliasGroup) => counts[aliasGroup] === maxCount);
+      }
     }
 
     return [];
@@ -155,7 +183,7 @@ export class CatalogConfigurationReader {
     dependency: Descriptor,
   ): Promise<[string, string][]> {
     const config = await this.readConfiguration(project);
-    
+
     const aliasGroups = Object.entries(config.list).filter(([_, value]) => {
       if (typeof value === "string") {
         return dependency.name === value;
@@ -205,17 +233,23 @@ export class CatalogConfigurationReader {
 
     // Check the default option if it exists
     if (config["options"] && config["options"]["default"]) {
-      if (!Array.isArray(config["options"]["default"])) {
-        return false;
-      }
+      if (Array.isArray(config["options"]["default"])) {
+        if (config["options"]["default"].length === 0) {
+          return false;
+        }
 
-      if (config["options"]["default"].length === 0) {
-        return false;
-      }
+        const aliasGroups = Object.keys(config["list"]);
+        for (const group of config["options"]["default"]) {
+          if (group !== "root" && !aliasGroups.includes(group)) {
+            return false;
+          }
+        }
+      } else {
+        if (typeof config["options"]["default"] !== "string") {
+          return false;
+        }
 
-      const aliasGroups = Object.keys(config["list"]);
-      for (const group of config["options"]["default"]) {
-        if (group !== "root" && !aliasGroups.includes(group)) {
+        if (config["options"]["default"] !== "max") {
           return false;
         }
       }
