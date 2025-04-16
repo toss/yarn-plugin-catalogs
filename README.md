@@ -100,35 +100,33 @@ catalogs:
 
 #### Default Catalogs
 
-You can configure default catalogs using the `default` option, allowing you to run `yarn add` without specifying a catalogs name.
-
-```yaml
+The `default` option automatically selects a catalog for `yarn add` when no catalog name is specified. If multiple catalogs are listed, priority is determined by their order.
 
 ```yaml
 # In .yarnrc.yml
 catalogs:
   options:
-    default: ["beta"]
+    default: [beta, legacy]
   list:
     beta:
       react: 19.0.0
-      react-dom: 19.0.0
     legacy:
       react: 17.0.2
-      react-dom: 17.0.2
+      typescript: 4.8.3
 ```
 
 ```sh
 yarn add react # Same as `yarn add react@catalog:beta`
+yarn add typescript # Same as `yarn add typescript@catalog:legacy`
 ```
 
-If you want to use the root catalogs as the default, just set the `default` option to `root`:
+To use the root catalogs as the default, just set the `default` option to `root`:
 
 ```yaml
 # In .yarnrc.yml
 catalogs:
   options:
-    default: ["root"]
+    default: [root]
   list:
     react: 19.0.0
     react-dom: 19.0.0
@@ -138,25 +136,42 @@ catalogs:
 yarn add react # Same as `yarn add react@catalog:`
 ```
 
-You can also set multiple default catalogs. In this case, the priority is determined by the order specified in the list:
+The `default` option can also be set to a non-list value that defines a selection rule instead of specifying a catalog name. For example, `max` selects the most frequently used catalog in package.json as the default.
 
 ```yaml
 # In .yarnrc.yml
 catalogs:
   options:
-    default: ["stable", "beta"]
+    default: max
   list:
     beta:
       react: 19.0.0
       react-dom: 19.0.0
-    stable:
       typescript: 5.1.6
+      next: 15.3.0
+    legacy:
+      react: 17.0.2
+      react-dom: 17.0.2
+      typescript: 4.8.3
+      next: 13.4.9
+```
+
+```json
+{
+  "dependencies": {
+    "react": "catalog:beta",
+    "react-dom": "catalog:beta",
+    "typescript": "catalog:legacy",
+  }
+}
 ```
 
 ```sh
-yarn add typescript # Same as `yarn add typescript@catalog:stable`
-yarn add react # Same as `yarn add react@catalog:beta`
+yarn add next # Same as `yarn add next@catalog:beta`
+              # because beta is the most frequently used catalog in package.json
 ```
+
+Currently, only the `max` option is available, but additional options may be added in the future.
 
 ## Contributing
 
