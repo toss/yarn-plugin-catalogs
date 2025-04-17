@@ -1,4 +1,4 @@
-import { Descriptor, Project, Workspace } from "@yarnpkg/core";
+import { Descriptor, Project, structUtils, Workspace } from "@yarnpkg/core";
 
 export const ROOT_ALIAS_GROUP = "root";
 
@@ -182,20 +182,22 @@ export class CatalogConfigurationReader {
     project: Project,
     dependency: Descriptor,
   ): Promise<[string, string][]> {
+    const dependencyString = structUtils.stringifyIdent(dependency);
+
     const config = await this.readConfiguration(project);
 
     const aliasGroups = Object.entries(config.list).filter(([_, value]) => {
       if (typeof value === "string") {
-        return dependency.name === value;
+        return dependencyString === value;
       } else {
-        return Object.keys(value).includes(dependency.name);
+        return Object.keys(value).includes(dependencyString);
       }
     });
 
     if (aliasGroups.length === 0) return [];
 
     return aliasGroups.map(([alias, aliasConfig]) => {
-      const version = typeof aliasConfig === "string" ? aliasConfig : aliasConfig[dependency.name];
+      const version = typeof aliasConfig === "string" ? aliasConfig : aliasConfig[dependencyString];
       return [alias, version];
     });
   }
