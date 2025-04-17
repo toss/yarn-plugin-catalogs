@@ -27,19 +27,20 @@ yarn plugin import https://raw.githubusercontent.com/toss/yarn-plugin-catalogs/m
 # in .yarnrc.yml
 
 catalogs:
-  # Root catalogs (can be referenced with just "catalog:")
-  react: 18.0.0
-  react-dom: 18.0.0
-  typescript: 5.1.6
+  list:
+    # Root catalogs (can be referenced with just "catalog:")
+    react: 18.0.0
+    react-dom: 18.0.0
+    typescript: 5.1.6
 
-  # Named catalogs (must be referenced with "catalog:name")
-  beta:
-    react: 19.0.0
-    react-dom: 19.0.0
+    # Named catalogs (must be referenced with "catalog:name")
+    beta:
+      react: 19.0.0
+      react-dom: 19.0.0
 
-  legacy:
-    react: 17.0.2
-    react-dom: 17.0.2
+    legacy:
+      react: 17.0.2
+      react-dom: 17.0.2
 ```
 
 ### 2. Reference catalog versions in your package.json
@@ -66,9 +67,10 @@ The plugin automatically adds the `npm:` protocol if none is specified in the ca
 ```yaml
 # In .yarnrc.yml
 catalogs:
-  react: 18.0.0           // Will be transformed to "npm:18.0.0"
-  next: "npm:13.4.9"      // Protocol explicitly specified
-  lodash: "patch:lodash@4.17.21#./.patches/lodash.patch"  // Custom protocol
+  list:
+    react: 18.0.0           // Will be transformed to "npm:18.0.0"
+    next: "npm:13.4.9"      // Protocol explicitly specified
+    lodash: "patch:lodash@4.17.21#./.patches/lodash.patch"  // Custom protocol
 ```
 
 #### Scoped Packages
@@ -78,11 +80,12 @@ Scoped packages work as expected:
 ```yaml
 # In .yarnrc.yml
 catalogs:
-  "@emotion/react": 11.11.1
-  "@types/react": 18.2.15
+  list:
+    "@emotion/react": 11.11.1
+    "@types/react": 18.2.15
 
-  beta:
-    "@tanstack/react-query": 5.0.0
+    beta:
+      "@tanstack/react-query": 5.0.0
 ```
 
 ```json
@@ -94,6 +97,81 @@ catalogs:
   }
 }
 ```
+
+#### Default Catalogs
+
+The `default` option automatically selects a catalog for `yarn add` when no catalog name is specified. If multiple catalogs are listed, priority is determined by their order.
+
+```yaml
+# In .yarnrc.yml
+catalogs:
+  options:
+    default: [beta, legacy]
+  list:
+    beta:
+      react: 19.0.0
+    legacy:
+      react: 17.0.2
+      typescript: 4.8.3
+```
+
+```sh
+yarn add react # Same as `yarn add react@catalog:beta`
+yarn add typescript # Same as `yarn add typescript@catalog:legacy`
+```
+
+To use the root catalogs as the default, just set the `default` option to `root`:
+
+```yaml
+# In .yarnrc.yml
+catalogs:
+  options:
+    default: [root]
+  list:
+    react: 19.0.0
+    react-dom: 19.0.0
+```
+
+```sh
+yarn add react # Same as `yarn add react@catalog:`
+```
+
+The `default` option can also be set to a non-list value that defines a selection rule instead of specifying a catalog name. For example, `max` selects the most frequently used catalog in package.json as the default.
+
+```yaml
+# In .yarnrc.yml
+catalogs:
+  options:
+    default: max
+  list:
+    beta:
+      react: 19.0.0
+      react-dom: 19.0.0
+      typescript: 5.1.6
+      next: 15.3.0
+    legacy:
+      react: 17.0.2
+      react-dom: 17.0.2
+      typescript: 4.8.3
+      next: 13.4.9
+```
+
+```json
+{
+  "dependencies": {
+    "react": "catalog:beta",
+    "react-dom": "catalog:beta",
+    "typescript": "catalog:legacy",
+  }
+}
+```
+
+```sh
+yarn add next # Same as `yarn add next@catalog:beta`
+              # because beta is the most frequently used catalog in package.json
+```
+
+Currently, only the `max` option is available, but additional options may be added in the future.
 
 ## Contributing
 

@@ -3,6 +3,7 @@ import {
   createTestWorkspace,
   TestWorkspace,
   createTestProtocolPlugin,
+  extractDependencies,
 } from "./utils";
 
 describe("yarn-plugin-catalogs", () => {
@@ -20,17 +21,19 @@ describe("yarn-plugin-catalogs", () => {
     // Create .yarnrc.yml catalogs with version mappings
     await workspace.writeYarnrc({
       catalogs: {
-        stable: {
-          react: "npm:18.0.0",
-          "react-dom": "npm:18.0.0",
-          "es-toolkit": "npm:1.32.0",
-        },
-        legacy: {
-          next: "npm:12.0.0",
-          lodash: "npm:4.0.0",
-        },
-        beta: {
-          "@rspack/core": "npm:1.2.0",
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+            "react-dom": "npm:18.0.0",
+            "es-toolkit": "npm:1.32.0",
+          },
+          legacy: {
+            next: "npm:12.0.0",
+            lodash: "npm:4.0.0",
+          },
+          beta: {
+            "@rspack/core": "npm:1.2.0",
+          },
         },
       },
     });
@@ -55,17 +58,7 @@ describe("yarn-plugin-catalogs", () => {
 
     // Verify that the correct version was resolved
     const { stdout: listOutput } = await workspace.yarn.info();
-
-    const dependencies = listOutput
-      .split("\n")
-      .filter((str) => str != null && str.length > 0)
-      .map(
-        (depsString) =>
-          JSON.parse(depsString) as { value: string; children: object }
-      )
-      .reduce((result, item) => {
-        return [...result, item.value];
-      }, [] as string[]);
+    const dependencies = extractDependencies(listOutput);
 
     expect(dependencies).includes("react@npm:18.0.0");
     expect(dependencies).includes("react-dom@npm:18.0.0");
@@ -81,8 +74,10 @@ describe("yarn-plugin-catalogs", () => {
     // Create .yarnrc.yml catalogs with version mappings
     await workspace.writeYarnrc({
       catalogs: {
-        npm: {
-          react: "18.0.0",
+        list: {
+          npm: {
+            react: "18.0.0",
+          },
         },
       },
     });
@@ -102,17 +97,7 @@ describe("yarn-plugin-catalogs", () => {
 
     // Verify that the correct version was resolved
     const { stdout: listOutput } = await workspace.yarn.info();
-
-    const dependencies = listOutput
-      .split("\n")
-      .filter((str) => str != null && str.length > 0)
-      .map(
-        (depsString) =>
-          JSON.parse(depsString) as { value: string; children: object }
-      )
-      .reduce((result, item) => {
-        return [...result, item.value];
-      }, [] as string[]);
+    const dependencies = extractDependencies(listOutput);
 
     expect(dependencies).includes("react@npm:18.0.0");
   });
@@ -123,7 +108,9 @@ describe("yarn-plugin-catalogs", () => {
     // Create .yarnrc.yml catalogs with version mappings
     await workspace.writeYarnrc({
       catalogs: {
-        react: "18.0.0",
+        list: {
+          react: "18.0.0",
+        },
       },
     });
 
@@ -142,17 +129,7 @@ describe("yarn-plugin-catalogs", () => {
 
     // Verify that the correct version was resolved
     const { stdout: listOutput } = await workspace.yarn.info();
-
-    const dependencies = listOutput
-      .split("\n")
-      .filter((str) => str != null && str.length > 0)
-      .map(
-        (depsString) =>
-          JSON.parse(depsString) as { value: string; children: object }
-      )
-      .reduce((result, item) => {
-        return [...result, item.value];
-      }, [] as string[]);
+    const dependencies = extractDependencies(listOutput);
 
     expect(dependencies).includes("react@npm:18.0.0");
   });
@@ -162,11 +139,13 @@ describe("yarn-plugin-catalogs", () => {
 
     await workspace.writeYarnrc({
       catalogs: {
-        stable: {
-          react: "npm:18.0.0",
-        },
-        legacy: {
-          react: "npm:16.0.0",
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+          legacy: {
+            react: "npm:16.0.0",
+          },
         },
       },
     });
@@ -194,8 +173,10 @@ describe("yarn-plugin-catalogs", () => {
     // Create catalog.yml with version using the test protocol
     await workspace.writeYarnrc({
       catalogs: {
-        test: {
-          react: "test-protocol:18.0.0", // Uses our custom protocol
+        list: {
+          test: {
+            react: "test-protocol:18.0.0", // Uses our custom protocol
+          },
         },
       },
     });
@@ -220,5 +201,256 @@ describe("yarn-plugin-catalogs", () => {
 
     // The version should ultimately be resolved to npm:18.0.0
     expect(info.value).toBe("react@npm:18.0.0");
+  });
+
+  it("should warn when adding a dependency without catalog protocol", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        list: {
+          groupA: {
+            react: "npm:18.0.0",
+          },
+        },
+      },
+    });
+
+    const { stderr } = await workspace.yarn.add("react");
+    expect(stderr).toContain("groupA");
+    expect(stderr).toContain("react@catalog:groupA");
+  });
+
+  it("should warn when adding a dependency with multiple alias groups", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        list: {
+          groupA: {
+            react: "npm:18.0.0",
+          },
+          groupB: {
+            react: "npm:17.0.0",
+          },
+        },
+      },
+    });
+
+    const { stderr } = await workspace.yarn.add("react");
+    expect(stderr).toContain("groupA, groupB");
+    expect(stderr).toContain("react@catalog:groupA");
+  });
+
+  it("should not warn when adding a dependency with catalog protocol", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        list: {
+          groupA: {
+            react: "npm:18.0.0",
+          },
+        },
+      },
+    });
+
+    const { stderr } = await workspace.yarn.add("react@catalog:groupA");
+    const { stdout: listOutput } = await workspace.yarn.info();
+    const dependencies = extractDependencies(listOutput);
+
+    expect(stderr).toBe("");
+    expect(dependencies).includes("react@npm:18.0.0");
+  });
+
+  it("should not warn when adding a dependency not in catalogs config", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        list: {
+          next: "npm:12.0.0",
+        },
+      },
+    });
+
+    const { stderr } = await workspace.yarn.add("react@npm:18.0.0");
+    const { stdout: listOutput } = await workspace.yarn.info();
+    const dependencies = extractDependencies(listOutput);
+
+    expect(stderr).toBe("");
+    expect(dependencies).includes("react@npm:18.0.0");
+  });
+
+  it("should use the default alias group if no group is provided", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          default: ["groupA"],
+        },
+        list: {
+          groupA: {
+            react: "npm:18.0.0",
+          },
+          groupB: {
+            react: "npm:17.0.0",
+          },
+        },
+      },
+    });
+
+    const { stderr } = await workspace.yarn.add("react");
+    const { stdout: listOutput } = await workspace.yarn.info();
+    const dependencies = extractDependencies(listOutput);
+
+    expect(stderr).toBe("");
+    expect(dependencies).includes("react@npm:18.0.0");
+  });
+
+  it("should fail when the default alias group is not found in the list", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          default: ["unknown"],
+        },
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      },
+    });
+
+    await expect(workspace.yarn.add("react@npm:18.0.0")).rejects.toThrow();
+  });
+
+  it("should use the root alias group if it is specified", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          default: ["root"],
+        },
+        list: {
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    const { stderr } = await workspace.yarn.add("react");
+    const { stdout: listOutput } = await workspace.yarn.info();
+    const dependencies = extractDependencies(listOutput);
+
+    expect(stderr).toBe("");
+    expect(dependencies).includes("react@npm:18.0.0");
+  });
+
+  it("should follow the priority based on the order of default alias groups", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          default: ["stable", "root"],
+        },
+        list: {
+          next: "npm:12.0.0",
+          lodash: "npm:4.0.0",
+          stable: {
+            react: "npm:17.0.0",
+            lodash: "npm:3.0.0",
+          },
+        },
+      },
+    });
+
+    await workspace.yarn.add("next");
+    await workspace.yarn.add("react");
+    await workspace.yarn.add("lodash");
+
+    const { stdout: listOutput } = await workspace.yarn.info();
+    const dependencies = extractDependencies(listOutput);
+
+    expect(dependencies).includes("next@npm:12.0.0");
+    expect(dependencies).includes("react@npm:17.0.0");
+    expect(dependencies).includes("lodash@npm:3.0.0");
+  });
+
+  it("should warn when adding a dependency not in the default alias group", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          default: ["beta"],
+        },
+        list: {
+          beta: {
+            react: "npm:18.0.0",
+          },
+          stable: {
+            react: "npm:17.0.0",
+            lodash: "npm:3.0.0",
+          },
+        },
+      },
+    });
+
+    await workspace.yarn.add("react");
+    const { stderr } = await workspace.yarn.add("lodash");
+    expect(stderr).toContain("lodash@catalog:stable");
+
+    const { stdout: listOutput } = await workspace.yarn.info();
+    const dependencies = extractDependencies(listOutput);
+    expect(dependencies).includes("react@npm:18.0.0");
+  });
+
+  it("should use the most frequently used alias group if 'max' is specified", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          default: "max"
+        },
+        list: {
+          beta: {
+            react: "npm:18.0.0",
+            lodash: "npm:3.0.0",
+            next: "npm:12.0.0",
+            "es-toolkit": "npm:1.32.0",
+          },
+          stable: {
+            react: "npm:17.0.0",
+            lodash: "npm:2.0.0",
+            next: "npm:11.0.0",
+            "es-toolkit": "npm:1.31.0",
+          },
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "test-workspace",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "catalog:stable",
+        lodash: "catalog:stable",
+        next: "catalog:beta",
+      },
+    });
+
+    const { stderr } = await workspace.yarn.add("es-toolkit");
+    expect(stderr).toBe("");
+
+    const { stdout: listOutput } = await workspace.yarn.info();
+    const dependencies = extractDependencies(listOutput);
+    expect(dependencies).includes("es-toolkit@npm:1.31.0");
   });
 });
