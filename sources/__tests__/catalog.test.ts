@@ -423,13 +423,13 @@ describe("yarn-plugin-catalogs", () => {
             react: "npm:18.0.0",
             lodash: "npm:3.0.0",
             next: "npm:12.0.0",
-            "es-toolkit": "npm:1.32.0",
+            "@use-funnel/core": "npm:0.0.9",
           },
           stable: {
             react: "npm:17.0.0",
             lodash: "npm:2.0.0",
             next: "npm:11.0.0",
-            "es-toolkit": "npm:1.31.0",
+            "@use-funnel/core": "npm:0.0.1",
           },
         },
       },
@@ -446,11 +446,11 @@ describe("yarn-plugin-catalogs", () => {
       },
     });
 
-    const { stderr } = await workspace.yarn.add("es-toolkit");
+    const { stderr } = await workspace.yarn.add("@use-funnel/core");
     expect(stderr).toBe("");
 
     const { stdout: listOutput } = await workspace.yarn.info();
     const dependencies = extractDependencies(listOutput);
-    expect(dependencies).includes("es-toolkit@npm:1.31.0");
+    expect(dependencies).includes("@use-funnel/core@npm:0.0.1");
   });
 });
