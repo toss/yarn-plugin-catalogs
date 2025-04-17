@@ -410,7 +410,7 @@ describe("yarn-plugin-catalogs", () => {
     expect(dependencies).includes("react@npm:18.0.0");
   });
 
-  it.only("should use the most frequently used alias group if 'max' is specified", async () => {
+  it("should use the most frequently used alias group if 'max' is specified", async () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
