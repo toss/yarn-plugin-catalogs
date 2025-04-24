@@ -6,6 +6,7 @@ import {
   Hooks,
   SettingsType,
   Workspace,
+  MessageName,
 } from "@yarnpkg/core";
 import { Hooks as EssentialHooks } from '@yarnpkg/plugin-essentials';
 import chalk from 'chalk';
@@ -36,6 +37,20 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
     },
   },
   hooks: {
+    validateWorkspace: async (workspace: Workspace, report) => {
+      // Check the workspace's raw manifest to find dependencies with the catalog protocol
+      const hasCatalogProtocol = [
+        ...Object.values(workspace.manifest.raw["dependencies"] || {}),
+        ...Object.values(workspace.manifest.raw["devDependencies"] || {}),
+      ].some((version: string) => version.startsWith(CATALOG_PROTOCOL));
+
+      if (await configReader.shouldIgnoreWorkspace(workspace) && hasCatalogProtocol) {
+        report.reportError(
+          MessageName.INVALID_MANIFEST,
+          `Workspace is ignored from the catalogs, but it has dependencies with the catalog protocol. Consider removing the protocol.`,
+        );
+      }
+    },
     reduceDependency: async (
       dependency: Descriptor,
       project: Project,

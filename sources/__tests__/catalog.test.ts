@@ -483,4 +483,30 @@ describe("yarn-plugin-catalogs", () => {
     expect(stderr).toBe("");
     expect(dependencies).not.includes("react@npm:18.0.0");
   });
+
+  it("should fail validation if workspace is ignored, but using the catalog protocol", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          ignoredWorkspaces: ["workspace-ignored"],
+        },
+        list: {
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "workspace-ignored",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "catalog:",
+      },
+    });
+
+    expect(workspace.yarn.install()).rejects.toThrow();
+  });
 });
