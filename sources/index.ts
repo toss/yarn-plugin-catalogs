@@ -100,6 +100,8 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
 async function fallbackDefaultAliasGroup(workspace: Workspace, dependency: Descriptor) {
   if (dependency.range.startsWith(CATALOG_PROTOCOL)) return;
 
+  if (await configReader.shouldIgnoreWorkspace(workspace)) return;
+
   const aliases = await configReader.findDependency(workspace.project, dependency);
   if (aliases.length === 0) return;
 

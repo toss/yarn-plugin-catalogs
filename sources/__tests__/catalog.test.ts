@@ -453,4 +453,34 @@ describe("yarn-plugin-catalogs", () => {
     const dependencies = extractDependencies(listOutput);
     expect(dependencies).includes("@use-funnel/core@npm:0.0.1");
   });
+
+  it("should not use default alias group if workspace is ignored", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          default: ["root"],
+          ignoredWorkspaces: ["workspace-ignored"],
+        },
+        list: {
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "workspace-ignored",
+      version: "1.0.0",
+      private: true,
+      dependencies: {},
+    });
+
+    const { stderr } = await workspace.yarn.add("react");
+    const { stdout: listOutput } = await workspace.yarn.info();
+    const dependencies = extractDependencies(listOutput);
+
+    expect(stderr).toBe("");
+    expect(dependencies).not.includes("react@npm:18.0.0");
+  });
 });

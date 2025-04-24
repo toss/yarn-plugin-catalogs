@@ -21,6 +21,10 @@ export interface CatalogsConfiguration {
      * - if 'max', the most frequently used alias group will be used
      */
     default?: string[] | 'max';
+    /**
+     * List of workspaces to ignore
+     */
+    ignoredWorkspaces?: string[];
   }
   list: {
     [alias: string]:
@@ -89,7 +93,7 @@ export class CatalogConfigurationReader {
     // Validate configuration structure
     if (!this.isValidConfiguration(config)) {
       throw new CatalogConfigurationError(
-        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] | 'max' }, list: { [alias: string]: { [packageName: string]: string } } }",
+        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] | 'max', ignoredWorkspaces?: string[] }, list: { [alias: string]: { [packageName: string]: string } } }",
         CatalogConfigurationError.INVALID_FORMAT
       );
     }
@@ -144,30 +148,37 @@ export class CatalogConfigurationReader {
   async getDefaultAliasGroups(workspace: Workspace): Promise<string[]> {
     const config = await this.readConfiguration(workspace.project);
 
-    if (config.options && config.options.default) {
-      // If default value is an list of alias groups, return it
-      if (Array.isArray(config.options.default)) {
-        return config.options.default;
+    if (config.options) {
+      // There's no default alias group if the workspace should be ignored
+      if (await this.shouldIgnoreWorkspace(workspace)) {
+        return [];
       }
 
-      // If default value is "max", find the most frequently used alias group
-      if (config.options.default === "max") {
-        const aliasGroups = Object.keys(config.list);
-
-        const dependencies = [...workspace.manifest.dependencies, ...workspace.manifest.devDependencies];
-        const counts: Record<string, number> = Object.fromEntries(aliasGroups.map((aliasGroup) => [aliasGroup, 0]));
-
-        // Count the occurrences of each alias group in the dependencies
-        for (const [_, descriptor] of dependencies) {
-          if (descriptor.range.startsWith(CATALOG_PROTOCOL)) {
-            const aliasGroup = descriptor.range.substring(CATALOG_PROTOCOL.length);
-            counts[aliasGroup] = (counts[aliasGroup] || 0) + 1;
-          }
+      if (config.options.default) {
+        // If default value is an list of alias groups, return it
+        if (Array.isArray(config.options.default)) {
+          return config.options.default;
         }
 
-        // Find the alias group with the maximum count of dependencies
-        const maxCount = Math.max(...Object.values(counts));
-        return Object.keys(counts).filter((aliasGroup) => counts[aliasGroup] === maxCount);
+        // If default value is "max", find the most frequently used alias group
+        if (config.options.default === "max") {
+          const aliasGroups = Object.keys(config.list);
+
+          const dependencies = [...workspace.manifest.dependencies, ...workspace.manifest.devDependencies];
+          const counts: Record<string, number> = Object.fromEntries(aliasGroups.map((aliasGroup) => [aliasGroup, 0]));
+
+          // Count the occurrences of each alias group in the dependencies
+          for (const [_, descriptor] of dependencies) {
+            if (descriptor.range.startsWith(CATALOG_PROTOCOL)) {
+              const aliasGroup = descriptor.range.substring(CATALOG_PROTOCOL.length);
+              counts[aliasGroup] = (counts[aliasGroup] || 0) + 1;
+            }
+          }
+
+          // Find the alias group with the maximum count of dependencies
+          const maxCount = Math.max(...Object.values(counts));
+          return Object.keys(counts).filter((aliasGroup) => counts[aliasGroup] === maxCount);
+        }
       }
     }
 
@@ -209,6 +220,19 @@ export class CatalogConfigurationReader {
     this.configCache.delete(workspaceRoot);
   }
 
+  /**
+   * Check if a workspace is ignored based on the configuration
+   */
+  async shouldIgnoreWorkspace(workspace: Workspace): Promise<boolean> {
+    const config = await this.readConfiguration(workspace.project);
+
+    if (config.options?.ignoredWorkspaces) {
+      return config.options.ignoredWorkspaces.includes(structUtils.stringifyIdent(workspace.manifest.name));
+    }
+
+    return false;
+  }
+
   private isValidConfiguration(
     config: unknown
   ): config is CatalogsConfiguration {
@@ -234,25 +258,37 @@ export class CatalogConfigurationReader {
     }
 
     // Check the default option if it exists
-    if (config["options"] && config["options"]["default"]) {
-      if (Array.isArray(config["options"]["default"])) {
-        if (config["options"]["default"].length === 0) {
+    if (config["options"]) {
+      if (config["options"]["ignoredWorkspaces"]) {
+        if (!Array.isArray(config["options"]["ignoredWorkspaces"])) {
           return false;
         }
 
-        const aliasGroups = Object.keys(config["list"]);
-        for (const group of config["options"]["default"]) {
-          if (group !== "root" && !aliasGroups.includes(group)) {
+        if (config["options"]["ignoredWorkspaces"].length === 0) {
+          return false;
+        }
+      }
+
+      if (config["options"]["default"]) {
+        if (Array.isArray(config["options"]["default"])) {
+          if (config["options"]["default"].length === 0) {
             return false;
           }
-        }
-      } else {
-        if (typeof config["options"]["default"] !== "string") {
-          return false;
-        }
 
-        if (config["options"]["default"] !== "max") {
-          return false;
+          const aliasGroups = Object.keys(config["list"]);
+          for (const group of config["options"]["default"]) {
+            if (group !== "root" && !aliasGroups.includes(group)) {
+              return false;
+            }
+          }
+        } else {
+          if (typeof config["options"]["default"] !== "string") {
+            return false;
+          }
+
+          if (config["options"]["default"] !== "max") {
+            return false;
+          }
         }
       }
     }
