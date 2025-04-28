@@ -175,13 +175,13 @@ Currently, only the `max` option is available, but additional options may be add
 
 #### Disabling Catalogs
 
-You can disable catalogs for certain workspaces by listing their names in the `ignoredWorkspaces` option.
+You can disable catalogs for certain workspaces by listing their names in the `ignoredWorkspaces` option. You can also use glob patterns here.
 
 ```yaml
 # In .yarnrc.yml
 catalogs:
   options:
-    ignoredWorkspaces: [workspace-to-ignore]
+    ignoredWorkspaces: [package, test-*]
   list:
     react: 19.0.0
     react-dom: 19.0.0
