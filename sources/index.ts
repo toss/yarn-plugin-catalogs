@@ -113,7 +113,12 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
 };
 
 async function fallbackDefaultAliasGroup(workspace: Workspace, dependency: Descriptor) {
-  if (dependency.range.startsWith(CATALOG_PROTOCOL)) return;
+  if (dependency.range.startsWith(CATALOG_PROTOCOL)) {
+    if (await configReader.shouldIgnoreWorkspace(workspace)) {
+      throw new Error(chalk.red(`The workspace is ignored from the catalogs, but the dependency to add is using the catalog protocol. Consider removing the protocol.`));
+    }
+    return;
+  }
 
   if (await configReader.shouldIgnoreWorkspace(workspace)) return;
 

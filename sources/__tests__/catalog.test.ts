@@ -507,6 +507,36 @@ describe("yarn-plugin-catalogs", () => {
       },
     });
 
-    expect(workspace.yarn.install()).rejects.toThrow();
+    await expect(workspace.yarn.install()).rejects.toThrow();
+  });
+
+  it("should fail when adding dependency to ignored workspace", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          ignoredWorkspaces: ["workspace-ignored"],
+        },
+        list: {
+          stable: {
+            lodash: "npm:2.0.0",
+            react: "npm:18.0.0",
+          },
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "workspace-ignored",
+      version: "1.0.0",
+      private: true,
+      dependencies: {},
+    });
+
+    const { stderr } = await workspace.yarn.add("lodash");
+    expect(stderr).toBe("");
+
+    await expect(workspace.yarn.add("react@catalog:stable")).rejects.toThrow();
   });
 });
