@@ -8,11 +8,13 @@
     "@yarnpkg/plugin-essentials": "^4.3.2",
     "@yarnpkg/plugin-git": "^3.1.1",
     "chalk": "^5.4.1",
-    "clipanion": "^4.0.0-rc.2"
+    "clipanion": "^4.0.0-rc.2",
+    "picomatch": "^4.0.2"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
+    "@types/picomatch": "^4",
     "@types/tmp": "^0.2.6",
     "@yarnpkg/builder": "^4.2.0",
     "js-yaml": "^4.1.0",

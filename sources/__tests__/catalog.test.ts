@@ -484,6 +484,36 @@ describe("yarn-plugin-catalogs", () => {
     expect(dependencies).not.includes("react@npm:18.0.0");
   });
 
+  it("should ignore workspaces matched by glob pattern", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          default: ["root"],
+          ignoredWorkspaces: ["@ignored/*"],
+        },
+        list: {
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "@ignored/workspace",
+      version: "1.0.0",
+      private: true,
+      dependencies: {},
+    });
+
+    const { stderr } = await workspace.yarn.add("react");
+    const { stdout: listOutput } = await workspace.yarn.info();
+    const dependencies = extractDependencies(listOutput);
+
+    expect(stderr).toBe("");
+    expect(dependencies).not.includes("react@npm:18.0.0");
+  });
+
   it("should fail validation if workspace is ignored, but using the catalog protocol", async () => {
     workspace = await createTestWorkspace();
 

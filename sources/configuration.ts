@@ -1,4 +1,5 @@
 import { Descriptor, Project, structUtils, Workspace } from "@yarnpkg/core";
+import { isMatch } from "picomatch";
 
 export const ROOT_ALIAS_GROUP = "root";
 
@@ -227,7 +228,10 @@ export class CatalogConfigurationReader {
     const config = await this.readConfiguration(workspace.project);
 
     if (config.options?.ignoredWorkspaces) {
-      return config.options.ignoredWorkspaces.includes(structUtils.stringifyIdent(workspace.manifest.name));
+      return isMatch(
+        structUtils.stringifyIdent(workspace.manifest.name),
+        config.options.ignoredWorkspaces,
+      );
     }
 
     return false;
