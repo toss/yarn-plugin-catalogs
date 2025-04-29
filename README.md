@@ -173,6 +173,22 @@ yarn add next # Same as `yarn add next@catalog:beta`
 
 Currently, only the `max` option is available, but additional options may be added in the future.
 
+#### Disabling Catalogs
+
+You can disable catalogs for certain workspaces by listing their names in the `ignoredWorkspaces` option. You can also use glob patterns here.
+
+```yaml
+# In .yarnrc.yml
+catalogs:
+  options:
+    ignoredWorkspaces: [package, test-*]
+  list:
+    react: 19.0.0
+    react-dom: 19.0.0
+```
+
+The ignored workspaces cannot use the catalog protocol, and the default alias group is also disabled for them.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
