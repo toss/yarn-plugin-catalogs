@@ -570,7 +570,7 @@ describe("yarn-plugin-catalogs", () => {
     await expect(workspace.yarn.add("react@catalog:stable")).rejects.toThrow();
   });
 
-  it.only("should success dlx with ignored workspace", async () => {
+  it("should success dlx with ignored workspace", async () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
