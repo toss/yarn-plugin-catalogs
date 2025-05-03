@@ -56,17 +56,33 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
       project: Project,
       ...extraArgs
     ) => {
-      // Skip if not our protocol or if this is a recursive call
-      if (!dependency.range.startsWith(CATALOG_PROTOCOL)) {
+      // Check for catalog: in regular form or in patched form (for typescript)
+      const isStandardCatalog = dependency.range.startsWith(CATALOG_PROTOCOL);
+      const isPatchedCatalog =
+        dependency.range.includes("catalog%3A") &&
+        dependency.range.startsWith("patch:");
+
+      // Skip if neither standard nor patched catalog protocol
+      if (!isStandardCatalog && !isPatchedCatalog) {
         return dependency;
       }
 
       try {
         // Extract the alias from the range
-        const catalogAlias = dependency.range.slice(CATALOG_PROTOCOL.length);
-        const dependencyName = structUtils.stringifyIdent(dependency);
+        let catalogAlias = "";
+        const originalRange = dependency.range;
+
+        if (isStandardCatalog) {
+          catalogAlias = dependency.range.slice(CATALOG_PROTOCOL.length);
+        } else if (isPatchedCatalog) {
+          const catalogMatch = dependency.range.match(/catalog%3A([^#&]*)/);
+          if (catalogMatch) {
+            catalogAlias = catalogMatch[1] || "";
+          }
+        }
 
         // Get the actual version from .yarnrc.yml
+        const dependencyName = structUtils.stringifyIdent(dependency);
         const range = await configReader.getRange(
           project,
           catalogAlias,
@@ -74,10 +90,18 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
         );
 
         // Create a new descriptor with the resolved version
-        const resolvedDescriptor = structUtils.makeDescriptor(
-          structUtils.makeIdent(dependency.scope, dependency.name),
-          range
-        );
+        let resolvedDescriptor: Descriptor;
+        if (isStandardCatalog) {
+          resolvedDescriptor = structUtils.makeDescriptor(
+            structUtils.makeIdent(dependency.scope, dependency.name),
+            range
+          );
+        } else {
+          resolvedDescriptor = structUtils.makeDescriptor(
+            structUtils.makeIdent(dependency.scope, dependency.name),
+            originalRange.replace(/catalog%3A[^#&]*/, range)
+          );
+        }
 
         // Trigger other hooks to be sure the descriptor is fully resolved
         const result = await project.configuration.reduceHook(
