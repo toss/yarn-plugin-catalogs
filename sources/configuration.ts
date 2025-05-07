@@ -225,6 +225,8 @@ export class CatalogConfigurationReader {
    * Check if a workspace is ignored based on the configuration
    */
   async shouldIgnoreWorkspace(workspace: Workspace): Promise<boolean> {
+    if (!workspace.manifest.name) return false;
+
     const config = await this.readConfiguration(workspace.project);
 
     if (config.options?.ignoredWorkspaces) {

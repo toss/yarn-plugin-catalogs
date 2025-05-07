@@ -569,4 +569,30 @@ describe("yarn-plugin-catalogs", () => {
 
     await expect(workspace.yarn.add("react@catalog:stable")).rejects.toThrow();
   });
+
+  it("should success dlx with ignored workspace", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          ignoredWorkspaces: ["workspace-ignored"],
+        },
+        list: {
+          stable: {
+            '@jwoo0122/echo': "npm:1.0.0",
+          },
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "workspace-ignored",
+      version: "1.0.0",
+      private: true,
+      dependencies: {},
+    });
+
+    await expect(workspace.yarn(['dlx', '@jwoo0122/echo', '"hello, world"'])).resolves.not.toThrow();
+  });
 });
