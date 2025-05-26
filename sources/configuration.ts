@@ -27,7 +27,7 @@ export interface CatalogsConfiguration {
      */
     ignoredWorkspaces?: string[];
   }
-  list: {
+  list?: {
     [alias: string]:
     | {
       [packageName: string]: string;
