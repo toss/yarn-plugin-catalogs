@@ -7,7 +7,7 @@ export const CATALOG_PROTOCOL = "catalog:";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {
-    catalogs: CatalogsConfiguration;
+    catalogs?: CatalogsConfiguration;
   }
 }
 
@@ -70,14 +70,14 @@ export class CatalogConfigurationReader {
     }
 
     // Get config from project configuration
-    const rawConfig = project.configuration.get("catalogs") as Record<
+    const rawConfig = (project.configuration.get("catalogs") || {}) as Record<
       string,
       object
     >;
 
     let config = rawConfig;
     // Transform config to handle root-level string values
-    config["list"] = Object.entries(rawConfig["list"] || {}).reduce(
+    config["list"] = Object.entries(rawConfig["list"]).reduce(
       (acc, [key, value]) => {
         if (typeof value === "string") {
           // If value is a string, put it under BASE_ALIAS_GROUP
