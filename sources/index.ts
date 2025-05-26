@@ -42,7 +42,7 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
       const hasCatalogProtocol = [
         ...Object.values(workspace.manifest.raw["dependencies"] || {}),
         ...Object.values(workspace.manifest.raw["devDependencies"] || {}),
-      ].some((version: string) => version.startsWith(CATALOG_PROTOCOL));
+      ].some((version) => (version as string).startsWith(CATALOG_PROTOCOL));
 
       if (await configReader.shouldIgnoreWorkspace(workspace) && hasCatalogProtocol) {
         report.reportError(
