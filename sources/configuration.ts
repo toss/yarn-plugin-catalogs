@@ -7,7 +7,7 @@ export const CATALOG_PROTOCOL = "catalog:";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {
-    catalogs: CatalogsConfiguration;
+    catalogs?: CatalogsConfiguration;
   }
 }
 
@@ -21,19 +21,19 @@ export interface CatalogsConfiguration {
      * - if list of alias groups, it will be used in order
      * - if 'max', the most frequently used alias group will be used
      */
-    default?: string[] | 'max';
+    default?: string[] | "max";
     /**
      * List of workspaces to ignore
      */
     ignoredWorkspaces?: string[];
-  }
-  list: {
+  };
+  list?: {
     [alias: string]:
-    | {
-      [packageName: string]: string;
-    }
-    | string;
-  }
+      | {
+          [packageName: string]: string;
+        }
+      | string;
+  };
 }
 
 /**
@@ -70,11 +70,14 @@ export class CatalogConfigurationReader {
     }
 
     // Get config from project configuration
-    const rawConfig = project.configuration.get("catalogs") as unknown;
+    const rawConfig = (project.configuration.get("catalogs") || {}) as Record<
+      string,
+      object
+    >;
 
     let config = rawConfig;
     // Transform config to handle root-level string values
-    config["list"] = Object.entries(rawConfig["list"] as Record<string, object>).reduce(
+    config["list"] = Object.entries(rawConfig["list"]).reduce(
       (acc, [key, value]) => {
         if (typeof value === "string") {
           // If value is a string, put it under BASE_ALIAS_GROUP
@@ -118,9 +121,9 @@ export class CatalogConfigurationReader {
     const aliasGroupToFind =
       aliasGroup.length === 0 ? ROOT_ALIAS_GROUP : aliasGroup;
 
-    const aliasConfig = config.list[aliasGroupToFind];
+    const aliasConfig = config.list?.[aliasGroupToFind];
 
-    if (!aliasConfig) {
+    if (!aliasConfig || typeof aliasConfig === "string") {
       throw new CatalogConfigurationError(
         `Alias "${aliasGroupToFind}" not found in .yarnrc.yml catalogs.`,
         CatalogConfigurationError.INVALID_ALIAS
@@ -163,22 +166,31 @@ export class CatalogConfigurationReader {
 
         // If default value is "max", find the most frequently used alias group
         if (config.options.default === "max") {
-          const aliasGroups = Object.keys(config.list);
+          const aliasGroups = Object.keys(config.list || {});
 
-          const dependencies = [...workspace.manifest.dependencies, ...workspace.manifest.devDependencies];
-          const counts: Record<string, number> = Object.fromEntries(aliasGroups.map((aliasGroup) => [aliasGroup, 0]));
+          const dependencies = [
+            ...workspace.manifest.dependencies,
+            ...workspace.manifest.devDependencies,
+          ];
+          const counts: Record<string, number> = Object.fromEntries(
+            aliasGroups.map((aliasGroup) => [aliasGroup, 0])
+          );
 
           // Count the occurrences of each alias group in the dependencies
           for (const [_, descriptor] of dependencies) {
             if (descriptor.range.startsWith(CATALOG_PROTOCOL)) {
-              const aliasGroup = descriptor.range.substring(CATALOG_PROTOCOL.length);
+              const aliasGroup = descriptor.range.substring(
+                CATALOG_PROTOCOL.length
+              );
               counts[aliasGroup] = (counts[aliasGroup] || 0) + 1;
             }
           }
 
           // Find the alias group with the maximum count of dependencies
           const maxCount = Math.max(...Object.values(counts));
-          return Object.keys(counts).filter((aliasGroup) => counts[aliasGroup] === maxCount);
+          return Object.keys(counts).filter(
+            (aliasGroup) => counts[aliasGroup] === maxCount
+          );
         }
       }
     }
@@ -192,24 +204,29 @@ export class CatalogConfigurationReader {
    */
   async findDependency(
     project: Project,
-    dependency: Descriptor,
+    dependency: Descriptor
   ): Promise<[string, string][]> {
     const dependencyString = structUtils.stringifyIdent(dependency);
 
     const config = await this.readConfiguration(project);
 
-    const aliasGroups = Object.entries(config.list).filter(([_, value]) => {
-      if (typeof value === "string") {
-        return dependencyString === value;
-      } else {
-        return Object.keys(value).includes(dependencyString);
+    const aliasGroups = Object.entries(config.list || {}).filter(
+      ([_, value]) => {
+        if (typeof value === "string") {
+          return dependencyString === value;
+        } else {
+          return Object.keys(value).includes(dependencyString);
+        }
       }
-    });
+    );
 
     if (aliasGroups.length === 0) return [];
 
     return aliasGroups.map(([alias, aliasConfig]) => {
-      const version = typeof aliasConfig === "string" ? aliasConfig : aliasConfig[dependencyString];
+      const version =
+        typeof aliasConfig === "string"
+          ? aliasConfig
+          : aliasConfig[dependencyString];
       return [alias, version];
     });
   }
@@ -232,7 +249,7 @@ export class CatalogConfigurationReader {
     if (config.options?.ignoredWorkspaces) {
       return isMatch(
         structUtils.stringifyIdent(workspace.manifest.name),
-        config.options.ignoredWorkspaces,
+        config.options.ignoredWorkspaces
       );
     }
 
@@ -247,7 +264,11 @@ export class CatalogConfigurationReader {
     }
 
     // The list property must be an object
-    if (!config["list"] || typeof config["list"] !== "object") {
+    if (
+      !("list" in config) ||
+      !config["list"] ||
+      typeof config["list"] !== "object"
+    ) {
       return false;
     }
 
@@ -264,8 +285,15 @@ export class CatalogConfigurationReader {
     }
 
     // Check the default option if it exists
-    if (config["options"]) {
-      if (config["options"]["ignoredWorkspaces"]) {
+    if (
+      "options" in config &&
+      config["options"] &&
+      typeof config["options"] === "object"
+    ) {
+      if (
+        "ignoredWorkspaces" in config["options"] &&
+        config["options"]["ignoredWorkspaces"]
+      ) {
         if (!Array.isArray(config["options"]["ignoredWorkspaces"])) {
           return false;
         }
@@ -275,7 +303,7 @@ export class CatalogConfigurationReader {
         }
       }
 
-      if (config["options"]["default"]) {
+      if ("default" in config["options"] && config["options"]["default"]) {
         if (Array.isArray(config["options"]["default"])) {
           if (config["options"]["default"].length === 0) {
             return false;
