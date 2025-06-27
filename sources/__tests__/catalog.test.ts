@@ -798,10 +798,12 @@ describe("yarn-plugin-catalogs", () => {
       name: "test-package",
       version: "1.0.0",
       private: true,
-      dependencies: {},
+      dependencies: {
+        react: "17.0.0",
+      },
     });
 
-    const { stderr } = await workspace.yarn.add("react@17.0.0");
+    const { stderr } = await workspace.yarn.install();
     expect(stderr).toBe("");
 
     const { stdout: listOutput } = await workspace.yarn.info();
