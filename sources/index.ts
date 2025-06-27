@@ -38,6 +38,22 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
   },
   hooks: {
     validateWorkspace: async (workspace: Workspace, report) => {
+      // Check if any dependencies in manifest are in catalog but not using catalog protocol
+      const violatedDependencies = await getCatalogDependenciesWithoutProtocol(workspace);
+
+      if (violatedDependencies.length > 0) {
+        const packageList = violatedDependencies.join(', ');
+
+        const validationLevel = await configReader.getValidationLevel(workspace);
+        const message = `The following dependencies are listed in the catalogs but not using the catalog protocol: ${packageList}. Consider using the catalog protocol instead.`;
+
+        if (validationLevel === "strict") {
+          report.reportError(MessageName.INVALID_MANIFEST, message);
+        } else if (validationLevel === "warn") {
+          report.reportWarning(MessageName.INVALID_MANIFEST, message);
+        }
+      }
+
       // Check the workspace's raw manifest to find dependencies with the catalog protocol
       const hasCatalogProtocol = [
         ...Object.values(workspace.manifest.raw["dependencies"] || {}),
@@ -148,6 +164,46 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
   },
 };
 
+async function getCatalogDependenciesWithoutProtocol(workspace: Workspace): Promise<string[]> {
+  const config = await configReader.readConfiguration(workspace.project);
+
+  // Get all package names from catalog configuration
+  const catalogPackages = new Set<string>();
+  if (config.list) {
+    for (const [_, aliasConfig] of Object.entries(config.list)) {
+      if (typeof aliasConfig === "object") {
+        for (const packageName of Object.keys(aliasConfig)) {
+          catalogPackages.add(packageName);
+        }
+      }
+    }
+  }
+
+  // Check if any dependencies in manifest are in catalog but not using catalog protocol
+  const dependencyEntries = [
+    ...Object.entries(workspace.manifest.raw["dependencies"] || {}),
+    ...Object.entries(workspace.manifest.raw["devDependencies"] || {}),
+  ];
+
+  const dependenciesWithoutProtocol: string[] = [];
+
+  for (const [packageName, version] of dependencyEntries) {
+    const versionString = version as string;
+
+    // Skip if already using catalog protocol
+    if (versionString.startsWith(CATALOG_PROTOCOL)) {
+      continue;
+    }
+
+    // Check if package is in catalog
+    if (catalogPackages.has(packageName)) {
+      dependenciesWithoutProtocol.push(packageName);
+    }
+  }
+
+  return dependenciesWithoutProtocol;
+}
+
 async function fallbackDefaultAliasGroup(
   workspace: Workspace,
   dependency: Descriptor
@@ -194,11 +250,14 @@ async function fallbackDefaultAliasGroup(
       ? ` (${aliasGroups.join(", ")})`
       : "";
 
-  console.warn(
-    chalk.yellow(
-      `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`
-    )
-  );
+  const validationLevel = await configReader.getValidationLevel(workspace);
+
+  const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`
+  if (validationLevel === "strict") {
+    throw new Error(chalk.red(message));
+  } else if (validationLevel === "warn") {
+    console.warn(chalk.yellow(message));
+  }
 }
 
 // Export the plugin factory

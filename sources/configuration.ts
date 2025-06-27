@@ -11,6 +11,8 @@ declare module "@yarnpkg/core" {
   }
 }
 
+type ValidationLevel = "warn" | "strict";
+
 /**
  * Configuration structure for .yarnrc.yml#catalogs
  */
@@ -26,6 +28,12 @@ export interface CatalogsConfiguration {
      * List of workspaces to ignore
      */
     ignoredWorkspaces?: string[];
+    /**
+     * Validation level for catalog usage
+     * - 'warn': Show warnings when catalog versions are not used (default)
+     * - 'strict': Throw errors when catalog versions are not used
+     */
+    validation?: ValidationLevel;
   };
   list?: {
     [alias: string]:
@@ -256,6 +264,16 @@ export class CatalogConfigurationReader {
     return false;
   }
 
+  async getValidationLevel(workspace: Workspace): Promise<ValidationLevel> {
+    const config = await this.readConfiguration(workspace.project);
+
+    if (config.options?.validation) {
+      return config.options.validation;
+    }
+
+    return "warn";
+  }
+
   private isValidConfiguration(
     config: unknown
   ): config is CatalogsConfiguration {
@@ -323,6 +341,16 @@ export class CatalogConfigurationReader {
           if (config["options"]["default"] !== "max") {
             return false;
           }
+        }
+      }
+
+      if ("validation" in config["options"]) {
+        if (typeof config["options"]["validation"] !== "string") {
+          return false;
+        }
+
+        if (!["warn", "strict"].includes(config["options"]["validation"])) {
+          return false;
         }
       }
     }
