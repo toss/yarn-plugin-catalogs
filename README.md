@@ -189,6 +189,23 @@ catalogs:
 
 The ignored workspaces cannot use the catalog protocol, and the default alias group is also disabled for them.
 
+#### Validation
+
+The `validation` option allows you to configure whether to enforce catalog usage when dependencies listed in the catalog are used with actual versions instead of the catalog protocol.
+
+- `warn` (default): Shows warning when catalog dependencies don't use the catalog protocol.
+- `strict`: Throws error and prevents installation when catalog dependencies don't use catalog protocol.
+
+```yaml
+# In .yarnrc.yml
+catalogs:
+  options:
+    validation: warn  # or "strict"
+  list:
+    react: 19.0.0
+    react-dom: 19.0.0
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
