@@ -38,19 +38,23 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
   },
   hooks: {
     validateWorkspace: async (workspace: Workspace, report) => {
+      const shouldIgnore = await configReader.shouldIgnoreWorkspace(workspace);
+
       // Check if any dependencies in manifest are in catalog but not using catalog protocol
-      const violatedDependencies = await getCatalogDependenciesWithoutProtocol(workspace);
+      if (!shouldIgnore) {
+        const violatedDependencies = await getCatalogDependenciesWithoutProtocol(workspace);
 
-      if (violatedDependencies.length > 0) {
-        const packageList = violatedDependencies.join(', ');
+        if (violatedDependencies.length > 0) {
+          const packageList = violatedDependencies.join(', ');
 
-        const validationLevel = await configReader.getValidationLevel(workspace);
-        const message = `The following dependencies are listed in the catalogs but not using the catalog protocol: ${packageList}. Consider using the catalog protocol instead.`;
+          const validationLevel = await configReader.getValidationLevel(workspace);
+          const message = `The following dependencies are listed in the catalogs but not using the catalog protocol: ${packageList}. Consider using the catalog protocol instead.`;
 
-        if (validationLevel === "strict") {
-          report.reportError(MessageName.INVALID_MANIFEST, message);
-        } else if (validationLevel === "warn") {
-          report.reportWarning(MessageName.INVALID_MANIFEST, message);
+          if (validationLevel === "strict") {
+            report.reportError(MessageName.INVALID_MANIFEST, message);
+          } else if (validationLevel === "warn") {
+            report.reportWarning(MessageName.INVALID_MANIFEST, message);
+          }
         }
       }
 
@@ -60,10 +64,7 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
         ...Object.values(workspace.manifest.raw["devDependencies"] || {}),
       ].some((version) => (version as string).startsWith(CATALOG_PROTOCOL));
 
-      if (
-        (await configReader.shouldIgnoreWorkspace(workspace)) &&
-        hasCatalogProtocol
-      ) {
+      if (shouldIgnore && hasCatalogProtocol) {
         report.reportError(
           MessageName.INVALID_MANIFEST,
           `Workspace is ignored from the catalogs, but it has dependencies with the catalog protocol. Consider removing the protocol.`
