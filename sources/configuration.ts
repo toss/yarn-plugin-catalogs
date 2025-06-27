@@ -105,7 +105,7 @@ export class CatalogConfigurationReader {
     // Validate configuration structure
     if (!this.isValidConfiguration(config)) {
       throw new CatalogConfigurationError(
-        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] | 'max', ignoredWorkspaces?: string[] }, list: { [alias: string]: { [packageName: string]: string } } }",
+        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] | 'max', ignoredWorkspaces?: string[], validation?: 'warn' | 'strict' }, list: { [alias: string]: { [packageName: string]: string } } }",
         CatalogConfigurationError.INVALID_FORMAT
       );
     }
