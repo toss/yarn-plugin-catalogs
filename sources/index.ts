@@ -45,7 +45,7 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
         const violatedDependencies = await getCatalogDependenciesWithoutProtocol(workspace);
 
         if (violatedDependencies.length > 0) {
-          const packageList = violatedDependencies.join(', ');
+          const packageList = chalk.yellow(violatedDependencies.join(", "));
 
           const validationLevel = await configReader.getValidationLevel(workspace);
           const message = `The following dependencies are listed in the catalogs but not using the catalog protocol: ${packageList}. Consider using the catalog protocol instead.`;
