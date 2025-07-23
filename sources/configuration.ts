@@ -83,23 +83,6 @@ export class CatalogConfigurationReader {
   }
 
   /**
-   * Detect circular inheritance in the chain
-   */
-  private detectCircularInheritance(groupName: string): boolean {
-    const parts = groupName.split("/");
-    const seen = new Set<string>();
-
-    for (const part of parts) {
-      if (seen.has(part)) {
-        return true;
-      }
-      seen.add(part);
-    }
-
-    return false;
-  }
-
-  /**
    * Resolve package version through inheritance chain
    */
   private resolveInheritedRange(
@@ -107,14 +90,6 @@ export class CatalogConfigurationReader {
     groupName: string,
     packageName: string,
   ): string | null {
-    // Check for circular inheritance
-    if (this.detectCircularInheritance(groupName)) {
-      throw new CatalogConfigurationError(
-        `Circular inheritance detected in group "${groupName}"`,
-        CatalogConfigurationError.INVALID_ALIAS,
-      );
-    }
-
     const chain = this.getInheritanceChain(groupName);
 
     // Search from most specific to least specific
@@ -161,11 +136,6 @@ export class CatalogConfigurationReader {
     for (const group of groups) {
       // Skip root-level string values
       if (typeof config.list[group] === "string") continue;
-
-      // Check for circular inheritance
-      if (this.detectCircularInheritance(group)) {
-        return false;
-      }
 
       // Validate that parent groups exist
       if (group.includes("/")) {
@@ -238,7 +208,7 @@ export class CatalogConfigurationReader {
     // Validate inheritance structure
     if (!this.validateInheritanceStructure(config)) {
       throw new CatalogConfigurationError(
-        "Invalid inheritance structure in catalogs configuration. Check for circular inheritance or missing parent groups.",
+        "Invalid inheritance structure in catalogs configuration. Check for missing parent groups.",
         CatalogConfigurationError.INVALID_ALIAS,
       );
     }

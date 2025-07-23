@@ -296,7 +296,7 @@ describe("catalog group inheritance", () => {
     expect(stdout).toContain("react");
   });
 
-  it("should detect circular inheritance", async () => {
+  it("should handle groups with repeated names in inheritance path", async () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
@@ -304,6 +304,7 @@ describe("catalog group inheritance", () => {
         list: {
           "group-a": {
             react: "npm:18.0.0",
+            lodash: "npm:4.17.20",
           },
           "group-a/group-b": {
             lodash: "npm:4.17.21",
@@ -321,9 +322,18 @@ describe("catalog group inheritance", () => {
       private: true,
       dependencies: {
         react: "catalog:group-a/group-b/group-a",
+        lodash: "catalog:group-a/group-b/group-a",
+        next: "catalog:group-a/group-b/group-a",
       },
     });
 
-    await expect(workspace.yarn.install()).rejects.toThrow();
+    await workspace.yarn.install();
+
+    const { stdout: listOutput } = await workspace.yarn.info();
+    const dependencies = extractDependencies(listOutput);
+
+    expect(dependencies).includes("react@npm:18.0.0");
+    expect(dependencies).includes("lodash@npm:4.17.21");
+    expect(dependencies).includes("next@npm:12.0.0");
   });
 });
