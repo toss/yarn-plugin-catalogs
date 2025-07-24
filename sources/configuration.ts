@@ -48,7 +48,10 @@ export interface CatalogsConfiguration {
  * Error thrown when .yarnrc.yml#catalogs is invalid or missing
  */
 export class CatalogConfigurationError extends Error {
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: string,
+  ) {
     super(message);
     this.name = "CatalogConfigurationError";
   }
@@ -63,6 +66,94 @@ export class CatalogConfigurationError extends Error {
  */
 export class CatalogConfigurationReader {
   private configCache: Map<string, CatalogsConfiguration> = new Map();
+
+  /**
+   * Parse inheritance chain from group name
+   * e.g., "stable/canary/next" to ["stable", "stable/canary", "stable/canary/next"]
+   */
+  private getInheritanceChain(groupName: string): string[] {
+    const parts = groupName.split("/");
+    const chain: string[] = [];
+
+    for (let i = 0; i < parts.length; i++) {
+      chain.push(parts.slice(0, i + 1).join("/"));
+    }
+
+    return chain;
+  }
+
+  /**
+   * Resolve package version through inheritance chain
+   */
+  private resolveInheritedRange(
+    config: CatalogsConfiguration,
+    groupName: string,
+    packageName: string,
+  ): string | null {
+    const chain = this.getInheritanceChain(groupName);
+
+    // Search from most specific to least specific
+    for (let i = chain.length - 1; i >= 0; i--) {
+      const currentGroup = chain[i];
+      const aliasConfig = config.list?.[currentGroup];
+
+      if (aliasConfig && typeof aliasConfig === "object") {
+        const version = aliasConfig[packageName];
+        if (version) {
+          return version;
+        }
+      }
+    }
+
+    // Check root-level packages (packages that are direct string values)
+    if (config.list && typeof config.list === "object") {
+      const rootValue = config.list[packageName];
+      if (typeof rootValue === "string") {
+        return rootValue;
+      }
+    }
+
+    // Check ROOT_ALIAS_GROUP if it exists
+    const rootAliasConfig = config.list?.[ROOT_ALIAS_GROUP];
+    if (rootAliasConfig && typeof rootAliasConfig === "object") {
+      const version = rootAliasConfig[packageName];
+      if (version) {
+        return version;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Validate inheritance structure in configuration
+   */
+  private validateInheritanceStructure(config: CatalogsConfiguration): boolean {
+    if (!config.list) return true;
+
+    const groups = Object.keys(config.list);
+
+    for (const group of groups) {
+      // Skip root-level string values
+      if (typeof config.list[group] === "string") continue;
+
+      // Validate that parent groups exist
+      if (group.includes("/")) {
+        const chain = this.getInheritanceChain(group);
+        for (let i = 0; i < chain.length - 1; i++) {
+          const parentGroup = chain[i];
+          if (
+            !groups.includes(parentGroup) &&
+            parentGroup !== ROOT_ALIAS_GROUP
+          ) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  }
 
   /**
    * Read and parse the .yarnrc.yml#catalogs file
@@ -85,28 +176,40 @@ export class CatalogConfigurationReader {
 
     let config = rawConfig;
     // Transform config to handle root-level string values
-    config["list"] = Object.entries(rawConfig["list"]).reduce(
-      (acc, [key, value]) => {
-        if (typeof value === "string") {
-          // If value is a string, put it under BASE_ALIAS_GROUP
-          acc[ROOT_ALIAS_GROUP] = {
-            ...(acc[ROOT_ALIAS_GROUP] || {}),
-            [key]: value,
-          };
-        } else {
-          // Otherwise keep the original structure
-          acc[key] = value;
-        }
-        return acc;
-      },
-      {} as Record<string, object>
-    );
+    if (rawConfig["list"]) {
+      config["list"] = Object.entries(rawConfig["list"]).reduce(
+        (acc, [key, value]) => {
+          if (typeof value === "string") {
+            // If value is a string, put it under BASE_ALIAS_GROUP
+            acc[ROOT_ALIAS_GROUP] = {
+              ...(acc[ROOT_ALIAS_GROUP] || {}),
+              [key]: value,
+            };
+          } else {
+            // Otherwise keep the original structure
+            acc[key] = value;
+          }
+          return acc;
+        },
+        {} as Record<string, object>,
+      );
+    } else {
+      config["list"] = {};
+    }
 
     // Validate configuration structure
     if (!this.isValidConfiguration(config)) {
       throw new CatalogConfigurationError(
         "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] | 'max', ignoredWorkspaces?: string[], validation?: 'warn' | 'strict' }, list: { [alias: string]: { [packageName: string]: string } } }",
-        CatalogConfigurationError.INVALID_FORMAT
+        CatalogConfigurationError.INVALID_FORMAT,
+      );
+    }
+
+    // Validate inheritance structure
+    if (!this.validateInheritanceStructure(config)) {
+      throw new CatalogConfigurationError(
+        "Invalid inheritance structure in catalogs configuration. Check for missing parent groups.",
+        CatalogConfigurationError.INVALID_ALIAS,
       );
     }
 
@@ -122,19 +225,35 @@ export class CatalogConfigurationReader {
   async getRange(
     project: Project,
     aliasGroup: string,
-    packageName: string
+    packageName: string,
   ): Promise<string> {
     const config = await this.readConfiguration(project);
 
     const aliasGroupToFind =
       aliasGroup.length === 0 ? ROOT_ALIAS_GROUP : aliasGroup;
 
+    // Try to resolve through inheritance chain first
+    const inheritedVersion = this.resolveInheritedRange(
+      config,
+      aliasGroupToFind,
+      packageName,
+    );
+
+    if (inheritedVersion) {
+      // If version doesn't have a protocol prefix (e.g., "npm:"), add "npm:" as default
+      if (!/^[^:]+:/.test(inheritedVersion)) {
+        return `${project.configuration.get("defaultProtocol")}${inheritedVersion}`;
+      }
+      return inheritedVersion;
+    }
+
+    // Fallback to direct lookup for backward compatibility
     const aliasConfig = config.list?.[aliasGroupToFind];
 
     if (!aliasConfig || typeof aliasConfig === "string") {
       throw new CatalogConfigurationError(
         `Alias "${aliasGroupToFind}" not found in .yarnrc.yml catalogs.`,
-        CatalogConfigurationError.INVALID_ALIAS
+        CatalogConfigurationError.INVALID_ALIAS,
       );
     }
 
@@ -142,7 +261,7 @@ export class CatalogConfigurationReader {
     if (!version) {
       throw new CatalogConfigurationError(
         `Package "${packageName}" not found in alias "${aliasGroupToFind}"`,
-        CatalogConfigurationError.INVALID_ALIAS
+        CatalogConfigurationError.INVALID_ALIAS,
       );
     }
 
@@ -181,14 +300,14 @@ export class CatalogConfigurationReader {
             ...workspace.manifest.devDependencies,
           ];
           const counts: Record<string, number> = Object.fromEntries(
-            aliasGroups.map((aliasGroup) => [aliasGroup, 0])
+            aliasGroups.map((aliasGroup) => [aliasGroup, 0]),
           );
 
           // Count the occurrences of each alias group in the dependencies
           for (const [_, descriptor] of dependencies) {
             if (descriptor.range.startsWith(CATALOG_PROTOCOL)) {
               const aliasGroup = descriptor.range.substring(
-                CATALOG_PROTOCOL.length
+                CATALOG_PROTOCOL.length,
               );
               counts[aliasGroup] = (counts[aliasGroup] || 0) + 1;
             }
@@ -197,7 +316,7 @@ export class CatalogConfigurationReader {
           // Find the alias group with the maximum count of dependencies
           const maxCount = Math.max(...Object.values(counts));
           return Object.keys(counts).filter(
-            (aliasGroup) => counts[aliasGroup] === maxCount
+            (aliasGroup) => counts[aliasGroup] === maxCount,
           );
         }
       }
@@ -209,15 +328,17 @@ export class CatalogConfigurationReader {
   /**
    * Find a specific dependency in the configuration
    * and return the names of alias groups it belongs to, along with its versions.
+   * This method now includes inherited groups in the results.
    */
   async findDependency(
     project: Project,
-    dependency: Descriptor
+    dependency: Descriptor,
   ): Promise<[string, string][]> {
     const dependencyString = structUtils.stringifyIdent(dependency);
-
     const config = await this.readConfiguration(project);
+    const results: [string, string][] = [];
 
+    // Direct lookup (existing behavior)
     const aliasGroups = Object.entries(config.list || {}).filter(
       ([_, value]) => {
         if (typeof value === "string") {
@@ -225,18 +346,39 @@ export class CatalogConfigurationReader {
         } else {
           return Object.keys(value).includes(dependencyString);
         }
-      }
+      },
     );
 
-    if (aliasGroups.length === 0) return [];
+    results.push(
+      ...aliasGroups.map(([alias, aliasConfig]) => {
+        const version =
+          typeof aliasConfig === "string"
+            ? aliasConfig
+            : aliasConfig[dependencyString];
+        return [alias, version] as [string, string];
+      }),
+    );
 
-    return aliasGroups.map(([alias, aliasConfig]) => {
-      const version =
-        typeof aliasConfig === "string"
-          ? aliasConfig
-          : aliasConfig[dependencyString];
-      return [alias, version];
-    });
+    // Check for inheritance-based matches
+    for (const [groupName] of Object.entries(config.list || {})) {
+      // Skip if already found in direct lookup
+      if (results.some(([alias]) => alias === groupName)) {
+        continue;
+      }
+
+      // Check if dependency can be resolved through inheritance
+      const inheritedVersion = this.resolveInheritedRange(
+        config,
+        groupName,
+        dependencyString,
+      );
+
+      if (inheritedVersion) {
+        results.push([groupName, inheritedVersion]);
+      }
+    }
+
+    return results;
   }
 
   /**
@@ -257,7 +399,7 @@ export class CatalogConfigurationReader {
     if (config.options?.ignoredWorkspaces) {
       return isMatch(
         structUtils.stringifyIdent(workspace.manifest.name),
-        config.options.ignoredWorkspaces
+        config.options.ignoredWorkspaces,
       );
     }
 
@@ -275,7 +417,7 @@ export class CatalogConfigurationReader {
   }
 
   private isValidConfiguration(
-    config: unknown
+    config: unknown,
   ): config is CatalogsConfiguration {
     if (!config || typeof config !== "object") {
       return false;
@@ -327,10 +469,28 @@ export class CatalogConfigurationReader {
             return false;
           }
 
-          const aliasGroups = Object.keys(config["list"]);
-          for (const group of config["options"]["default"]) {
+          const aliasGroups = Object.keys(config.list || {});
+          for (const group of config.options.default) {
             if (group !== "root" && !aliasGroups.includes(group)) {
-              return false;
+              // Check if it's a valid inheritance chain
+              if (group.includes("/")) {
+                const chain = this.getInheritanceChain(group);
+                let isValid = true;
+                for (const chainGroup of chain) {
+                  if (
+                    chainGroup !== "root" &&
+                    !aliasGroups.includes(chainGroup)
+                  ) {
+                    isValid = false;
+                    break;
+                  }
+                }
+                if (!isValid) {
+                  return false;
+                }
+              } else {
+                return false;
+              }
             }
           }
         } else {

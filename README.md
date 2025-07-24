@@ -206,6 +206,30 @@ catalogs:
     react-dom: 19.0.0
 ```
 
+#### Catalog Group Inheritance
+
+Catalog groups can inherit from parent groups using the `/` delimiter. Child groups inherit all dependencies from their parent groups and can override specific versions.
+
+```yaml
+# In .yarnrc.yml
+catalogs:
+  list:
+    stable:
+      react: 18.0.0
+      lodash: 4.17.21
+      typescript: 5.1.6
+    stable/canary:
+      react: 18.2.0 # Overrides parent version
+      typescript: 5.2.0 # Overrides parent version
+      # lodash: 4.17.21 # Inherited from stable
+    stable/canary/next:
+      react: 18.3.1 # Overrides parent version
+      # typescript: 5.2.0 # Inherited from stable/canary
+      # lodash: 4.17.21 # Inherited from stable
+```
+
+Dependencies are resolved by searching from the most specific group upward until a match is found. An error will be thrown if any parent group in the inheritance chain doesn't exist.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
