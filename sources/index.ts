@@ -9,6 +9,7 @@ import {
   MessageName,
 } from "@yarnpkg/core";
 import { Hooks as EssentialHooks } from "@yarnpkg/plugin-essentials";
+import { Hooks as PackHooks } from "@yarnpkg/plugin-pack";
 import chalk from "chalk";
 import {
   CatalogConfigurationReader,
@@ -27,7 +28,7 @@ declare module "@yarnpkg/core" {
 // Create a singleton instance of our configuration reader
 const configReader = new CatalogConfigurationReader();
 
-const plugin: Plugin<Hooks & EssentialHooks> = {
+const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
   configuration: {
     catalogs: {
       description:
@@ -166,6 +167,58 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
       dependency: Descriptor,
     ) => {
       fallbackDefaultAliasGroup(workspace, dependency);
+    },
+    beforeWorkspacePacking: async (workspace: Workspace, rawManifest: any) => {
+      // Only process if the workspace is not ignored
+      if (await configReader.shouldIgnoreWorkspace(workspace)) {
+        return;
+      }
+
+      const dependencyTypes = [
+        "dependencies",
+        "devDependencies",
+        "peerDependencies",
+        "optionalDependencies",
+      ];
+
+      for (const dependencyType of dependencyTypes) {
+        const dependencies = rawManifest[dependencyType];
+        if (!dependencies || typeof dependencies !== "object") {
+          continue;
+        }
+
+        for (const [packageName, versionRange] of Object.entries(
+          dependencies,
+        )) {
+          const versionString = versionRange as string;
+
+          // Skip if not using catalog protocol
+          if (!versionString.startsWith(CATALOG_PROTOCOL)) {
+            continue;
+          }
+
+          try {
+            // Extract alias from catalog protocol
+            const catalogAlias = versionString.slice(CATALOG_PROTOCOL.length);
+
+            // Get the resolved version from catalog configuration
+            const resolvedRange = await configReader.getRange(
+              workspace.project,
+              catalogAlias,
+              packageName,
+            );
+
+            dependencies[packageName] = resolvedRange;
+          } catch (error) {
+            if (error instanceof CatalogConfigurationError) {
+              throw new Error(
+                `Failed to resolve catalog dependency ${packageName}@${versionString} during packaging: ${error.message}`,
+              );
+            }
+            throw error;
+          }
+        }
+      }
     },
   },
 };
