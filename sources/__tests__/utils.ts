@@ -75,7 +75,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
  */
 export async function createTestProtocolPlugin(
   workspace: TestWorkspace,
-  protocolName: string,
+  protocolName: string
 ): Promise<string> {
   const pluginCode = `
 module.exports = {
@@ -122,7 +122,7 @@ export function extractDependencies(log: string): string[] {
     .filter((str) => str != null && str.length > 0)
     .map(
       (depsString) =>
-        JSON.parse(depsString) as { value: string; children: object },
+        JSON.parse(depsString) as { value: string; children: object }
     )
     .reduce((result, item) => [...result, item.value], [] as string[]);
 }
