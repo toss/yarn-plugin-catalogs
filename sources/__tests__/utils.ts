@@ -25,8 +25,13 @@ export interface TestWorkspace {
  * Creates a temporary Yarn workspace for testing
  */
 export async function createTestWorkspace(): Promise<TestWorkspace> {
+  const mainProjectYarnPath = join(
+    process.cwd(),
+    ".yarn/releases/yarn-4.6.0.cjs",
+  );
+
   const yarn = async (args: string[]) => {
-    return execFileAsync("yarn", args, { cwd: path });
+    return execFileAsync("node", [mainProjectYarnPath, ...args], { cwd: path });
   };
 
   yarn.install = async () => await yarn(["install", "--no-immutable"]);
@@ -70,7 +75,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
  */
 export async function createTestProtocolPlugin(
   workspace: TestWorkspace,
-  protocolName: string
+  protocolName: string,
 ): Promise<string> {
   const pluginCode = `
 module.exports = {
@@ -117,7 +122,7 @@ export function extractDependencies(log: string): string[] {
     .filter((str) => str != null && str.length > 0)
     .map(
       (depsString) =>
-        JSON.parse(depsString) as { value: string; children: object }
+        JSON.parse(depsString) as { value: string; children: object },
     )
     .reduce((result, item) => [...result, item.value], [] as string[]);
 }
