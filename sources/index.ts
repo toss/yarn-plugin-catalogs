@@ -27,9 +27,6 @@ declare module "@yarnpkg/core" {
 // Create a singleton instance of our configuration reader
 const configReader = new CatalogConfigurationReader();
 
-// State tracking to prevent infinite recursion and double-patching
-const processedDependencies = new WeakSet<Descriptor>();
-
 const plugin: Plugin<Hooks & EssentialHooks> = {
   configuration: {
     catalogs: {
@@ -81,20 +78,6 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
       project: Project,
       ...extraArgs
     ) => {
-      // Prevent infinite recursion by tracking processed dependencies
-      if (processedDependencies.has(dependency)) {
-        return dependency;
-      }
-
-      // Prevent double-patching: skip if this dependency already contains a resolved npm version
-      if (
-        dependency.range.startsWith("patch:") &&
-        (dependency.range.includes("npm%3A") ||
-          dependency.range.includes("npm%253A"))
-      ) {
-        return dependency;
-      }
-
       // Check for catalog: in regular form or in patched form (for typescript)
       const isStandardCatalog = dependency.range.startsWith(CATALOG_PROTOCOL);
       const isPatchedCatalog =
@@ -142,9 +125,6 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
           );
         }
 
-        // Mark the resolved descriptor as processed to prevent double-processing
-        processedDependencies.add(resolvedDescriptor);
-
         if (isPatchedCatalog) {
           return resolvedDescriptor;
         }
@@ -157,7 +137,6 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
         );
 
         if (result !== resolvedDescriptor) {
-          processedDependencies.add(result);
           return result;
         }
 
