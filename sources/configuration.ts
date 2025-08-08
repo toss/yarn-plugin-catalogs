@@ -519,4 +519,5 @@ export class CatalogConfigurationReader {
   }
 }
 
+// Create a singleton instance of our configuration reader
 export const configReader = new CatalogConfigurationReader();

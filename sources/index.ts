@@ -24,9 +24,6 @@ declare module "@yarnpkg/core" {
   }
 }
 
-// Create a singleton instance of our configuration reader
-// const configReader = new CatalogConfigurationReader();
-
 const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
   configuration: {
     catalogs: {
