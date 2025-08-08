@@ -57,10 +57,7 @@ export class CatalogResolver implements Resolver {
     );
 
     return opts.resolver.getCandidates(
-      {
-        ...descriptor,
-        range: nextRange,
-      },
+      structUtils.makeDescriptor(descriptor, nextRange),
       dependencies,
       opts,
     );
@@ -84,10 +81,7 @@ export class CatalogResolver implements Resolver {
     );
 
     return opts.resolver.getSatisfying(
-      {
-        ...descriptor,
-        range: nextRange,
-      },
+      structUtils.makeDescriptor(descriptor, nextRange),
       dependencies,
       locators,
       opts,
@@ -104,10 +98,7 @@ export class CatalogResolver implements Resolver {
     );
 
     return opts.resolver.resolve(
-      {
-        ...locator,
-        reference: nextRange,
-      },
+      structUtils.makeLocator(locator, nextRange),
       opts,
     );
   }
