@@ -75,33 +75,69 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
  */
 export async function createTestProtocolPlugin(
   workspace: TestWorkspace,
-  protocolName: string
+  protocolName: string,
 ): Promise<string> {
   const pluginCode = `
 module.exports = {
   name: 'plugin-${protocolName}',
   factory: function(require) {
-    const {structUtils} = require('@yarnpkg/core');
+    const {structUtils, Resolver} = require('@yarnpkg/core');
+
+    class TestProtocolResolver {
+      supportsDescriptor(descriptor, opts) {
+        return descriptor.range.startsWith('${protocolName}:');
+      }
+
+      supportsLocator(locator, opts) {
+        return locator.reference.startsWith('${protocolName}:');
+      }
+
+      shouldPersistResolution(locator, opts) {
+        return false;
+      }
+
+      bindDescriptor(descriptor, fromLocator, opts) {
+        return descriptor;
+      }
+
+      getResolutionDependencies(descriptor, opts) {
+        return {};
+      }
+
+      async getCandidates(descriptor, dependencies, opts) {
+        const nextRange = descriptor.range.replace(/^${protocolName}:/, 'npm:');
+
+        return opts.resolver.getCandidates(
+          { ...descriptor, range: nextRange }, 
+          dependencies, 
+          opts
+        );                         
+      }
+
+      async getSatisfying(descriptor, dependencies, locators, opts) { 
+        const nextRange = descriptor.range.replace(/^${protocolName}:/, 'npm:');                                                                       
+        
+        return opts.resolver.getSatisfying(           
+          { ...descriptor, range: nextRange }, 
+          dependencies, 
+          locators, 
+          opts
+        );                         
+      }                                                
+
+      async resolve(locator, opts) {
+        const nextRange = locator.reference.slice(/^${protocolName}:/, 'npm:'); 
+        
+        return opts.resolver.resolve(           
+          { ...locator, reference: nextRange }, 
+          opts
+        );                         
+      }
+    }
     
     return {
       default: {
-        hooks: {
-          reduceDependency(dependency, project) {
-            // Only handle ${protocolName}: prefixed dependencies
-            if (!dependency.range.startsWith('${protocolName}:')) {
-              return dependency;
-            }
-            
-            // Extract the version from the range
-            const version = dependency.range.slice('${protocolName}:'.length);
-            
-            // Create a new descriptor with the resolved version
-            return structUtils.makeDescriptor(
-              structUtils.makeIdent(dependency.scope, dependency.name),
-              \`npm:\$\{version\}\`
-            );
-          }
-        }
+        resolvers: [TestProtocolResolver],
       }
     };
   }
@@ -122,7 +158,7 @@ export function extractDependencies(log: string): string[] {
     .filter((str) => str != null && str.length > 0)
     .map(
       (depsString) =>
-        JSON.parse(depsString) as { value: string; children: object }
+        JSON.parse(depsString) as { value: string; children: object },
     )
     .reduce((result, item) => [...result, item.value], [] as string[]);
 }

@@ -1,6 +1,7 @@
 import {
   Descriptor,
   Hooks,
+  MessageName,
   Plugin,
   SettingsType,
   Workspace,
@@ -37,6 +38,42 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
   },
   resolvers: [CatalogResolver],
   hooks: {
+    validateWorkspace: async (workspace: Workspace, report) => {
+      const shouldIgnore = await configReader.shouldIgnoreWorkspace(workspace);
+
+      // Check if any dependencies in manifest are in catalog but not using catalog protocol
+      if (!shouldIgnore) {
+        const violatedDependencies =
+          await getCatalogDependenciesWithoutProtocol(workspace);
+
+        if (violatedDependencies.length > 0) {
+          const packageList = chalk.yellow(violatedDependencies.join(", "));
+
+          const validationLevel =
+            await configReader.getValidationLevel(workspace);
+          const message = `The following dependencies are listed in the catalogs but not using the catalog protocol: ${packageList}. Consider using the catalog protocol instead.`;
+
+          if (validationLevel === "strict") {
+            report.reportError(MessageName.INVALID_MANIFEST, message);
+          } else if (validationLevel === "warn") {
+            report.reportWarning(MessageName.INVALID_MANIFEST, message);
+          }
+        }
+      }
+
+      // Check the workspace's raw manifest to find dependencies with the catalog protocol
+      const hasCatalogProtocol = [
+        ...Object.values(workspace.manifest.raw["dependencies"] || {}),
+        ...Object.values(workspace.manifest.raw["devDependencies"] || {}),
+      ].some((version) => (version as string).startsWith(CATALOG_PROTOCOL));
+
+      if (shouldIgnore && hasCatalogProtocol) {
+        report.reportError(
+          MessageName.INVALID_MANIFEST,
+          `Workspace is ignored from the catalogs, but it has dependencies with the catalog protocol. Consider removing the protocol.`,
+        );
+      }
+    },
     afterWorkspaceDependencyAddition: async (
       workspace: Workspace,
       __,
@@ -106,6 +143,48 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
     },
   },
 };
+
+async function getCatalogDependenciesWithoutProtocol(
+  workspace: Workspace,
+): Promise<string[]> {
+  const config = await configReader.readConfiguration(workspace.project);
+
+  // Get all package names from catalog configuration
+  const catalogPackages = new Set<string>();
+  if (config.list) {
+    for (const [_, aliasConfig] of Object.entries(config.list)) {
+      if (typeof aliasConfig === "object") {
+        for (const packageName of Object.keys(aliasConfig)) {
+          catalogPackages.add(packageName);
+        }
+      }
+    }
+  }
+
+  // Check if any dependencies in manifest are in catalog but not using catalog protocol
+  const dependencyEntries = [
+    ...Object.entries(workspace.manifest.raw["dependencies"] || {}),
+    ...Object.entries(workspace.manifest.raw["devDependencies"] || {}),
+  ];
+
+  const dependenciesWithoutProtocol: string[] = [];
+
+  for (const [packageName, version] of dependencyEntries) {
+    const versionString = version as string;
+
+    // Skip if already using catalog protocol
+    if (versionString.startsWith(CATALOG_PROTOCOL)) {
+      continue;
+    }
+
+    // Check if package is in catalog
+    if (catalogPackages.has(packageName)) {
+      dependenciesWithoutProtocol.push(packageName);
+    }
+  }
+
+  return dependenciesWithoutProtocol;
+}
 
 async function fallbackDefaultAliasGroup(
   workspace: Workspace,
