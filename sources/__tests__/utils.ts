@@ -25,8 +25,13 @@ export interface TestWorkspace {
  * Creates a temporary Yarn workspace for testing
  */
 export async function createTestWorkspace(): Promise<TestWorkspace> {
+  const mainProjectYarnPath = join(
+    process.cwd(),
+    ".yarn/releases/yarn-4.6.0.cjs",
+  );
+
   const yarn = async (args: string[]) => {
-    return execFileAsync("yarn", args, { cwd: path });
+    return execFileAsync("node", [mainProjectYarnPath, ...args], { cwd: path });
   };
 
   yarn.install = async () => await yarn(["install", "--no-immutable"]);
