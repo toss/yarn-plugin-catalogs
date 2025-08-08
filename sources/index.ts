@@ -42,12 +42,14 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
 
       // Check if any dependencies in manifest are in catalog but not using catalog protocol
       if (!shouldIgnore) {
-        const violatedDependencies = await getCatalogDependenciesWithoutProtocol(workspace);
+        const violatedDependencies =
+          await getCatalogDependenciesWithoutProtocol(workspace);
 
         if (violatedDependencies.length > 0) {
           const packageList = chalk.yellow(violatedDependencies.join(", "));
 
-          const validationLevel = await configReader.getValidationLevel(workspace);
+          const validationLevel =
+            await configReader.getValidationLevel(workspace);
           const message = `The following dependencies are listed in the catalogs but not using the catalog protocol: ${packageList}. Consider using the catalog protocol instead.`;
 
           if (validationLevel === "strict") {
@@ -67,7 +69,7 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
       if (shouldIgnore && hasCatalogProtocol) {
         report.reportError(
           MessageName.INVALID_MANIFEST,
-          `Workspace is ignored from the catalogs, but it has dependencies with the catalog protocol. Consider removing the protocol.`
+          `Workspace is ignored from the catalogs, but it has dependencies with the catalog protocol. Consider removing the protocol.`,
         );
       }
     },
@@ -106,7 +108,7 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
         const range = await configReader.getRange(
           project,
           catalogAlias,
-          dependencyName
+          dependencyName,
         );
 
         // Create a new descriptor with the resolved version
@@ -114,21 +116,24 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
         if (isStandardCatalog) {
           resolvedDescriptor = structUtils.makeDescriptor(
             structUtils.makeIdent(dependency.scope, dependency.name),
-            range
+            range,
           );
         } else {
           resolvedDescriptor = structUtils.makeDescriptor(
             structUtils.makeIdent(dependency.scope, dependency.name),
-            originalRange.replace(/catalog%3A[^#&]*/, range)
+            originalRange.replace(/catalog%3A[^#&]*/, range),
           );
         }
 
-        // Trigger other hooks to be sure the descriptor is fully resolved
+        if (isPatchedCatalog) {
+          return resolvedDescriptor;
+        }
+
         const result = await project.configuration.reduceHook(
           (hooks) => hooks.reduceDependency,
           resolvedDescriptor,
           project,
-          ...extraArgs
+          ...extraArgs,
         );
 
         if (result !== resolvedDescriptor) {
@@ -140,8 +145,8 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
         if (error instanceof CatalogConfigurationError) {
           throw new Error(
             `Failed to resolve ${structUtils.stringifyDescriptor(
-              dependency
-            )}: ${error.message}`
+              dependency,
+            )}: ${error.message}`,
           );
         }
         throw error;
@@ -150,7 +155,7 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
     afterWorkspaceDependencyAddition: async (
       workspace: Workspace,
       __,
-      dependency: Descriptor
+      dependency: Descriptor,
     ) => {
       fallbackDefaultAliasGroup(workspace, dependency);
     },
@@ -158,14 +163,16 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
       workspace: Workspace,
       __,
       ___,
-      dependency: Descriptor
+      dependency: Descriptor,
     ) => {
       fallbackDefaultAliasGroup(workspace, dependency);
     },
   },
 };
 
-async function getCatalogDependenciesWithoutProtocol(workspace: Workspace): Promise<string[]> {
+async function getCatalogDependenciesWithoutProtocol(
+  workspace: Workspace,
+): Promise<string[]> {
   const config = await configReader.readConfiguration(workspace.project);
 
   // Get all package names from catalog configuration
@@ -207,14 +214,14 @@ async function getCatalogDependenciesWithoutProtocol(workspace: Workspace): Prom
 
 async function fallbackDefaultAliasGroup(
   workspace: Workspace,
-  dependency: Descriptor
+  dependency: Descriptor,
 ) {
   if (dependency.range.startsWith(CATALOG_PROTOCOL)) {
     if (await configReader.shouldIgnoreWorkspace(workspace)) {
       throw new Error(
         chalk.red(
-          `The workspace is ignored from the catalogs, but the dependency to add is using the catalog protocol. Consider removing the protocol.`
-        )
+          `The workspace is ignored from the catalogs, but the dependency to add is using the catalog protocol. Consider removing the protocol.`,
+        ),
       );
     }
     return;
@@ -224,14 +231,13 @@ async function fallbackDefaultAliasGroup(
 
   const aliases = await configReader.findDependency(
     workspace.project,
-    dependency
+    dependency,
   );
   if (aliases.length === 0) return;
 
   // If there's a default alias group, fallback to it
-  const defaultAliasGroups = await configReader.getDefaultAliasGroups(
-    workspace
-  );
+  const defaultAliasGroups =
+    await configReader.getDefaultAliasGroups(workspace);
   if (defaultAliasGroups.length > 0) {
     for (const aliasGroup of defaultAliasGroups) {
       if (aliases.some(([alias]) => alias === aliasGroup)) {
@@ -243,7 +249,7 @@ async function fallbackDefaultAliasGroup(
 
   // If no default alias group is specified, show warning message
   const aliasGroups = aliases.map(([aliasGroup]) =>
-    aliasGroup === ROOT_ALIAS_GROUP ? "" : aliasGroup
+    aliasGroup === ROOT_ALIAS_GROUP ? "" : aliasGroup,
   );
 
   const aliasGroupsText =
@@ -253,7 +259,7 @@ async function fallbackDefaultAliasGroup(
 
   const validationLevel = await configReader.getValidationLevel(workspace);
 
-  const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`
+  const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
   if (validationLevel === "strict") {
     throw new Error(chalk.red(message));
   } else if (validationLevel === "warn") {
