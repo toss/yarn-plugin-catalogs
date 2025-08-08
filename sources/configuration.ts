@@ -518,3 +518,5 @@ export class CatalogConfigurationReader {
     return true;
   }
 }
+
+export const configReader = new CatalogConfigurationReader();
