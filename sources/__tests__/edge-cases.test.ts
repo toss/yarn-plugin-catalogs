@@ -28,17 +28,31 @@ describe("edge cases and special scenarios", () => {
       },
     });
 
-    await workspace.yarn.add("typescript");
+    await workspace.writeJson("package.json", {
+      name: "test-package",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        typescript: "catalog:",
+      },
+    });
+
+    await workspace.yarn.install();
 
     const { stdout: listOutput } = await workspace.yarn.info();
     const dependencies = extractDependencies(listOutput);
 
-    expect(
-      dependencies.some((dep) =>
-        /typescript@patch:typescript@npm%3A5\.8\.3#optional!builtin<compat\/typescript>::version=5\.8\.3&hash=[a-f0-9]+/.test(
-          dep,
-        ),
+    const hasSinglePatch = dependencies.some((dep) =>
+      /typescript@patch:typescript@npm%3A5\.8\.3#optional!builtin<compat\/typescript>::version=5\.8\.3&hash=[a-f0-9]+/.test(
+        dep,
       ),
-    ).toBe(true);
+    );
+
+    const hasDoublePatch = dependencies.some((dep) =>
+      /typescript@patch:typescript@patch%3A/.test(dep),
+    );
+
+    expect(hasSinglePatch).toBe(true);
+    expect(hasDoublePatch).toBe(false);
   });
 });
