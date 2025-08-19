@@ -59,7 +59,7 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
             violations: typeof strictViolations | typeof warnViolations,
           ) => {
             const packageList = violations
-              .map((dep) => dep.packageName)
+              .map((dep) => chalk.yellow(dep.packageName))
               .join(", ");
             return `The following dependencies are listed in the catalogs but not using the catalog protocol: ${packageList}. Consider using the catalog protocol instead.`;
           };
