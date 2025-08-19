@@ -47,16 +47,35 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
           await getCatalogDependenciesWithoutProtocol(workspace);
 
         if (violatedDependencies.length > 0) {
-          const packageList = chalk.yellow(violatedDependencies.join(", "));
+          // Group dependencies by validation level
+          const strictViolations = violatedDependencies.filter(
+            (dep) => dep.validationLevel === "strict",
+          );
+          const warnViolations = violatedDependencies.filter(
+            (dep) => dep.validationLevel === "warn",
+          );
 
-          const validationLevel =
-            await configReader.getValidationLevel(workspace);
-          const message = `The following dependencies are listed in the catalogs but not using the catalog protocol: ${packageList}. Consider using the catalog protocol instead.`;
+          const message = (
+            violations: typeof strictViolations | typeof warnViolations,
+          ) => {
+            const packageList = violations
+              .map((dep) => dep.packageName)
+              .join(", ");
+            return `The following dependencies are listed in the catalogs but not using the catalog protocol: ${packageList}. Consider using the catalog protocol instead.`;
+          };
 
-          if (validationLevel === "strict") {
-            report.reportError(MessageName.INVALID_MANIFEST, message);
-          } else if (validationLevel === "warn") {
-            report.reportWarning(MessageName.INVALID_MANIFEST, message);
+          if (strictViolations.length > 0) {
+            report.reportError(
+              MessageName.INVALID_MANIFEST,
+              message(strictViolations),
+            );
+          }
+
+          if (warnViolations.length > 0) {
+            report.reportWarning(
+              MessageName.INVALID_MANIFEST,
+              message(warnViolations),
+            );
           }
         }
       }
@@ -225,28 +244,19 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
 
 async function getCatalogDependenciesWithoutProtocol(
   workspace: Workspace,
-): Promise<string[]> {
-  const config = await configReader.readConfiguration(workspace.project);
-
-  // Get all package names from catalog configuration
-  const catalogPackages = new Set<string>();
-  if (config.list) {
-    for (const [_, aliasConfig] of Object.entries(config.list)) {
-      if (typeof aliasConfig === "object") {
-        for (const packageName of Object.keys(aliasConfig)) {
-          catalogPackages.add(packageName);
-        }
-      }
-    }
-  }
-
-  // Check if any dependencies in manifest are in catalog but not using catalog protocol
+): Promise<
+  Array<{
+    packageName: string;
+    validationLevel: "warn" | "strict";
+    applicableGroups: string[];
+  }>
+> {
   const dependencyEntries = [
     ...Object.entries(workspace.manifest.raw["dependencies"] || {}),
     ...Object.entries(workspace.manifest.raw["devDependencies"] || {}),
   ];
 
-  const dependenciesWithoutProtocol: string[] = [];
+  const results = [];
 
   for (const [packageName, version] of dependencyEntries) {
     const versionString = version as string;
@@ -256,13 +266,30 @@ async function getCatalogDependenciesWithoutProtocol(
       continue;
     }
 
-    // Check if package is in catalog
-    if (catalogPackages.has(packageName)) {
-      dependenciesWithoutProtocol.push(packageName);
+    // Find all groups that can access this package
+    const accessibleGroups = await configReader.findAllAccessibleGroups(
+      workspace.project,
+      packageName,
+    );
+
+    if (accessibleGroups.length > 0) {
+      const validationLevel = await configReader.getValidationLevelForPackage(
+        workspace,
+        packageName,
+      );
+
+      // Only include packages that have validation enabled (not 'off')
+      if (validationLevel !== "off") {
+        results.push({
+          packageName,
+          validationLevel: validationLevel as "warn" | "strict",
+          applicableGroups: accessibleGroups,
+        });
+      }
     }
   }
 
-  return dependenciesWithoutProtocol;
+  return results;
 }
 
 async function fallbackDefaultAliasGroup(
@@ -310,7 +337,10 @@ async function fallbackDefaultAliasGroup(
       ? ` (${aliasGroups.join(", ")})`
       : "";
 
-  const validationLevel = await configReader.getValidationLevel(workspace);
+  const validationLevel = await configReader.getValidationLevelForPackage(
+    workspace,
+    structUtils.stringifyIdent(dependency),
+  );
 
   const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
   if (validationLevel === "strict") {
