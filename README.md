@@ -195,16 +195,38 @@ The `validation` option allows you to configure whether to enforce catalog usage
 
 - `warn` (default): Shows warning when catalog dependencies don't use the catalog protocol.
 - `strict`: Throws error and prevents installation when catalog dependencies don't use catalog protocol.
+- `off`: Disables validation.
 
 ```yaml
 # In .yarnrc.yml
 catalogs:
   options:
-    validation: warn  # or "strict"
+    validation: warn  # "warn" | "strict" | "off"
   list:
     react: 19.0.0
     react-dom: 19.0.0
 ```
+
+The validation level can be configured for individual catalog groups.
+
+```yaml
+# In .yarnrc.yml
+catalogs:
+  options:
+    validation:
+      beta: warn
+      stable: strict
+      legacy: off
+  list:
+    beta:
+      react: 18.0.0
+    stable:
+      next: 14.0.0
+    legacy:
+      jquery: 3.6.0
+```
+
+When a package exists in multiple groups, the strictest validation level applies (`strict` > `warn` > `off`). Validation settings follow inheritance chains - if a child group doesn't have an explicit setting, it uses the default validation level.
 
 #### Catalog Group Inheritance
 
