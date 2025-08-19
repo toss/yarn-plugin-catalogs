@@ -205,7 +205,7 @@ export class CatalogConfigurationReader {
     // Validate configuration structure
     if (!this.isValidConfiguration(config)) {
       throw new CatalogConfigurationError(
-        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] | 'max', ignoredWorkspaces?: string[], validation?: 'off' | 'warn' | 'strict' | { [pakcage: string]: 'off' | 'warn' | 'strict' } }, list: { [alias: string]: { [packageName: string]: string } } }",
+        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] | 'max', ignoredWorkspaces?: string[], validation?: 'off' | 'warn' | 'strict' | { [package: string]: 'off' | 'warn' | 'strict' } }, list: { [alias: string]: { [packageName: string]: string } } }",
         CatalogConfigurationError.INVALID_FORMAT,
       );
     }
