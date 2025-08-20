@@ -11,7 +11,10 @@ declare module "@yarnpkg/core" {
   }
 }
 
-type ValidationLevel = "warn" | "strict";
+type ValidationLevel = "warn" | "strict" | "off";
+type ValidationConfig =
+  | ValidationLevel
+  | { [groupName: string]: ValidationLevel };
 
 /**
  * Configuration structure for .yarnrc.yml#catalogs
@@ -32,8 +35,10 @@ export interface CatalogsConfiguration {
      * Validation level for catalog usage
      * - 'warn': Show warnings when catalog versions are not used (default)
      * - 'strict': Throw errors when catalog versions are not used
+     * - 'off': Disable validation
+     * Can also be an object with group-specific settings: { [groupName]: 'warn' | 'strict' | 'off' }
      */
-    validation?: ValidationLevel;
+    validation?: ValidationConfig;
   };
   list?: {
     [alias: string]:
@@ -200,7 +205,7 @@ export class CatalogConfigurationReader {
     // Validate configuration structure
     if (!this.isValidConfiguration(config)) {
       throw new CatalogConfigurationError(
-        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] | 'max', ignoredWorkspaces?: string[], validation?: 'warn' | 'strict' }, list: { [alias: string]: { [packageName: string]: string } } }",
+        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] | 'max', ignoredWorkspaces?: string[], validation?: 'off' | 'warn' | 'strict' | { [package: string]: 'off' | 'warn' | 'strict' } }, list: { [alias: string]: { [packageName: string]: string } } }",
         CatalogConfigurationError.INVALID_FORMAT,
       );
     }
@@ -326,6 +331,85 @@ export class CatalogConfigurationReader {
   }
 
   /**
+   * Find all groups that can access a specific package (including inheritance)
+   */
+  async findAllAccessibleGroups(
+    project: Project,
+    packageName: string,
+  ): Promise<string[]> {
+    const config = await this.readConfiguration(project);
+    const accessibleGroups: string[] = [];
+
+    for (const groupName of Object.keys(config.list || {})) {
+      const resolvedRange = this.resolveInheritedRange(
+        config,
+        groupName,
+        packageName,
+      );
+      if (resolvedRange) {
+        accessibleGroups.push(groupName);
+      }
+    }
+
+    return accessibleGroups;
+  }
+
+  /**
+   * Get validation level for a specific group (considering inheritance)
+   */
+  async getGroupValidationLevel(
+    workspace: Workspace,
+    groupName: string,
+  ): Promise<ValidationLevel> {
+    const config = await this.readConfiguration(workspace.project);
+    const validationConfig = config.options?.validation || "warn";
+
+    if (typeof validationConfig === "string") {
+      return validationConfig;
+    }
+
+    // Search inheritance chain for explicit validation setting
+    const inheritanceChain = this.getInheritanceChain(groupName);
+
+    for (let i = inheritanceChain.length - 1; i >= 0; i--) {
+      const currentGroup = inheritanceChain[i];
+      if (validationConfig[currentGroup] !== undefined) {
+        return validationConfig[currentGroup];
+      }
+    }
+
+    return "warn"; // Default fallback
+  }
+
+  /**
+   * Get the strictest validation level for a package across all accessible groups
+   */
+  async getValidationLevelForPackage(
+    workspace: Workspace,
+    packageName: string,
+  ): Promise<ValidationLevel> {
+    const accessibleGroups = await this.findAllAccessibleGroups(
+      workspace.project,
+      packageName,
+    );
+
+    if (accessibleGroups.length === 0) {
+      return "off";
+    }
+
+    const validationLevels: ValidationLevel[] = [];
+    for (const groupName of accessibleGroups) {
+      const level = await this.getGroupValidationLevel(workspace, groupName);
+      validationLevels.push(level);
+    }
+
+    // Return the strictest level (strict > warn > off)
+    if (validationLevels.includes("strict")) return "strict";
+    if (validationLevels.includes("warn")) return "warn";
+    return "off";
+  }
+
+  /**
    * Find a specific dependency in the configuration
    * and return the names of alias groups it belongs to, along with its versions.
    * This method now includes inherited groups in the results.
@@ -410,7 +494,9 @@ export class CatalogConfigurationReader {
     const config = await this.readConfiguration(workspace.project);
 
     if (config.options?.validation) {
-      return config.options.validation;
+      if (typeof config.options.validation === "string") {
+        return config.options.validation;
+      }
     }
 
     return "warn";
@@ -505,11 +591,49 @@ export class CatalogConfigurationReader {
       }
 
       if ("validation" in config["options"]) {
-        if (typeof config["options"]["validation"] !== "string") {
-          return false;
-        }
+        const validation = config["options"]["validation"];
 
-        if (!["warn", "strict"].includes(config["options"]["validation"])) {
+        if (typeof validation === "string") {
+          if (!["warn", "strict", "off"].includes(validation)) {
+            return false;
+          }
+        } else if (typeof validation === "object" && validation !== null) {
+          // Validate group-specific validation config
+          for (const [groupName, level] of Object.entries(validation)) {
+            if (
+              typeof level !== "string" ||
+              !["warn", "strict", "off"].includes(level)
+            ) {
+              return false;
+            }
+
+            // Validate that the group exists or is a valid inheritance chain
+            const aliasGroups = Object.keys(config.list || {});
+            if (
+              !aliasGroups.includes(groupName) &&
+              groupName !== ROOT_ALIAS_GROUP
+            ) {
+              if (groupName.includes("/")) {
+                const chain = this.getInheritanceChain(groupName);
+                let isValid = true;
+                for (const chainGroup of chain) {
+                  if (
+                    chainGroup !== ROOT_ALIAS_GROUP &&
+                    !aliasGroups.includes(chainGroup)
+                  ) {
+                    isValid = false;
+                    break;
+                  }
+                }
+                if (!isValid) {
+                  return false;
+                }
+              } else {
+                return false;
+              }
+            }
+          }
+        } else {
           return false;
         }
       }

@@ -218,4 +218,183 @@ describe("validation", () => {
     expect(stderr).toContain("react");
     expect(stderr).toContain("react@catalog:");
   });
+
+  it("should apply different validation levels per group", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          validation: {
+            beta: "warn",
+            stable: "strict",
+            legacy: "off",
+          },
+        },
+        list: {
+          beta: {
+            react: "npm:18.0.0",
+          },
+          stable: {
+            next: "npm:14.0.0",
+          },
+          legacy: {
+            jquery: "npm:3.6.0",
+          },
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "test-package",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "17.0.0",
+        next: "13.0.0",
+        jquery: "3.5.0",
+      },
+    });
+
+    await expect(workspace.yarn.install()).rejects.toThrow();
+  });
+
+  it("should apply most strict validation when package accessible from multiple groups", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          validation: {
+            beta: "warn",
+            stable: "strict",
+            legacy: "off",
+          },
+        },
+        list: {
+          frontend: {
+            lodash: "npm:4.17.21",
+          },
+          backend: {
+            lodash: "npm:4.17.21",
+          },
+          shared: {
+            lodash: "npm:4.17.21",
+          },
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "test-package",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        lodash: "4.17.20",
+      },
+    });
+
+    await expect(workspace.yarn.install()).rejects.toThrow();
+  });
+
+  it("should inherit validation settings through group hierarchy", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          validation: {
+            stable: "off",
+            "stable/canary": "strict",
+          },
+        },
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+          "stable/canary": {
+            lodash: "npm:4.17.21",
+          },
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "test-package",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "17.0.0",
+      },
+    });
+
+    await expect(workspace.yarn.install()).rejects.toThrow();
+  });
+
+  it("should handle validation inheritance for packages that do not exist in the parent", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          validation: {
+            stable: "strict",
+            "stable/canary": "off",
+          },
+        },
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+          "stable/canary": {
+            lodash: "npm:4.17.21",
+          },
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "test-package",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        lodash: "4.17.20",
+      },
+    });
+
+    const { stderr } = await workspace.yarn.install();
+    expect(stderr).toBe("");
+
+    const { stdout: listOutput } = await workspace.yarn.info();
+    const dependencies = extractDependencies(listOutput);
+    expect(dependencies).includes("lodash@npm:4.17.20");
+  });
+
+  it("should handle validation for root group", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          validation: {
+            root: "strict",
+          },
+        },
+        list: {
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "test-package",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "17.0.0",
+      },
+    });
+
+    await expect(workspace.yarn.install()).rejects.toThrow();
+  });
 });
