@@ -3,7 +3,7 @@ import {
   createTestWorkspace,
   TestWorkspace,
   createTestProtocolPlugin,
-  extractDependencies,
+  hasDependency,
 } from "./utils";
 
 describe("basic catalog functionality", () => {
@@ -53,19 +53,14 @@ describe("basic catalog functionality", () => {
       },
     });
 
-    // Install dependencies
     await workspace.yarn.install();
 
-    // Verify that the correct version was resolved
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
-    expect(dependencies).includes("react@npm:18.0.0");
-    expect(dependencies).includes("react-dom@npm:18.0.0");
-    expect(dependencies).includes("es-toolkit@npm:1.32.0");
-    expect(dependencies).includes("next@npm:12.0.0");
-    expect(dependencies).includes("lodash@npm:4.0.0");
-    expect(dependencies).includes("@rspack/core@npm:1.2.0");
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
+    expect(await hasDependency(workspace, "react-dom@npm:18.0.0")).toBe(true);
+    expect(await hasDependency(workspace, "es-toolkit@npm:1.32.0")).toBe(true);
+    expect(await hasDependency(workspace, "next@npm:12.0.0")).toBe(true);
+    expect(await hasDependency(workspace, "lodash@npm:4.0.0")).toBe(true);
+    expect(await hasDependency(workspace, "@rspack/core@npm:1.2.0")).toBe(true);
   });
 
   it("fallback to default protocol 'npm' if no protocol is provided", async () => {
@@ -95,11 +90,7 @@ describe("basic catalog functionality", () => {
     // Install dependencies
     await workspace.yarn.install();
 
-    // Verify that the correct version was resolved
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
-    expect(dependencies).includes("react@npm:18.0.0");
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
   });
 
   it("fallback to root catalogs if no catalog group is provided", async () => {
@@ -127,11 +118,7 @@ describe("basic catalog functionality", () => {
     // Install dependencies
     await workspace.yarn.install();
 
-    // Verify that the correct version was resolved
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
-    expect(dependencies).includes("react@npm:18.0.0");
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
   });
 
   it("should fail when catalog alias does not exist", async () => {
@@ -194,12 +181,6 @@ describe("basic catalog functionality", () => {
     // Install dependencies with the JSON flag to get structured output
     await workspace.yarn.install();
 
-    // Run yarn info to check resolution without installing
-    const { stdout } = await workspace.yarn(["info", "react", "--json"]);
-
-    const info = JSON.parse(stdout.trim());
-
-    // The version should ultimately be resolved to npm:18.0.0
-    expect(info.value).toBe("react@npm:18.0.0");
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
   });
 });

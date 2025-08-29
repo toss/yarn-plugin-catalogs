@@ -3,6 +3,7 @@ import {
   createTestWorkspace,
   TestWorkspace,
   extractDependencies,
+  hasDependency,
 } from "./utils";
 
 describe("ignored workspaces", () => {
@@ -37,11 +38,9 @@ describe("ignored workspaces", () => {
     });
 
     const { stderr } = await workspace.yarn.add("react");
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
     expect(stderr).toBe("");
-    expect(dependencies).not.includes("react@npm:18.0.0");
+
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(false);
   });
 
   it("should ignore workspaces matched by glob pattern", async () => {
@@ -67,11 +66,9 @@ describe("ignored workspaces", () => {
     });
 
     const { stderr } = await workspace.yarn.add("react");
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
     expect(stderr).toBe("");
-    expect(dependencies).not.includes("react@npm:18.0.0");
+
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(false);
   });
 
   it("should fail validation if workspace is ignored, but using the catalog protocol", async () => {

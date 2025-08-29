@@ -75,34 +75,56 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
  */
 export async function createTestProtocolPlugin(
   workspace: TestWorkspace,
-  protocolName: string
+  protocolName: string,
 ): Promise<string> {
   const pluginCode = `
 module.exports = {
   name: 'plugin-${protocolName}',
   factory: function(require) {
     const {structUtils} = require('@yarnpkg/core');
-    
-    return {
-      default: {
-        hooks: {
-          reduceDependency(dependency, project) {
-            // Only handle ${protocolName}: prefixed dependencies
-            if (!dependency.range.startsWith('${protocolName}:')) {
-              return dependency;
-            }
-            
-            // Extract the version from the range
-            const version = dependency.range.slice('${protocolName}:'.length);
-            
-            // Create a new descriptor with the resolved version
-            return structUtils.makeDescriptor(
-              structUtils.makeIdent(dependency.scope, dependency.name),
-              \`npm:\$\{version\}\`
-            );
-          }
-        }
+
+    class TestProtocolResolver {
+      supportsDescriptor(descriptor, opts) {
+        return descriptor.range.startsWith('${protocolName}:');
       }
+
+      supportsLocator(locator, opts) {
+        return locator.reference.startsWith('${protocolName}:');
+      }
+
+      shouldPersistResolution(locator, opts) {
+        return false;
+      }
+
+      bindDescriptor(descriptor, fromLocator, opts) {
+        return descriptor;
+      }
+
+      getResolutionDependencies(descriptor, opts) {
+        return {};
+      }
+
+      async getCandidates(descriptor, dependencies, opts) {
+        const version = descriptor.range.slice('${protocolName}:'.length);
+        const npmDescriptor = structUtils.makeDescriptor(
+          descriptor,
+          \`npm:\$\{version\}\`
+        );
+
+        return opts.resolver.getCandidates(npmDescriptor, dependencies, opts);
+      }
+
+      async getSatisfying(descriptor, dependencies, locators, opts) {
+        return opts.resolver.getSatisfying(descriptor, dependencies, locators, opts);
+      }
+
+      async resolve(locator, opts) {
+        return opts.resolver.resolve(locator, opts);
+      }
+    }
+
+    return {
+      resolvers: [TestProtocolResolver],
     };
   }
 };`;
@@ -122,7 +144,16 @@ export function extractDependencies(log: string): string[] {
     .filter((str) => str != null && str.length > 0)
     .map(
       (depsString) =>
-        JSON.parse(depsString) as { value: string; children: object }
+        JSON.parse(depsString) as { value: string; children: object },
     )
     .reduce((result, item) => [...result, item.value], [] as string[]);
+}
+
+export async function hasDependency(
+  workspace: TestWorkspace,
+  name: string,
+): Promise<boolean> {
+  const { stdout: listOutput } = await workspace.yarn.info();
+  const dependencies = extractDependencies(listOutput);
+  return dependencies.some((x) => x.startsWith(name));
 }
