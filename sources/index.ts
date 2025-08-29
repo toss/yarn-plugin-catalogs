@@ -1,6 +1,5 @@
 import {
   Plugin,
-  Project,
   Descriptor,
   structUtils,
   Hooks,
@@ -15,9 +14,9 @@ import {
   CatalogConfigurationReader,
   CatalogConfigurationError,
   CatalogsConfiguration,
-  CATALOG_PROTOCOL,
-  ROOT_ALIAS_GROUP,
 } from "./configuration";
+import { CatalogResolver } from "./CatalogResolver";
+import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "./constants";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {
@@ -37,6 +36,7 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
       default: {},
     },
   },
+  resolvers: [CatalogResolver],
   hooks: {
     validateWorkspace: async (workspace: Workspace, report) => {
       const shouldIgnore = await configReader.shouldIgnoreWorkspace(workspace);
@@ -91,85 +91,6 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
           MessageName.INVALID_MANIFEST,
           `Workspace is ignored from the catalogs, but it has dependencies with the catalog protocol. Consider removing the protocol.`,
         );
-      }
-    },
-    reduceDependency: async (
-      dependency: Descriptor,
-      project: Project,
-      ...extraArgs
-    ) => {
-      // Check for catalog: in regular form or in patched form (for typescript)
-      const isStandardCatalog = dependency.range.startsWith(CATALOG_PROTOCOL);
-      const isPatchedCatalog =
-        dependency.range.includes("catalog%3A") &&
-        dependency.range.startsWith("patch:");
-
-      // Skip if neither standard nor patched catalog protocol
-      if (!isStandardCatalog && !isPatchedCatalog) {
-        return dependency;
-      }
-
-      try {
-        // Extract the alias from the range
-        let catalogAlias = "";
-        const originalRange = dependency.range;
-
-        if (isStandardCatalog) {
-          catalogAlias = dependency.range.slice(CATALOG_PROTOCOL.length);
-        } else if (isPatchedCatalog) {
-          const catalogMatch = dependency.range.match(/catalog%3A([^#&]*)/);
-          if (catalogMatch) {
-            catalogAlias = catalogMatch[1] || "";
-          }
-        }
-
-        // Get the actual version from .yarnrc.yml
-        const dependencyName = structUtils.stringifyIdent(dependency);
-        const range = await configReader.getRange(
-          project,
-          catalogAlias,
-          dependencyName,
-        );
-
-        // Create a new descriptor with the resolved version
-        let resolvedDescriptor: Descriptor;
-        if (isStandardCatalog) {
-          resolvedDescriptor = structUtils.makeDescriptor(
-            structUtils.makeIdent(dependency.scope, dependency.name),
-            range,
-          );
-        } else {
-          resolvedDescriptor = structUtils.makeDescriptor(
-            structUtils.makeIdent(dependency.scope, dependency.name),
-            originalRange.replace(/catalog%3A[^#&]*/, range),
-          );
-        }
-
-        if (isPatchedCatalog) {
-          return resolvedDescriptor;
-        }
-
-        const result = await project.configuration.reduceHook(
-          (hooks) => hooks.reduceDependency,
-          resolvedDescriptor,
-          project,
-          ...extraArgs,
-        );
-
-        if (result !== resolvedDescriptor) {
-          return result;
-        }
-
-        return resolvedDescriptor;
-      } catch (error) {
-        if (error instanceof CatalogConfigurationError) {
-          throw new Error(
-            `Failed to resolve ${structUtils.stringifyDescriptor(
-              dependency,
-            )}: ${error.message}`,
-          );
-        }
-        throw error;
       }
     },
     afterWorkspaceDependencyAddition: async (

@@ -1,9 +1,6 @@
 import { Descriptor, Project, structUtils, Workspace } from "@yarnpkg/core";
 import { isMatch } from "picomatch";
-
-export const ROOT_ALIAS_GROUP = "root";
-
-export const CATALOG_PROTOCOL = "catalog:";
+import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "./constants";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {
