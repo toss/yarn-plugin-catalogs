@@ -76,7 +76,9 @@ export class CatalogResolver implements Resolver {
         opts,
       );
     } catch {
-      throw new Error(`Failed to resolve catalog ${descriptor}`);
+      throw new Error(
+        `Failed to resolve catalog package: ${structUtils.stringifyDescriptor(descriptor)}`,
+      );
     }
   }
 
