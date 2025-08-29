@@ -67,7 +67,7 @@ export class CatalogConfigurationError extends Error {
  * Handles reading and parsing of .yarnrc.yml#catalogs configuration
  */
 export class CatalogConfigurationReader {
-  private configCache: Map<string, CatalogsConfiguration> = new Map();
+  private static configCache: Map<string, CatalogsConfiguration> = new Map();
 
   /**
    * Parse inheritance chain from group name
@@ -165,7 +165,7 @@ export class CatalogConfigurationReader {
     const cacheKey = workspaceRoot;
 
     // Check cache first
-    const cached = this.configCache.get(cacheKey);
+    const cached = CatalogConfigurationReader.configCache.get(cacheKey);
     if (cached) {
       return cached;
     }
@@ -216,7 +216,7 @@ export class CatalogConfigurationReader {
     }
 
     // Cache the configuration
-    this.configCache.set(cacheKey, config);
+    CatalogConfigurationReader.configCache.set(cacheKey, config);
 
     return config;
   }
@@ -466,7 +466,7 @@ export class CatalogConfigurationReader {
    * Clear the configuration cache for a specific workspace
    */
   clearCache(workspaceRoot: string): void {
-    this.configCache.delete(workspaceRoot);
+    CatalogConfigurationReader.configCache.delete(workspaceRoot);
   }
 
   /**
