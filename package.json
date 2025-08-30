@@ -28,7 +28,7 @@
     "build": "builder build plugin",
     "build:dev": "builder build plugin --no-minify",
     "clean": "rimraf bundles",
-    "test": "yarn build && vitest run",
+    "test": "yarn build:dev && vitest run",
     "test:watch": "yarn build && vitest watch"
   },
   "packageManager": "yarn@4.6.0"
