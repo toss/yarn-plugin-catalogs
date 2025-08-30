@@ -18,19 +18,11 @@ export class CatalogResolver implements Resolver {
     descriptor: Descriptor,
     _opts: MinimalResolveOptions,
   ): boolean {
-    if (!descriptor.range.startsWith(CATALOG_PROTOCOL)) {
-      return false;
-    }
-
-    return true;
+    return descriptor.range.startsWith(CATALOG_PROTOCOL);
   }
 
   supportsLocator(locator: Locator, _opts: MinimalResolveOptions): boolean {
-    if (!locator.reference.startsWith(CATALOG_PROTOCOL)) {
-      return false;
-    }
-
-    return true;
+    return locator.reference.startsWith(CATALOG_PROTOCOL);
   }
 
   shouldPersistResolution(
