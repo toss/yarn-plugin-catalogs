@@ -242,7 +242,8 @@ async function fallbackDefaultAliasGroup(
   if (defaultAliasGroups.length > 0) {
     for (const aliasGroup of defaultAliasGroups) {
       if (aliases.some(([alias]) => alias === aliasGroup)) {
-        dependency.range = `${CATALOG_PROTOCOL}${aliasGroup}`;
+        dependency.range =
+          await configReader.getRange(workspace.project, aliasGroup, structUtils.stringifyIdent(dependency));
         return;
       }
     }

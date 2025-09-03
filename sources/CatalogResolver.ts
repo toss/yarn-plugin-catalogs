@@ -1,6 +1,5 @@
 import {
   Descriptor,
-  LinkType,
   Locator,
   MinimalResolveOptions,
   Package,
