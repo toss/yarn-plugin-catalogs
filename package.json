@@ -13,6 +13,7 @@
     "picomatch": "^4.0.2"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.2.4",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "@types/picomatch": "^4",
@@ -29,7 +30,10 @@
     "build:dev": "builder build plugin --no-minify",
     "clean": "rimraf bundles",
     "test": "yarn build && vitest run",
-    "test:watch": "yarn build && vitest watch"
+    "test:watch": "yarn build && vitest watch",
+    "format": "biome format --write",
+    "lint": "biome lint",
+    "typecheck": "tsc --noEmit"
   },
   "packageManager": "yarn@4.10.3"
 }
