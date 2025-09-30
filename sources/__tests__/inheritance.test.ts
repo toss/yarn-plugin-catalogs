@@ -3,6 +3,7 @@ import {
   createTestWorkspace,
   TestWorkspace,
   extractDependencies,
+  hasDependency,
 } from "./utils";
 
 describe("catalog group inheritance", () => {
@@ -49,12 +50,9 @@ describe("catalog group inheritance", () => {
 
     await workspace.yarn.install();
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
-    expect(dependencies).includes("react@npm:18.3.1");
-    expect(dependencies).includes("lodash@npm:4.17.20");
-    expect(dependencies).includes("chalk@npm:4.1.2");
+    expect(await hasDependency(workspace, "react@npm:18.3.1")).toBe(true);
+    expect(await hasDependency(workspace, "lodash@npm:4.17.20")).toBe(true);
+    expect(await hasDependency(workspace, "chalk@npm:4.1.2")).toBe(true);
   });
 
   it("should override parent group versions with child group versions", async () => {
@@ -89,12 +87,9 @@ describe("catalog group inheritance", () => {
 
     await workspace.yarn.install();
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
-    expect(dependencies).includes("react@npm:18.2.0");
-    expect(dependencies).includes("lodash@npm:4.17.20");
-    expect(dependencies).includes("next@npm:12.0.0");
+    expect(await hasDependency(workspace, "react@npm:18.2.0")).toBe(true);
+    expect(await hasDependency(workspace, "lodash@npm:4.17.20")).toBe(true);
+    expect(await hasDependency(workspace, "next@npm:12.0.0")).toBe(true);
   });
 
   it("should handle deep inheritance chains", async () => {
@@ -137,13 +132,10 @@ describe("catalog group inheritance", () => {
 
     await workspace.yarn.install();
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
-    expect(dependencies).includes("lodash@npm:4.17.21");
-    expect(dependencies).includes("react@npm:18.1.0");
-    expect(dependencies).includes("next@npm:12.2.0");
-    expect(dependencies).includes("es-toolkit@npm:1.39.7");
+    expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
+    expect(await hasDependency(workspace, "react@npm:18.1.0")).toBe(true);
+    expect(await hasDependency(workspace, "next@npm:12.2.0")).toBe(true);
+    expect(await hasDependency(workspace, "es-toolkit@npm:1.39.7")).toBe(true);
   });
 
   it("should fail when parent group does not exist", async () => {
@@ -203,11 +195,8 @@ describe("catalog group inheritance", () => {
 
     await workspace.yarn.install();
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
-    expect(dependencies).includes("react@npm:18.2.0");
-    expect(dependencies).includes("lodash@npm:4.17.21");
+    expect(await hasDependency(workspace, "react@npm:18.2.0")).toBe(true);
+    expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
   });
 
   it("should work with default alias groups and inheritance", async () => {
@@ -236,11 +225,8 @@ describe("catalog group inheritance", () => {
     const { stderr: stderrLodash } = await workspace.yarn.add("lodash");
     expect(stderrLodash).toBe("");
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
-    expect(dependencies).includes("react@npm:18.2.0");
-    expect(dependencies).includes("lodash@npm:4.17.21");
+    expect(await hasDependency(workspace, "react@npm:18.2.0")).toBe(true);
+    expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
   });
 
   it("should show warnings with inherited groups", async () => {
@@ -329,11 +315,8 @@ describe("catalog group inheritance", () => {
 
     await workspace.yarn.install();
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
-    expect(dependencies).includes("react@npm:18.0.0");
-    expect(dependencies).includes("lodash@npm:4.17.21");
-    expect(dependencies).includes("next@npm:12.0.0");
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
+    expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
+    expect(await hasDependency(workspace, "next@npm:12.0.0")).toBe(true);
   });
 });

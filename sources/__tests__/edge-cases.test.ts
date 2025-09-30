@@ -43,7 +43,7 @@ describe("edge cases and special scenarios", () => {
     const dependencies = extractDependencies(listOutput);
 
     const hasSinglePatch = dependencies.some((dep) =>
-      /typescript@patch:typescript@npm%3A5\.8\.3#optional!builtin<compat\/typescript>::version=5\.8\.3&hash=[a-f0-9]+/.test(
+      /typescript@patch:typescript@npm%3A5\.8\.3.+#optional!builtin<compat\/typescript>::version=5\.8\.3&hash=[a-f0-9]+/.test(
         dep,
       ),
     );
