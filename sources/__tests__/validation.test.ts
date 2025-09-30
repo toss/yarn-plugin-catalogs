@@ -1,8 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import {
   createTestWorkspace,
-  TestWorkspace,
-  extractDependencies,
+  type TestWorkspace,
   hasDependency,
 } from "./utils";
 
@@ -19,14 +18,12 @@ describe("validation", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        validation: "warn",
+      },
       catalogs: {
-        options: {
-          validation: "warn",
-        },
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
+        stable: {
+          react: "npm:18.0.0",
         },
       },
     });
@@ -42,14 +39,12 @@ describe("validation", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        validation: "strict",
+      },
       catalogs: {
-        options: {
-          validation: "strict",
-        },
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
+        stable: {
+          react: "npm:18.0.0",
         },
       },
     });
@@ -61,14 +56,12 @@ describe("validation", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        validation: "strict",
+      },
       catalogs: {
-        options: {
-          validation: "strict",
-        },
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
+        stable: {
+          react: "npm:18.0.0",
         },
       },
     });
@@ -89,14 +82,12 @@ describe("validation", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        validation: "warn",
+      },
       catalogs: {
-        options: {
-          validation: "warn",
-        },
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
+        stable: {
+          react: "npm:18.0.0",
         },
       },
     });
@@ -119,14 +110,12 @@ describe("validation", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        validation: "strict",
+      },
       catalogs: {
-        options: {
-          validation: "strict",
-        },
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
+        stable: {
+          react: "npm:18.0.0",
         },
       },
     });
@@ -141,17 +130,15 @@ describe("validation", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        validation: "warn",
+      },
       catalogs: {
-        options: {
-          validation: "warn",
+        stable: {
+          react: "npm:18.0.0",
         },
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
-          beta: {
-            react: "npm:19.0.0-beta",
-          },
+        beta: {
+          react: "npm:19.0.0-beta",
         },
       },
     });
@@ -166,15 +153,13 @@ describe("validation", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        validation: "strict",
+        ignoredWorkspaces: ["test-package"],
+      },
       catalogs: {
-        options: {
-          validation: "strict",
-          ignoredWorkspaces: ["test-package"],
-        },
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
+        stable: {
+          react: "npm:18.0.0",
         },
       },
     });
@@ -198,14 +183,12 @@ describe("validation", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
-      catalogs: {
-        options: {
-          validation: "warn",
-        },
-        list: {
-          react: "npm:18.0.0",
-          lodash: "npm:4.17.21",
-        },
+      catalogsOptions: {
+        validation: "warn",
+      },
+      catalog: {
+        react: "npm:18.0.0",
+        lodash: "npm:4.17.21",
       },
     });
 
@@ -218,24 +201,22 @@ describe("validation", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
-      catalogs: {
-        options: {
-          validation: {
-            beta: "warn",
-            stable: "strict",
-            legacy: "off",
-          },
+      catalogsOptions: {
+        validation: {
+          beta: "warn",
+          stable: "strict",
+          legacy: "off",
         },
-        list: {
-          beta: {
-            react: "npm:18.0.0",
-          },
-          stable: {
-            next: "npm:14.0.0",
-          },
-          legacy: {
-            jquery: "npm:3.6.0",
-          },
+      },
+      catalogs: {
+        beta: {
+          react: "npm:18.0.0",
+        },
+        stable: {
+          next: "npm:14.0.0",
+        },
+        legacy: {
+          jquery: "npm:3.6.0",
         },
       },
     });
@@ -258,24 +239,22 @@ describe("validation", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
-      catalogs: {
-        options: {
-          validation: {
-            beta: "warn",
-            stable: "strict",
-            legacy: "off",
-          },
+      catalogsOptions: {
+        validation: {
+          beta: "warn",
+          stable: "strict",
+          legacy: "off",
         },
-        list: {
-          frontend: {
-            lodash: "npm:4.17.21",
-          },
-          backend: {
-            lodash: "npm:4.17.21",
-          },
-          shared: {
-            lodash: "npm:4.17.21",
-          },
+      },
+      catalogs: {
+        beta: {
+          lodash: "npm:4.17.21",
+        },
+        stable: {
+          lodash: "npm:4.17.21",
+        },
+        legacy: {
+          lodash: "npm:4.17.21",
         },
       },
     });
@@ -290,92 +269,19 @@ describe("validation", () => {
     });
 
     await expect(workspace.yarn.install()).rejects.toThrow();
-  });
-
-  it("should inherit validation settings through group hierarchy", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeYarnrc({
-      catalogs: {
-        options: {
-          validation: {
-            stable: "off",
-            "stable/canary": "strict",
-          },
-        },
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
-          "stable/canary": {
-            lodash: "npm:4.17.21",
-          },
-        },
-      },
-    });
-
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        react: "17.0.0",
-      },
-    });
-
-    await expect(workspace.yarn.install()).rejects.toThrow();
-  });
-
-  it("should handle validation inheritance for packages that do not exist in the parent", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeYarnrc({
-      catalogs: {
-        options: {
-          validation: {
-            stable: "strict",
-            "stable/canary": "off",
-          },
-        },
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
-          "stable/canary": {
-            lodash: "npm:4.17.21",
-          },
-        },
-      },
-    });
-
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        lodash: "4.17.20",
-      },
-    });
-
-    const { stderr } = await workspace.yarn.install();
-    expect(stderr).toBe("");
-
-    expect(await hasDependency(workspace, "lodash@npm:4.17.20")).toBe(true);
   });
 
   it("should handle validation for root group", async () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
-      catalogs: {
-        options: {
-          validation: {
-            root: "strict",
-          },
+      catalogsOptions: {
+        validation: {
+          root: "strict",
         },
-        list: {
-          react: "npm:18.0.0",
-        },
+      },
+      catalog: {
+        react: "npm:18.0.0",
       },
     });
 

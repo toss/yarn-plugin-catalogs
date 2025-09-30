@@ -9,75 +9,75 @@ import * as fs from "fs/promises";
 const execFileAsync = promisify(execFile);
 
 export interface TestWorkspace {
-	path: string;
-	cleanup: () => Promise<void>;
-	writeJson: (path: string, content: unknown) => Promise<void>;
-	writeYarnrc: (content: unknown) => Promise<void>;
-	yarn: {
-		(args: string[]): Promise<{ stdout: string; stderr: string }>;
-		install(): Promise<{ stdout: string; stderr: string }>;
-		info(): Promise<{ stdout: string; stderr: string }>;
-		add(dep: string): Promise<{ stdout: string; stderr: string }>;
-	};
+  path: string;
+  cleanup: () => Promise<void>;
+  writeJson: (path: string, content: unknown) => Promise<void>;
+  writeYarnrc: (content: unknown) => Promise<void>;
+  yarn: {
+    (args: string[]): Promise<{ stdout: string; stderr: string }>;
+    install(): Promise<{ stdout: string; stderr: string }>;
+    info(): Promise<{ stdout: string; stderr: string }>;
+    add(dep: string): Promise<{ stdout: string; stderr: string }>;
+  };
 }
 
 /**
  * Creates a temporary Yarn workspace for testing
  */
 export async function createTestWorkspace(): Promise<TestWorkspace> {
-	const mainProjectYarnPath = join(
-		process.cwd(),
-		".yarn/releases/yarn-4.10.3.cjs",
-	);
+  const mainProjectYarnPath = join(
+    process.cwd(),
+    ".yarn/releases/yarn-4.10.3.cjs",
+  );
 
-	const yarn = async (args: string[]) => {
-		return execFileAsync("node", [mainProjectYarnPath, ...args], { cwd: path });
-	};
+  const yarn = async (args: string[]) => {
+    return execFileAsync("node", [mainProjectYarnPath, ...args], { cwd: path });
+  };
 
-	yarn.install = async () => await yarn(["install", "--no-immutable"]);
-	yarn.info = async () => await yarn(["info", "--json"]);
-	yarn.add = async (dep: string) => await yarn(["add", dep]);
+  yarn.install = async () => await yarn(["install", "--no-immutable"]);
+  yarn.info = async () => await yarn(["info", "--json"]);
+  yarn.add = async (dep: string) => await yarn(["add", dep]);
 
-	const { path, cleanup } = await tmpDir({ unsafeCleanup: true });
+  const { path, cleanup } = await tmpDir({ unsafeCleanup: true });
 
-	await yarn(["init", "-y"]);
-	await yarn(["set", "version", "stable"]);
+  await yarn(["init", "-y"]);
+  await yarn(["set", "version", "stable"]);
 
-	await yarn([
-		"plugin",
-		"import",
-		join(process.cwd(), "bundles/@yarnpkg/plugin-catalogs.js"),
-	]);
+  await yarn([
+    "plugin",
+    "import",
+    join(process.cwd(), "bundles/@yarnpkg/plugin-catalogs.js"),
+  ]);
 
-	const writeJson = async (filePath: string, content: unknown) => {
-		await writeFile(join(path, filePath), JSON.stringify(content, null, 2));
-	};
+  const writeJson = async (filePath: string, content: unknown) => {
+    await writeFile(join(path, filePath), JSON.stringify(content, null, 2));
+  };
 
-	const writeYaml = async (content: unknown) => {
-		const yarnrcPath = join(path, ".yarnrc.yml");
-		const existingContent = await fs
-			.readFile(yarnrcPath, "utf8")
-			.catch(() => "");
-		await writeFile(yarnrcPath, existingContent + "\n" + yamlDump(content));
-	};
+  const writeYaml = async (content: unknown) => {
+    const yarnrcPath = join(path, ".yarnrc.yml");
+    const existingContent = await fs
+      .readFile(yarnrcPath, "utf8")
+      .catch(() => "");
+    await writeFile(yarnrcPath, existingContent + "\n" + yamlDump(content));
+  };
 
-	return {
-		path,
-		cleanup,
-		writeJson,
-		writeYarnrc: writeYaml,
-		yarn,
-	};
+  return {
+    path,
+    cleanup,
+    writeJson,
+    writeYarnrc: writeYaml,
+    yarn,
+  };
 }
 
 /**
  * Creates a simple test protocol plugin for testing chained protocol resolution
  */
 export async function createTestProtocolPlugin(
-	workspace: TestWorkspace,
-	protocolName: string,
+  workspace: TestWorkspace,
+  protocolName: string,
 ): Promise<string> {
-	const pluginCode = `
+  const pluginCode = `
 module.exports = {
   name: 'plugin-${protocolName}',
   factory: function(require) {
@@ -107,31 +107,31 @@ module.exports = {
   }
 };`;
 
-	const pluginPath = join(workspace.path, `${protocolName}-plugin.js`);
-	await fs.writeFile(pluginPath, pluginCode, "utf8");
+  const pluginPath = join(workspace.path, `${protocolName}-plugin.js`);
+  await fs.writeFile(pluginPath, pluginCode, "utf8");
 
-	// Import the plugin
-	await workspace.yarn(["plugin", "import", pluginPath]);
+  // Import the plugin
+  await workspace.yarn(["plugin", "import", pluginPath]);
 
-	return pluginPath;
+  return pluginPath;
 }
 
 export function extractDependencies(log: string): string[] {
-	return log
-		.split("\n")
-		.filter((str) => str != null && str.length > 0)
-		.map(
-			(depsString) =>
-				JSON.parse(depsString) as { value: string; children: object },
-		)
-		.reduce((result, item) => [...result, item.value], [] as string[]);
+  return log
+    .split("\n")
+    .filter((str) => str != null && str.length > 0)
+    .map(
+      (depsString) =>
+        JSON.parse(depsString) as { value: string; children: object },
+    )
+    .reduce((result, item) => [...result, item.value], [] as string[]);
 }
 
 export async function hasDependency(
-	workspace: TestWorkspace,
-	name: string,
+  workspace: TestWorkspace,
+  name: string,
 ): Promise<boolean> {
-	const { stdout: listOutput } = await workspace.yarn.info();
-	const dependencies = extractDependencies(listOutput);
-	return dependencies.some((x) => x.startsWith(name));
+  const { stdout: listOutput } = await workspace.yarn.info();
+  const dependencies = extractDependencies(listOutput);
+  return dependencies.some((x) => x.startsWith(name));
 }

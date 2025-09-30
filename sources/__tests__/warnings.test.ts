@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import {
   createTestWorkspace,
-  TestWorkspace,
+  type TestWorkspace,
   hasDependency,
 } from "./utils";
 
@@ -19,10 +19,8 @@ describe("warnings and recommendations", () => {
 
     await workspace.writeYarnrc({
       catalogs: {
-        list: {
-          groupA: {
-            react: "npm:18.0.0",
-          },
+        groupA: {
+          react: "npm:18.0.0",
         },
       },
     });
@@ -37,13 +35,11 @@ describe("warnings and recommendations", () => {
 
     await workspace.writeYarnrc({
       catalogs: {
-        list: {
-          groupA: {
-            react: "npm:18.0.0",
-          },
-          groupB: {
-            react: "npm:17.0.0",
-          },
+        groupA: {
+          react: "npm:18.0.0",
+        },
+        groupB: {
+          react: "npm:17.0.0",
         },
       },
     });
@@ -58,10 +54,8 @@ describe("warnings and recommendations", () => {
 
     await workspace.writeYarnrc({
       catalogs: {
-        list: {
-          groupA: {
-            react: "npm:18.0.0",
-          },
+        groupA: {
+          react: "npm:18.0.0",
         },
       },
     });
@@ -76,10 +70,8 @@ describe("warnings and recommendations", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
-      catalogs: {
-        list: {
-          next: "npm:12.0.0",
-        },
+      catalog: {
+        next: "npm:12.0.0",
       },
     });
 
@@ -93,18 +85,16 @@ describe("warnings and recommendations", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        default: ["beta"],
+      },
       catalogs: {
-        options: {
-          default: ["beta"],
+        beta: {
+          react: "npm:18.0.0",
         },
-        list: {
-          beta: {
-            react: "npm:18.0.0",
-          },
-          stable: {
-            react: "npm:17.0.0",
-            lodash: "npm:3.0.0",
-          },
+        stable: {
+          react: "npm:17.0.0",
+          lodash: "npm:3.0.0",
         },
       },
     });
@@ -120,18 +110,16 @@ describe("warnings and recommendations", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        validation: "warn",
+        default: ["stable"],
+      },
       catalogs: {
-        options: {
-          validation: "warn",
-          default: ["stable"],
+        stable: {
+          react: "npm:17.0.0",
         },
-        list: {
-          stable: {
-            react: "npm:17.0.0",
-          },
-          beta: {
-            react: "npm:18.0.0",
-          },
+        beta: {
+          react: "npm:18.0.0",
         },
       },
     });
@@ -147,18 +135,16 @@ describe("warnings and recommendations", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        validation: "strict",
+        default: ["stable"],
+      },
       catalogs: {
-        options: {
-          validation: "strict",
-          default: ["stable"],
+        stable: {
+          react: "npm:17.0.0",
         },
-        list: {
-          stable: {
-            react: "npm:17.0.0",
-          },
-          beta: {
-            react: "npm:18.0.0",
-          },
+        beta: {
+          react: "npm:18.0.0",
         },
       },
     });

@@ -1,8 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import {
   createTestWorkspace,
-  TestWorkspace,
-  extractDependencies,
+  type TestWorkspace,
   hasDependency,
 } from "./utils";
 
@@ -19,12 +18,12 @@ describe("ignored workspaces", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        default: ["root"],
+        ignoredWorkspaces: ["workspace-ignored"],
+      },
       catalogs: {
-        options: {
-          default: ["root"],
-          ignoredWorkspaces: ["workspace-ignored"],
-        },
-        list: {
+        root: {
           react: "npm:18.0.0",
         },
       },
@@ -47,12 +46,12 @@ describe("ignored workspaces", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        default: ["root"],
+        ignoredWorkspaces: ["@ignored/*"],
+      },
       catalogs: {
-        options: {
-          default: ["root"],
-          ignoredWorkspaces: ["@ignored/*"],
-        },
-        list: {
+        root: {
           react: "npm:18.0.0",
         },
       },
@@ -75,11 +74,11 @@ describe("ignored workspaces", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        ignoredWorkspaces: ["workspace-ignored"],
+      },
       catalogs: {
-        options: {
-          ignoredWorkspaces: ["workspace-ignored"],
-        },
-        list: {
+        root: {
           react: "npm:18.0.0",
         },
       },
@@ -101,15 +100,13 @@ describe("ignored workspaces", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        ignoredWorkspaces: ["workspace-ignored"],
+      },
       catalogs: {
-        options: {
-          ignoredWorkspaces: ["workspace-ignored"],
-        },
-        list: {
-          stable: {
-            lodash: "npm:2.0.0",
-            react: "npm:18.0.0",
-          },
+        stable: {
+          lodash: "npm:2.0.0",
+          react: "npm:18.0.0",
         },
       },
     });
@@ -131,14 +128,12 @@ describe("ignored workspaces", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
+      catalogsOptions: {
+        ignoredWorkspaces: ["workspace-ignored"],
+      },
       catalogs: {
-        options: {
-          ignoredWorkspaces: ["workspace-ignored"],
-        },
-        list: {
-          stable: {
-            "@jwoo0122/echo": "npm:1.0.0",
-          },
+        stable: {
+          "@jwoo0122/echo": "npm:1.0.0",
         },
       },
     });

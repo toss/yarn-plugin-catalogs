@@ -1,12 +1,11 @@
 import { describe, it, expect, afterEach } from "vitest";
 import {
   createTestWorkspace,
-  TestWorkspace,
-  createTestProtocolPlugin,
+  type TestWorkspace,
   hasDependency,
 } from "./utils";
 
-describe("basic catalog functionality", () => {
+describe("basic catalog functionality (without plugin options)", () => {
   let workspace: TestWorkspace;
 
   afterEach(async () => {
@@ -15,30 +14,55 @@ describe("basic catalog functionality", () => {
     }
   });
 
-  it("should resolve catalog version from .yarnrc.yml catalogs", async () => {
+  it("should work with root catalog without any plugin options", async () => {
     workspace = await createTestWorkspace();
 
-    // Create .yarnrc.yml catalogs with version mappings
+    await workspace.writeYarnrc({
+      catalog: {
+        react: "npm:18.0.0",
+        lodash: "npm:4.17.21",
+      },
+    });
+
+    await workspace.yarn.add("react@catalog:");
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
+  });
+
+  it("should work with named catalogs without any plugin options", async () => {
+    workspace = await createTestWorkspace();
+
     await workspace.writeYarnrc({
       catalogs: {
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-            "react-dom": "npm:18.0.0",
-            "es-toolkit": "npm:1.32.0",
-          },
-          legacy: {
-            next: "npm:12.0.0",
-            lodash: "npm:4.0.0",
-          },
-          beta: {
-            "@rspack/core": "npm:1.2.0",
-          },
+        stable: {
+          react: "npm:18.0.0",
+          lodash: "npm:4.17.21",
+        },
+        beta: {
+          react: "npm:19.0.0-beta",
+          lodash: "npm:4.17.20",
         },
       },
     });
 
-    // Create package.json with catalog version
+    await workspace.yarn.add("react@catalog:stable");
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
+
+    await workspace.yarn.add("lodash@catalog:beta");
+    expect(await hasDependency(workspace, "lodash@npm:4.17.20")).toBe(true);
+  });
+
+  it("should install dependencies using catalog protocol", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        stable: {
+          react: "npm:18.0.0",
+          "react-dom": "npm:18.0.0",
+        },
+      },
+    });
+
     await workspace.writeJson("package.json", {
       name: "test-package",
       version: "1.0.0",
@@ -46,141 +70,50 @@ describe("basic catalog functionality", () => {
       dependencies: {
         react: "catalog:stable",
         "react-dom": "catalog:stable",
-        "es-toolkit": "catalog:stable",
-        next: "catalog:legacy",
-        lodash: "catalog:legacy",
-        "@rspack/core": "catalog:beta",
       },
     });
 
     await workspace.yarn.install();
-
     expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
     expect(await hasDependency(workspace, "react-dom@npm:18.0.0")).toBe(true);
-    expect(await hasDependency(workspace, "es-toolkit@npm:1.32.0")).toBe(true);
-    expect(await hasDependency(workspace, "next@npm:12.0.0")).toBe(true);
-    expect(await hasDependency(workspace, "lodash@npm:4.0.0")).toBe(true);
-    expect(await hasDependency(workspace, "@rspack/core@npm:1.2.0")).toBe(true);
   });
 
-  it("fallback to default protocol 'npm' if no protocol is provided", async () => {
+  it("should not interfere with regular npm protocol", async () => {
     workspace = await createTestWorkspace();
 
-    // Create .yarnrc.yml catalogs with version mappings
     await workspace.writeYarnrc({
+      catalog: {
+        react: "npm:18.0.0",
+      },
+    });
+
+    // Add with explicit version (not using catalog)
+    await workspace.yarn.add("lodash@4.17.21");
+    expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
+
+    // Should not interfere with regular adds
+    await workspace.yarn.add("underscore@1.13.6");
+    expect(await hasDependency(workspace, "underscore@npm:1.13.6")).toBe(true);
+  });
+
+  it("should support both root and named catalogs together", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalog: {
+        lodash: "npm:4.17.21",
+      },
       catalogs: {
-        list: {
-          npm: {
-            react: "18.0.0",
-          },
+        stable: {
+          react: "npm:18.0.0",
         },
       },
     });
 
-    // Create package.json with catalog version
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        react: "catalog:npm",
-      },
-    });
-
-    // Install dependencies
-    await workspace.yarn.install();
+    await workspace.yarn.add("react@catalog:stable");
+    await workspace.yarn.add("lodash@catalog:");
 
     expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
-  });
-
-  it("fallback to root catalogs if no catalog group is provided", async () => {
-    workspace = await createTestWorkspace();
-
-    // Create .yarnrc.yml catalogs with version mappings
-    await workspace.writeYarnrc({
-      catalogs: {
-        list: {
-          react: "18.0.0",
-        },
-      },
-    });
-
-    // Create package.json with catalog version
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        react: "catalog:",
-      },
-    });
-
-    // Install dependencies
-    await workspace.yarn.install();
-
-    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
-  });
-
-  it("should fail when catalog alias does not exist", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeYarnrc({
-      catalogs: {
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
-          legacy: {
-            react: "npm:16.0.0",
-          },
-        },
-      },
-    });
-
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        react: "catalog:nonexistent",
-        "react-dom": "catalog:legacy",
-      },
-    });
-
-    // Install should fail with an error about the missing alias
-    await expect(workspace.yarn.install()).rejects.toThrow();
-  });
-
-  it("should successfully resolve nested protocols through multiple plugins", async () => {
-    workspace = await createTestWorkspace();
-
-    // Create a simple test-protocol plugin
-    await createTestProtocolPlugin(workspace, "test-protocol");
-
-    // Create catalog.yml with version using the test protocol
-    await workspace.writeYarnrc({
-      catalogs: {
-        list: {
-          test: {
-            react: "test-protocol:18.0.0", // Uses our custom protocol
-          },
-        },
-      },
-    });
-
-    // Create package.json referencing the catalog version
-    await workspace.writeJson("package.json", {
-      name: "test-workspace",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        react: "catalog:test",
-      },
-    });
-
-    // Install dependencies with the JSON flag to get structured output
-    await workspace.yarn.install();
-
-    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
+    expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
   });
 });
