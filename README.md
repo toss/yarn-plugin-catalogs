@@ -1,17 +1,23 @@
 # yarn-plugin-catalogs
 
-A Yarn plugin that enables "Catalogs" - a workspace feature for defining dependency version ranges as reusable constants across your project.
+**Extended options plugin for Yarn's Catalogs feature.**
 
-Highly inspired by [pnpm Catalogs](https://pnpm.io/catalogs).
+Starting from Yarn 4.10.0, Catalogs are natively supported by Yarn. This plugin provides **additional options** on top of Yarn's implementation, including default alias groups, workspace ignoring, and validation settings.
 
-## Why use Catalogs?
+For basic Catalogs functionality, refer to [Yarn's official documentation](https://yarnpkg.com/features/catalogs).
 
-In larger projects, especially monorepos, it's common to have the same dependencies used across multiple packages. Catalogs help you:
+## Requirements
 
-- **Maintain consistent versions** across your workspace
-- **Simplify upgrades** by editing versions in just one place
-- **Reduce merge conflicts** in package.json files
-- **Standardize dependencies** across teams and repositories
+- **Yarn 4.10.0 or higher** (for Catalogs support)
+
+## Why use this plugin?
+
+While Yarn 4.10+ provides native catalog support, this plugin extends that functionality with:
+
+- **Default alias groups** - Automatically apply catalog protocols when adding dependencies
+- **Workspace ignoring** - Disable catalogs for specific workspaces using glob patterns
+- **Validation levels** - Enforce catalog usage with configurable warning or error levels
+- **Group-specific validation** - Different validation rules for different catalog groups
 
 ## Installation
 
@@ -19,141 +25,62 @@ In larger projects, especially monorepos, it's common to have the same dependenc
 yarn plugin import https://raw.githubusercontent.com/toss/yarn-plugin-catalogs/main/bundles/%40yarnpkg/plugin-catalogs.js
 ```
 
-## Usage
+## Features
 
-### 1. Add `catalogs` to `.yarnrc.yml`
+This plugin adds the `catalogsOptions` configuration to `.yarnrc.yml`:
+
+### Default Alias Groups
+
+Automatically applies catalog protocols when adding dependencies.
 
 ```yaml
 # in .yarnrc.yml
+catalogsOptions:
+  default: [beta, legacy]  # Priority order
 
 catalogs:
-  list:
-    # Root catalogs (can be referenced with just "catalog:")
-    react: 18.0.0
-    react-dom: 18.0.0
-    typescript: 5.1.6
-
-    # Named catalogs (must be referenced with "catalog:name")
-    beta:
-      react: 19.0.0
-      react-dom: 19.0.0
-
-    legacy:
-      react: 17.0.2
-      react-dom: 17.0.2
-```
-
-### 2. Reference catalog versions in your package.json
-
-```json
-{
-  "dependencies": {
-    "react": "catalog:", // Uses version from root catalog
-    "react-dom": "catalog:", // Uses version from root catalog
-    "typescript": "catalog:", // Uses version from root catalog
-
-    "next": "catalog:beta", // Uses version from beta catalog
-    "styled-components": "catalog:legacy" // Uses version from legacy catalog
-  }
-}
-```
-
-### Advanced Usage
-
-#### Protocol Support
-
-The plugin automatically adds the `npm:` protocol if none is specified in the catalog:
-
-```yaml
-# In .yarnrc.yml
-catalogs:
-  list:
-    react: 18.0.0           // Will be transformed to "npm:18.0.0"
-    next: "npm:13.4.9"      // Protocol explicitly specified
-    lodash: "patch:lodash@4.17.21#./.patches/lodash.patch"  // Custom protocol
-```
-
-#### Scoped Packages
-
-Scoped packages work as expected:
-
-```yaml
-# In .yarnrc.yml
-catalogs:
-  list:
-    "@emotion/react": 11.11.1
-    "@types/react": 18.2.15
-
-    beta:
-      "@tanstack/react-query": 5.0.0
-```
-
-```json
-{
-  "dependencies": {
-    "@emotion/react": "catalog:",
-    "@types/react": "catalog:",
-    "@tanstack/react-query": "catalog:beta"
-  }
-}
-```
-
-#### Default Catalogs
-
-The `default` option automatically selects a catalog for `yarn add` when no catalog name is specified. If multiple catalogs are listed, priority is determined by their order.
-
-```yaml
-# In .yarnrc.yml
-catalogs:
-  options:
-    default: [beta, legacy]
-  list:
-    beta:
-      react: 19.0.0
-    legacy:
-      react: 17.0.2
-      typescript: 4.8.3
+  beta:
+    react: npm:19.0.0
+  legacy:
+    react: npm:17.0.2
+    typescript: npm:4.8.3
 ```
 
 ```sh
-yarn add react # Same as `yarn add react@catalog:beta`
-yarn add typescript # Same as `yarn add typescript@catalog:legacy`
+yarn add react      # Automatically becomes: yarn add react@catalog:beta
+yarn add typescript # Automatically becomes: yarn add typescript@catalog:legacy
 ```
 
-To use the root catalogs as the default, just set the `default` option to `root`:
+#### Using `root` as Default
 
 ```yaml
-# In .yarnrc.yml
-catalogs:
-  options:
-    default: [root]
-  list:
-    react: 19.0.0
-    react-dom: 19.0.0
+catalogsOptions:
+  default: [root]  # Use root catalog as default
+
+catalog:
+  react: npm:19.0.0
+  react-dom: npm:19.0.0
 ```
 
 ```sh
-yarn add react # Same as `yarn add react@catalog:`
+yarn add react  # Same as: yarn add react@catalog:
 ```
 
-The `default` option can also be set to a non-list value that defines a selection rule instead of specifying a catalog name. For example, `max` selects the most frequently used catalog in package.json as the default.
+#### Using `max` Strategy
+
+The `max` option selects the most frequently used catalog in your package.json.
 
 ```yaml
-# In .yarnrc.yml
+catalogsOptions:
+  default: max
+
 catalogs:
-  options:
-    default: max
-  list:
-    beta:
-      react: 19.0.0
-      react-dom: 19.0.0
-      typescript: 5.1.6
-      next: 15.3.0
-    legacy:
-      react: 17.0.2
-      react-dom: 17.0.2
-      typescript: 4.8.3
-      next: 13.4.9
+  beta:
+    react: npm:19.0.0
+    typescript: npm:5.1.6
+  legacy:
+    react: npm:17.0.2
+    typescript: npm:4.8.3
 ```
 
 ```json
@@ -161,96 +88,70 @@ catalogs:
   "dependencies": {
     "react": "catalog:beta",
     "react-dom": "catalog:beta",
-    "typescript": "catalog:legacy",
+    "typescript": "catalog:legacy"
   }
 }
 ```
 
 ```sh
-yarn add next # Same as `yarn add next@catalog:beta`
-              # because beta is the most frequently used catalog in package.json
+yarn add next  # Will use "catalog:beta" (most frequent)
 ```
 
-Currently, only the `max` option is available, but additional options may be added in the future.
+### Ignoring Workspaces
 
-#### Disabling Catalogs
-
-You can disable catalogs for certain workspaces by listing their names in the `ignoredWorkspaces` option. You can also use glob patterns here.
+Disable catalog features for specific workspaces using glob patterns.
 
 ```yaml
-# In .yarnrc.yml
-catalogs:
-  options:
-    ignoredWorkspaces: [package, test-*]
-  list:
-    react: 19.0.0
-    react-dom: 19.0.0
+catalogsOptions:
+  ignoredWorkspaces: [package, test-*]
+
+catalog:
+  react: npm:19.0.0
 ```
 
-The ignored workspaces cannot use the catalog protocol, and the default alias group is also disabled for them.
+Ignored workspaces:
+- Cannot use the `catalog:` protocol
+- Default alias groups are disabled
+- Validation is skipped
 
-#### Validation
+### Validation
 
-The `validation` option allows you to configure whether to enforce catalog usage when dependencies listed in the catalog are used with actual versions instead of the catalog protocol.
-
-- `warn` (default): Shows warning when catalog dependencies don't use the catalog protocol.
-- `strict`: Throws error and prevents installation when catalog dependencies don't use catalog protocol.
-- `off`: Disables validation.
+Enforce catalog usage when dependencies listed in catalogs are added with actual versions.
 
 ```yaml
-# In .yarnrc.yml
-catalogs:
-  options:
-    validation: warn  # "warn" | "strict" | "off"
-  list:
-    react: 19.0.0
-    react-dom: 19.0.0
+catalogsOptions:
+  validation: warn  # "warn" | "strict" | "off"
+
+catalog:
+  react: npm:19.0.0
+  lodash: npm:4.17.21
 ```
 
-The validation level can be configured for individual catalog groups.
+- **`warn`** (default): Shows warnings when catalog dependencies don't use the catalog protocol
+- **`strict`**: Throws errors and prevents installation
+- **`off`**: Disables validation
+
+#### Group-Specific Validation
+
+Configure different validation levels for different catalog groups:
 
 ```yaml
-# In .yarnrc.yml
+catalogsOptions:
+  validation:
+    beta: warn
+    stable: strict
+    legacy: off
+
 catalogs:
-  options:
-    validation:
-      beta: warn
-      stable: strict
-      legacy: off
-  list:
-    beta:
-      react: 18.0.0
-    stable:
-      next: 14.0.0
-    legacy:
-      jquery: 3.6.0
+  beta:
+    react: npm:18.0.0
+  stable:
+    next: npm:14.0.0
+  legacy:
+    jquery: npm:3.6.0
 ```
 
-When a package exists in multiple groups, the strictest validation level applies (`strict` > `warn` > `off`). Validation settings follow inheritance chains - if a child group doesn't have an explicit setting, it uses the default validation level.
-
-#### Catalog Group Inheritance
-
-Catalog groups can inherit from parent groups using the `/` delimiter. Child groups inherit all dependencies from their parent groups and can override specific versions.
-
-```yaml
-# In .yarnrc.yml
-catalogs:
-  list:
-    stable:
-      react: 18.0.0
-      lodash: 4.17.21
-      typescript: 5.1.6
-    stable/canary:
-      react: 18.2.0 # Overrides parent version
-      typescript: 5.2.0 # Overrides parent version
-      # lodash: 4.17.21 # Inherited from stable
-    stable/canary/next:
-      react: 18.3.1 # Overrides parent version
-      # typescript: 5.2.0 # Inherited from stable/canary
-      # lodash: 4.17.21 # Inherited from stable
-```
-
-Dependencies are resolved by searching from the most specific group upward until a match is found. An error will be thrown if any parent group in the inheritance chain doesn't exist.
+When a package exists in multiple groups, the strictest validation level applies (`strict` > `warn` > `off`).
 
 ## Contributing
 
