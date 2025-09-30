@@ -1,38 +1,35 @@
 import {
-  Plugin,
-  Project,
-  Descriptor,
+  type Plugin,
+  type Descriptor,
   structUtils,
-  Hooks,
+  type Hooks,
   SettingsType,
-  Workspace,
+  type Workspace,
   MessageName,
 } from "@yarnpkg/core";
-import { Hooks as EssentialHooks } from "@yarnpkg/plugin-essentials";
-import { Hooks as PackHooks } from "@yarnpkg/plugin-pack";
+import type { Hooks as EssentialHooks } from "@yarnpkg/plugin-essentials";
 import chalk from "chalk";
 import {
   CatalogConfigurationReader,
-  CatalogConfigurationError,
-  CatalogsConfiguration,
+  type CatalogsOptions,
   CATALOG_PROTOCOL,
   ROOT_ALIAS_GROUP,
 } from "./configuration";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {
-    catalogs?: CatalogsConfiguration;
+    catalogsOptions?: CatalogsOptions;
   }
 }
 
 // Create a singleton instance of our configuration reader
 const configReader = new CatalogConfigurationReader();
 
-const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
+const plugin: Plugin<Hooks & EssentialHooks> = {
   configuration: {
-    catalogs: {
+    catalogsOptions: {
       description:
-        "Define dependency version ranges as reusable constants across your project.",
+        "Extended options for Yarn catalogs: default alias groups, ignored workspaces, and validation settings.",
       type: SettingsType.ANY,
       default: {},
     },
@@ -93,151 +90,20 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
         );
       }
     },
-    reduceDependency: async (
-      dependency: Descriptor,
-      project: Project,
-      ...extraArgs
-    ) => {
-      // Check for catalog: in regular form or in patched form (for typescript)
-      const isStandardCatalog = dependency.range.startsWith(CATALOG_PROTOCOL);
-      const isPatchedCatalog =
-        dependency.range.includes("catalog%3A") &&
-        dependency.range.startsWith("patch:");
-
-      // Skip if neither standard nor patched catalog protocol
-      if (!isStandardCatalog && !isPatchedCatalog) {
-        return dependency;
-      }
-
-      try {
-        // Extract the alias from the range
-        let catalogAlias = "";
-        const originalRange = dependency.range;
-
-        if (isStandardCatalog) {
-          catalogAlias = dependency.range.slice(CATALOG_PROTOCOL.length);
-        } else if (isPatchedCatalog) {
-          const catalogMatch = dependency.range.match(/catalog%3A([^#&]*)/);
-          if (catalogMatch) {
-            catalogAlias = catalogMatch[1] || "";
-          }
-        }
-
-        // Get the actual version from .yarnrc.yml
-        const dependencyName = structUtils.stringifyIdent(dependency);
-        const range = await configReader.getRange(
-          project,
-          catalogAlias,
-          dependencyName,
-        );
-
-        // Create a new descriptor with the resolved version
-        let resolvedDescriptor: Descriptor;
-        if (isStandardCatalog) {
-          resolvedDescriptor = structUtils.makeDescriptor(
-            structUtils.makeIdent(dependency.scope, dependency.name),
-            range,
-          );
-        } else {
-          resolvedDescriptor = structUtils.makeDescriptor(
-            structUtils.makeIdent(dependency.scope, dependency.name),
-            originalRange.replace(/catalog%3A[^#&]*/, range),
-          );
-        }
-
-        if (isPatchedCatalog) {
-          return resolvedDescriptor;
-        }
-
-        const result = await project.configuration.reduceHook(
-          (hooks) => hooks.reduceDependency,
-          resolvedDescriptor,
-          project,
-          ...extraArgs,
-        );
-
-        if (result !== resolvedDescriptor) {
-          return result;
-        }
-
-        return resolvedDescriptor;
-      } catch (error) {
-        if (error instanceof CatalogConfigurationError) {
-          throw new Error(
-            `Failed to resolve ${structUtils.stringifyDescriptor(
-              dependency,
-            )}: ${error.message}`,
-          );
-        }
-        throw error;
-      }
-    },
     afterWorkspaceDependencyAddition: async (
       workspace: Workspace,
-      __,
+      target: string,
       dependency: Descriptor,
     ) => {
-      fallbackDefaultAliasGroup(workspace, dependency);
+      await fallbackDefaultAliasGroup(workspace, target, dependency);
     },
     afterWorkspaceDependencyReplacement: async (
       workspace: Workspace,
-      __,
-      ___,
+      target: string,
+      _fromDescriptor: Descriptor,
       dependency: Descriptor,
     ) => {
-      fallbackDefaultAliasGroup(workspace, dependency);
-    },
-    beforeWorkspacePacking: async (workspace: Workspace, rawManifest: any) => {
-      // Only process if the workspace is not ignored
-      if (await configReader.shouldIgnoreWorkspace(workspace)) {
-        return;
-      }
-
-      const dependencyTypes = [
-        "dependencies",
-        "devDependencies",
-        "peerDependencies",
-        "optionalDependencies",
-      ];
-
-      for (const dependencyType of dependencyTypes) {
-        const dependencies = rawManifest[dependencyType];
-        if (!dependencies || typeof dependencies !== "object") {
-          continue;
-        }
-
-        for (const [packageName, versionRange] of Object.entries(
-          dependencies,
-        )) {
-          const versionString = versionRange as string;
-
-          // Skip if not using catalog protocol
-          if (!versionString.startsWith(CATALOG_PROTOCOL)) {
-            continue;
-          }
-
-          try {
-            // Extract alias from catalog protocol
-            const catalogAlias = versionString.slice(CATALOG_PROTOCOL.length);
-
-            // Get the resolved version from catalog configuration
-            const resolvedRange = await configReader.getRange(
-              workspace.project,
-              catalogAlias,
-              packageName,
-            );
-
-            dependencies[packageName] = resolvedRange;
-          } catch (error) {
-            if (error instanceof CatalogConfigurationError) {
-              throw new Error(
-                `Failed to resolve catalog dependency ${packageName}@${versionString} during packaging: ${error.message}`,
-              );
-            }
-            throw error;
-          }
-        }
-      }
+      await fallbackDefaultAliasGroup(workspace, target, dependency);
     },
   },
 };
@@ -294,6 +160,7 @@ async function getCatalogDependenciesWithoutProtocol(
 
 async function fallbackDefaultAliasGroup(
   workspace: Workspace,
+  target: string,
   dependency: Descriptor,
 ) {
   if (dependency.range.startsWith(CATALOG_PROTOCOL)) {
@@ -313,15 +180,33 @@ async function fallbackDefaultAliasGroup(
     workspace.project,
     dependency,
   );
+
   if (aliases.length === 0) return;
 
   // If there's a default alias group, fallback to it
   const defaultAliasGroups =
     await configReader.getDefaultAliasGroups(workspace);
+
   if (defaultAliasGroups.length > 0) {
     for (const aliasGroup of defaultAliasGroups) {
       if (aliases.some(([alias]) => alias === aliasGroup)) {
-        dependency.range = `${CATALOG_PROTOCOL}${aliasGroup}`;
+        // For root catalog, use empty string after "catalog:"
+        // For named catalogs, use the catalog name
+        const catalogName = aliasGroup === ROOT_ALIAS_GROUP ? "" : aliasGroup;
+        const catalogProtocol = `${CATALOG_PROTOCOL}${catalogName}`;
+        // Update the manifest directly
+        const manifestField =
+          workspace.manifest[target as keyof typeof workspace.manifest];
+        if (
+          manifestField &&
+          typeof manifestField === "object" &&
+          "set" in manifestField
+        ) {
+          manifestField.set(
+            dependency.identHash,
+            structUtils.makeDescriptor(dependency, catalogProtocol),
+          );
+        }
         return;
       }
     }
