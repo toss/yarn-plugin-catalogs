@@ -3,6 +3,7 @@ import {
   createTestWorkspace,
   TestWorkspace,
   extractDependencies,
+  hasDependency,
 } from "./utils";
 
 describe("default alias groups", () => {
@@ -34,11 +35,9 @@ describe("default alias groups", () => {
     });
 
     const { stderr } = await workspace.yarn.add("react");
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
     expect(stderr).toBe("");
-    expect(dependencies).includes("react@npm:18.0.0");
+
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
   });
 
   it("should fail when the default alias group is not found in the list", async () => {
@@ -75,11 +74,9 @@ describe("default alias groups", () => {
     });
 
     const { stderr } = await workspace.yarn.add("react");
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
     expect(stderr).toBe("");
-    expect(dependencies).includes("react@npm:18.0.0");
+
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
   });
 
   it("should follow the priority based on the order of default alias groups", async () => {
@@ -105,12 +102,9 @@ describe("default alias groups", () => {
     await workspace.yarn.add("react");
     await workspace.yarn.add("lodash");
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
-    expect(dependencies).includes("next@npm:12.0.0");
-    expect(dependencies).includes("react@npm:17.0.0");
-    expect(dependencies).includes("lodash@npm:3.0.0");
+    expect(await hasDependency(workspace, "next@npm:12.0.0")).toBe(true);
+    expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
+    expect(await hasDependency(workspace, "lodash@npm:3.0.0")).toBe(true);
   });
 
   it("should use the most frequently used alias group if 'max' is specified", async () => {
@@ -152,8 +146,8 @@ describe("default alias groups", () => {
     const { stderr } = await workspace.yarn.add("@use-funnel/core");
     expect(stderr).toBe("");
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-    expect(dependencies).includes("@use-funnel/core@npm:0.0.1");
+    expect(await hasDependency(workspace, "@use-funnel/core@npm:0.0.1")).toBe(
+      true,
+    );
   });
 });

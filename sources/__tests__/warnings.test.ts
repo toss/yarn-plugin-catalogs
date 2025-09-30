@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import {
   createTestWorkspace,
   TestWorkspace,
+  hasDependency,
   extractDependencies,
 } from "./utils";
 
@@ -67,11 +68,9 @@ describe("warnings and recommendations", () => {
     });
 
     const { stderr } = await workspace.yarn.add("react@catalog:groupA");
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
     expect(stderr).toBe("");
-    expect(dependencies).includes("react@npm:18.0.0");
+
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
   });
 
   it("should not warn when adding a dependency not in catalogs config", async () => {
@@ -86,11 +85,9 @@ describe("warnings and recommendations", () => {
     });
 
     const { stderr } = await workspace.yarn.add("react@npm:18.0.0");
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-
     expect(stderr).toBe("");
-    expect(dependencies).includes("react@npm:18.0.0");
+
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
   });
 
   it("should not warn when adding a dependency not in the default alias group", async () => {
@@ -117,9 +114,7 @@ describe("warnings and recommendations", () => {
     const { stderr } = await workspace.yarn.add("lodash");
     expect(stderr).not.toContain("lodash@catalog:stable");
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-    expect(dependencies).includes("react@npm:18.0.0");
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
   });
 
   it("should use default alias group without validation warning", async () => {
@@ -146,9 +141,7 @@ describe("warnings and recommendations", () => {
     expect(stdout).not.toContain("catalog");
     expect(stderr).toBe("");
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-    expect(dependencies).includes("react@npm:17.0.0");
+    expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
   });
 
   it("should use default alias group without validation error", async () => {
@@ -174,9 +167,7 @@ describe("warnings and recommendations", () => {
     const { stderr } = await workspace.yarn.add("react");
     expect(stderr).toBe("");
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-    expect(dependencies).includes("react@npm:17.0.0");
+    expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
   });
 
   it("should us default alias group without validation error (default: max)", async () => {

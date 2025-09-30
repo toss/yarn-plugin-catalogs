@@ -3,6 +3,7 @@ import {
   createTestWorkspace,
   type TestWorkspace,
   extractDependencies,
+  hasDependency,
 } from "./utils";
 
 describe("validation", () => {
@@ -34,9 +35,7 @@ describe("validation", () => {
     expect(stderr).toContain("react");
     expect(stderr).toContain("react@catalog:stable");
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-    expect(dependencies).includes("react@npm:17.0.0");
+    expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
   });
 
   it("should throw errors when validation is 'strict' during yarn add", async () => {
@@ -135,9 +134,7 @@ describe("validation", () => {
     const { stderr } = await workspace.yarn.add("lodash@4.17.21");
     expect(stderr).toBe("");
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-    expect(dependencies).includes("lodash@npm:4.17.21");
+    expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
   });
 
   it("should enforce with multiple catalog groups available", async () => {
@@ -194,9 +191,7 @@ describe("validation", () => {
     const { stderr } = await workspace.yarn.install();
     expect(stderr).toBe("");
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-    expect(dependencies).includes("react@npm:17.0.0");
+    expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
   });
 
   it("should handle root catalog groups with validation", async () => {
@@ -365,9 +360,7 @@ describe("validation", () => {
     const { stderr } = await workspace.yarn.install();
     expect(stderr).toBe("");
 
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-    expect(dependencies).includes("lodash@npm:4.17.20");
+    expect(await hasDependency(workspace, "lodash@npm:4.17.20")).toBe(true);
   });
 
   it("should handle validation for root group", async () => {

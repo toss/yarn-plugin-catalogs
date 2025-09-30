@@ -126,3 +126,12 @@ export function extractDependencies(log: string): string[] {
     )
     .reduce((result, item) => [...result, item.value], [] as string[]);
 }
+
+export async function hasDependency(
+  workspace: TestWorkspace,
+  name: string,
+): Promise<boolean> {
+  const { stdout: listOutput } = await workspace.yarn.info();
+  const dependencies = extractDependencies(listOutput);
+  return dependencies.some((x) => x.startsWith(name));
+}
