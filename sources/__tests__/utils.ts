@@ -27,7 +27,7 @@ export interface TestWorkspace {
 export async function createTestWorkspace(): Promise<TestWorkspace> {
 	const mainProjectYarnPath = join(
 		process.cwd(),
-		".yarn/releases/yarn-4.6.0.cjs",
+		".yarn/releases/yarn-4.10.3.cjs",
 	);
 
 	const yarn = async (args: string[]) => {
