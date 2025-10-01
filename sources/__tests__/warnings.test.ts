@@ -84,10 +84,13 @@ describe("warnings and recommendations", () => {
   it("should warn when adding a dependency not in the default alias group", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         default: ["beta"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         beta: {
           react: "npm:18.0.0",
@@ -109,11 +112,14 @@ describe("warnings and recommendations", () => {
   it("should use default alias group without validation warning", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: "warn",
         default: ["stable"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         stable: {
           react: "npm:17.0.0",
@@ -134,11 +140,14 @@ describe("warnings and recommendations", () => {
   it("should use default alias group without validation error", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: "strict",
         default: ["stable"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         stable: {
           react: "npm:17.0.0",

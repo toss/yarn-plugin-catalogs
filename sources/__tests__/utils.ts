@@ -1,10 +1,10 @@
 import { dir as tmpDir } from "tmp-promise";
-import { writeFile } from "fs/promises";
-import { join } from "path";
-import { execFile } from "child_process";
-import { promisify } from "util";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { dump as yamlDump } from "js-yaml";
-import * as fs from "fs/promises";
+import * as fs from "node:fs/promises";
 
 const execFileAsync = promisify(execFile);
 
@@ -13,6 +13,7 @@ export interface TestWorkspace {
   cleanup: () => Promise<void>;
   writeJson: (path: string, content: unknown) => Promise<void>;
   writeYarnrc: (content: unknown) => Promise<void>;
+  writeCatalogsYml: (content: unknown) => Promise<void>;
   yarn: {
     (args: string[]): Promise<{ stdout: string; stderr: string }>;
     install(): Promise<{ stdout: string; stderr: string }>;
@@ -58,7 +59,12 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
     const existingContent = await fs
       .readFile(yarnrcPath, "utf8")
       .catch(() => "");
-    await writeFile(yarnrcPath, existingContent + "\n" + yamlDump(content));
+    await writeFile(yarnrcPath, `${existingContent}\n${yamlDump(content)}`);
+  };
+
+  const writeCatalogsYml = async (content: unknown) => {
+    const catalogsYmlPath = join(path, "catalogs.yml");
+    await writeFile(catalogsYmlPath, yamlDump(content));
   };
 
   return {
@@ -66,6 +72,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
     cleanup,
     writeJson,
     writeYarnrc: writeYaml,
+    writeCatalogsYml,
     yarn,
   };
 }
@@ -98,7 +105,7 @@ module.exports = {
             // Create a new descriptor with the resolved version
             return structUtils.makeDescriptor(
               structUtils.makeIdent(dependency.scope, dependency.name),
-              \`npm:\$\{version\}\`
+              'npm:' + version
             );
           }
         }
@@ -124,7 +131,10 @@ export function extractDependencies(log: string): string[] {
       (depsString) =>
         JSON.parse(depsString) as { value: string; children: object },
     )
-    .reduce((result, item) => [...result, item.value], [] as string[]);
+    .reduce((result, item) => {
+      result.push(item.value);
+      return result;
+    }, [] as string[]);
 }
 
 export async function hasDependency(

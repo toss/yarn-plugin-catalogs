@@ -27,17 +27,20 @@ yarn plugin import https://raw.githubusercontent.com/toss/yarn-plugin-catalogs/m
 
 ## Features
 
-This plugin adds the `catalogsOptions` configuration to `.yarnrc.yml`:
+This plugin reads extended options from `catalogs.yml` in your project root:
 
 ### Default Alias Groups
 
 Automatically applies catalog protocols when adding dependencies.
 
 ```yaml
-# in .yarnrc.yml
-catalogsOptions:
+# in catalogs.yml
+options:
   default: [beta, legacy]  # Priority order
+```
 
+```yaml
+# in .yarnrc.yml
 catalogs:
   beta:
     react: npm:19.0.0
@@ -54,9 +57,13 @@ yarn add typescript # Automatically becomes: yarn add typescript@catalog:legacy
 #### Using `root` as Default
 
 ```yaml
-catalogsOptions:
+# in catalogs.yml
+options:
   default: [root]  # Use root catalog as default
+```
 
+```yaml
+# in .yarnrc.yml
 catalog:
   react: npm:19.0.0
   react-dom: npm:19.0.0
@@ -71,9 +78,13 @@ yarn add react  # Same as: yarn add react@catalog:
 The `max` option selects the most frequently used catalog in your package.json.
 
 ```yaml
-catalogsOptions:
+# in catalogs.yml
+options:
   default: max
+```
 
+```yaml
+# in .yarnrc.yml
 catalogs:
   beta:
     react: npm:19.0.0
@@ -102,9 +113,13 @@ yarn add next  # Will use "catalog:beta" (most frequent)
 Disable catalog features for specific workspaces using glob patterns.
 
 ```yaml
-catalogsOptions:
+# in catalogs.yml
+options:
   ignoredWorkspaces: [package, test-*]
+```
 
+```yaml
+# in .yarnrc.yml
 catalog:
   react: npm:19.0.0
 ```
@@ -119,9 +134,13 @@ Ignored workspaces:
 Enforce catalog usage when dependencies listed in catalogs are added with actual versions.
 
 ```yaml
-catalogsOptions:
+# in catalogs.yml
+options:
   validation: warn  # "warn" | "strict" | "off"
+```
 
+```yaml
+# in .yarnrc.yml
 catalog:
   react: npm:19.0.0
   lodash: npm:4.17.21
@@ -136,12 +155,16 @@ catalog:
 Configure different validation levels for different catalog groups:
 
 ```yaml
-catalogsOptions:
+# in catalogs.yml
+options:
   validation:
     beta: warn
     stable: strict
     legacy: off
+```
 
+```yaml
+# in .yarnrc.yml
 catalogs:
   beta:
     react: npm:18.0.0

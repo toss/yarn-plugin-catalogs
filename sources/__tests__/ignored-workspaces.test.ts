@@ -17,11 +17,14 @@ describe("ignored workspaces", () => {
   it("should not use default alias group if workspace is ignored", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         default: ["root"],
         ignoredWorkspaces: ["workspace-ignored"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         root: {
           react: "npm:18.0.0",
@@ -45,11 +48,14 @@ describe("ignored workspaces", () => {
   it("should ignore workspaces matched by glob pattern", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         default: ["root"],
         ignoredWorkspaces: ["@ignored/*"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         root: {
           react: "npm:18.0.0",
@@ -73,10 +79,13 @@ describe("ignored workspaces", () => {
   it("should fail validation if workspace is ignored, but using the catalog protocol", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         ignoredWorkspaces: ["workspace-ignored"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         root: {
           react: "npm:18.0.0",
@@ -99,10 +108,13 @@ describe("ignored workspaces", () => {
   it("should fail when adding dependency to ignored workspace", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         ignoredWorkspaces: ["workspace-ignored"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         stable: {
           lodash: "npm:2.0.0",
@@ -127,10 +139,13 @@ describe("ignored workspaces", () => {
   it("should success dlx with ignored workspace", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         ignoredWorkspaces: ["workspace-ignored"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         stable: {
           "@jwoo0122/echo": "npm:1.0.0",

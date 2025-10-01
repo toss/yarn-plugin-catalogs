@@ -17,10 +17,13 @@ describe("default alias groups", () => {
   it("should use the default alias group if no group is provided", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         default: ["groupA"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         groupA: {
           react: "npm:18.0.0",
@@ -40,10 +43,13 @@ describe("default alias groups", () => {
   it("should fail when the default alias group is not found in the list", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         default: ["unknown"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         stable: {
           react: "npm:18.0.0",
@@ -64,10 +70,13 @@ describe("default alias groups", () => {
   it("should use the root alias group if it is specified", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         default: ["root"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalog: {
         react: "npm:18.0.0",
       },
@@ -82,10 +91,13 @@ describe("default alias groups", () => {
   it("should follow the priority based on the order of default alias groups", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         default: ["stable", "root"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalog: {
         next: "npm:12.0.0",
         lodash: "npm:4.0.0",
@@ -110,10 +122,13 @@ describe("default alias groups", () => {
   it("should use the most frequently used alias group if 'max' is specified", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         default: "max",
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         beta: {
           react: "npm:18.0.0",

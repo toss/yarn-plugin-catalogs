@@ -4,6 +4,8 @@ import {
   structUtils,
   type Workspace,
 } from "@yarnpkg/core";
+import { xfs, ppath } from "@yarnpkg/fslib";
+import { parseSyml } from "@yarnpkg/parsers";
 import { isMatch } from "picomatch";
 
 export const ROOT_ALIAS_GROUP = "root";
@@ -17,7 +19,7 @@ type ValidationConfig =
 
 /**
  * Extended configuration for catalog options (plugin-specific)
- * This configuration is stored in .yarnrc.yml#catalogsOptions
+ * This configuration is stored in catalogs.yml
  */
 export interface CatalogsOptions {
   /**
@@ -65,7 +67,7 @@ export class CatalogConfigurationReader {
 
   /**
    * Read and parse the catalog configuration from Yarn's native `catalog` and `catalogs`
-   * and combine with plugin-specific catalogsOptions
+   * and combine with plugin-specific options from catalogs.yml
    */
   async readConfiguration(project: Project): Promise<CatalogsConfiguration> {
     const workspaceRoot = project.cwd;
@@ -78,7 +80,20 @@ export class CatalogConfigurationReader {
 
     const catalog = project.configuration.get("catalog");
     const catalogs = project.configuration.get("catalogs");
-    const options = project.configuration.get("catalogsOptions") || {};
+
+    // Read options from catalogs.yml
+    const catalogsYmlPath = ppath.join(project.cwd, "catalogs.yml");
+    let options: CatalogsOptions = {};
+
+    try {
+      if (await xfs.existsPromise(catalogsYmlPath)) {
+        const content = await xfs.readFilePromise(catalogsYmlPath, "utf8");
+        const parsed = parseSyml(content);
+        options = parsed?.options || {};
+      }
+    } catch {
+      // If catalogs.yml doesn't exist or is invalid, use empty options
+    }
 
     // Combine into internal structure
     const config: CatalogsConfiguration = {
@@ -88,14 +103,16 @@ export class CatalogConfigurationReader {
 
     // Add root catalog if it exists
     if (catalog instanceof Map && catalog.size > 0) {
-      config.catalogs![ROOT_ALIAS_GROUP] = Object.fromEntries(catalog);
+      if (config.catalogs) {
+        config.catalogs[ROOT_ALIAS_GROUP] = Object.fromEntries(catalog);
+      }
     }
 
     // Add named catalogs
     if (catalogs instanceof Map && catalogs.size > 0) {
       for (const [catalogName, catalogContent] of catalogs.entries()) {
-        if (catalogContent instanceof Map) {
-          config.catalogs![catalogName] = Object.fromEntries(catalogContent);
+        if (catalogContent instanceof Map && config.catalogs) {
+          config.catalogs[catalogName] = Object.fromEntries(catalogContent);
         }
       }
     }

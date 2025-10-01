@@ -17,10 +17,13 @@ describe("validation", () => {
   it("should show warnings when validation is 'warn' (default)", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: "warn",
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         stable: {
           react: "npm:18.0.0",
@@ -38,10 +41,13 @@ describe("validation", () => {
   it("should throw errors when validation is 'strict' during yarn add", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: "strict",
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         stable: {
           react: "npm:18.0.0",
@@ -55,10 +61,13 @@ describe("validation", () => {
   it("should enforce during yarn install when validation is 'strict'", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: "strict",
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         stable: {
           react: "npm:18.0.0",
@@ -81,10 +90,13 @@ describe("validation", () => {
   it("should warn during yarn install when validation is 'warn'", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: "warn",
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         stable: {
           react: "npm:18.0.0",
@@ -109,10 +121,13 @@ describe("validation", () => {
   it("should not enforce on dependencies not in catalogs", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: "strict",
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         stable: {
           react: "npm:18.0.0",
@@ -129,10 +144,13 @@ describe("validation", () => {
   it("should enforce with multiple catalog groups available", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: "warn",
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         stable: {
           react: "npm:18.0.0",
@@ -152,11 +170,14 @@ describe("validation", () => {
   it("should not enforce on ignored workspaces", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: "strict",
         ignoredWorkspaces: ["test-package"],
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         stable: {
           react: "npm:18.0.0",
@@ -182,10 +203,13 @@ describe("validation", () => {
   it("should handle root catalog groups with validation", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: "warn",
       },
+    });
+
+    await workspace.writeYarnrc({
       catalog: {
         react: "npm:18.0.0",
         lodash: "npm:4.17.21",
@@ -200,14 +224,17 @@ describe("validation", () => {
   it("should apply different validation levels per group", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: {
           beta: "warn",
           stable: "strict",
           legacy: "off",
         },
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         beta: {
           react: "npm:18.0.0",
@@ -238,14 +265,17 @@ describe("validation", () => {
   it("should apply most strict validation when package accessible from multiple groups", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: {
           beta: "warn",
           stable: "strict",
           legacy: "off",
         },
       },
+    });
+
+    await workspace.writeYarnrc({
       catalogs: {
         beta: {
           lodash: "npm:4.17.21",
@@ -274,12 +304,15 @@ describe("validation", () => {
   it("should handle validation for root group", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogsOptions: {
+    await workspace.writeCatalogsYml({
+      options: {
         validation: {
           root: "strict",
         },
       },
+    });
+
+    await workspace.writeYarnrc({
       catalog: {
         react: "npm:18.0.0",
       },

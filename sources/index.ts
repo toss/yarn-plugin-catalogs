@@ -3,7 +3,6 @@ import {
   type Descriptor,
   structUtils,
   type Hooks,
-  SettingsType,
   type Workspace,
   MessageName,
 } from "@yarnpkg/core";
@@ -11,29 +10,14 @@ import type { Hooks as EssentialHooks } from "@yarnpkg/plugin-essentials";
 import chalk from "chalk";
 import {
   CatalogConfigurationReader,
-  type CatalogsOptions,
   CATALOG_PROTOCOL,
   ROOT_ALIAS_GROUP,
 } from "./configuration";
-
-declare module "@yarnpkg/core" {
-  interface ConfigurationValueMap {
-    catalogsOptions?: CatalogsOptions;
-  }
-}
 
 // Create a singleton instance of our configuration reader
 const configReader = new CatalogConfigurationReader();
 
 const plugin: Plugin<Hooks & EssentialHooks> = {
-  configuration: {
-    catalogsOptions: {
-      description:
-        "Extended options for Yarn catalogs: default alias groups, ignored workspaces, and validation settings.",
-      type: SettingsType.ANY,
-      default: {},
-    },
-  },
   hooks: {
     validateWorkspace: async (workspace: Workspace, report) => {
       const shouldIgnore = await configReader.shouldIgnoreWorkspace(workspace);
@@ -79,8 +63,8 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
 
       // Check the workspace's raw manifest to find dependencies with the catalog protocol
       const hasCatalogProtocol = [
-        ...Object.values(workspace.manifest.raw["dependencies"] || {}),
-        ...Object.values(workspace.manifest.raw["devDependencies"] || {}),
+        ...Object.values(workspace.manifest.raw.dependencies || {}),
+        ...Object.values(workspace.manifest.raw.devDependencies || {}),
       ].some((version) => (version as string).startsWith(CATALOG_PROTOCOL));
 
       if (shouldIgnore && hasCatalogProtocol) {
@@ -118,8 +102,8 @@ async function getCatalogDependenciesWithoutProtocol(
   }>
 > {
   const dependencyEntries = [
-    ...Object.entries(workspace.manifest.raw["dependencies"] || {}),
-    ...Object.entries(workspace.manifest.raw["devDependencies"] || {}),
+    ...Object.entries(workspace.manifest.raw.dependencies || {}),
+    ...Object.entries(workspace.manifest.raw.devDependencies || {}),
   ];
 
   const results = [];
