@@ -14,6 +14,8 @@ For basic Catalogs functionality, refer to [Yarn's official documentation](https
 
 While Yarn 4.10+ provides native catalog support, this plugin extends that functionality with:
 
+- **Catalogs management** - Define catalogs in `catalogs.yml` with inheritance support and apply them to `.yarnrc.yml`
+- **Inheritance** - Hierarchical catalog groups using `/` delimiter (e.g., `stable/canary/next`)
 - **Default alias groups** - Automatically apply catalog protocols when adding dependencies
 - **Workspace ignoring** - Disable catalogs for specific workspaces using glob patterns
 - **Validation levels** - Enforce catalog usage with configurable warning or error levels
@@ -27,7 +29,59 @@ yarn plugin import https://raw.githubusercontent.com/toss/yarn-plugin-catalogs/m
 
 ## Features
 
-This plugin reads extended options from `catalogs.yml` in your project root:
+### Catalog Management with `catalogs.yml`
+
+Define your catalogs in a single `catalogs.yml` file with support for inheritance, then apply them to `.yarnrc.yml` using the `yarn catalogs apply` command.
+
+**catalogs.yml:**
+```yaml
+options:
+  default: [stable/canary]
+  validation: warn
+
+list:
+  root:
+    lodash: npm:4.17.21
+
+  stable:
+    react: npm:18.0.0
+    typescript: npm:5.1.0
+
+  stable/canary:
+    react: npm:18.2.0      # Overrides stable
+    # typescript: npm:5.1.0  (inherited from stable)
+
+  stable/canary/next:
+    react: npm:18.3.0      # Overrides stable/canary
+    # typescript: npm:5.1.0  (inherited from stable)
+```
+
+**Apply to .yarnrc.yml:**
+```bash
+yarn catalogs apply
+# ✓ Applied 1 root catalog and 3 named catalog groups to .yarnrc.yml
+```
+
+**After applying, .yarnrc.yml contains:**
+```yaml
+catalog:
+  lodash: npm:4.17.21
+
+catalogs:
+  stable:
+    react: npm:18.0.0
+    typescript: npm:5.1.0
+
+  stable/canary:
+    react: npm:18.2.0
+    typescript: npm:5.1.0 # Inherited and resolved
+
+  stable/canary/next:
+    react: npm:18.3.0
+    typescript: npm:5.1.0 # Inherited and resolved
+```
+
+This plugin reads extended options from the `options` field in `catalogs.yml`:
 
 ### Default Alias Groups
 
@@ -175,6 +229,30 @@ catalogs:
 ```
 
 When a package exists in multiple groups, the strictest validation level applies (`strict` > `warn` > `off`).
+
+## Commands
+
+### `yarn catalogs apply`
+
+Applies catalog definitions from `catalogs.yml` to `.yarnrc.yml`, resolving all inheritance and completely replacing existing catalog configurations.
+
+**Usage:**
+```bash
+# Apply catalogs to .yarnrc.yml
+yarn catalogs apply
+
+# Preview changes without writing
+yarn catalogs apply --dry-run
+```
+
+**Options:**
+- `--dry-run`: Show what would be applied without modifying `.yarnrc.yml`
+
+**Notes:**
+- Completely replaces `catalog` and `catalogs` fields in `.yarnrc.yml`
+- Preserves all other settings in `.yarnrc.yml`
+- Validates inheritance chains before applying
+- Resolves all inheritance relationships into flat catalog definitions
 
 ## Contributing
 

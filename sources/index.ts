@@ -13,11 +13,13 @@ import {
   CATALOG_PROTOCOL,
   ROOT_ALIAS_GROUP,
 } from "./configuration";
+import { ApplyCommand } from "./commands/apply";
 
 // Create a singleton instance of our configuration reader
 const configReader = new CatalogConfigurationReader();
 
 const plugin: Plugin<Hooks & EssentialHooks> = {
+  commands: [ApplyCommand],
   hooks: {
     validateWorkspace: async (workspace: Workspace, report) => {
       const shouldIgnore = await configReader.shouldIgnoreWorkspace(workspace);
