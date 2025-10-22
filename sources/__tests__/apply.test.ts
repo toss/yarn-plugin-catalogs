@@ -329,7 +329,7 @@ describe("catalogs apply command", () => {
       "--dry-run",
     ]);
     expect(stderr).toBe("");
-    expect(stdout).toContain("Preview");
+    expect(stdout).toContain("react: \"npm:18.0.0\"");
 
     // .yarnrc.yml should not be modified
     const yarnrcContent = await fs.readFile(
