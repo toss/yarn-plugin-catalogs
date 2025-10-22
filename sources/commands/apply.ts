@@ -4,7 +4,10 @@ import { xfs, ppath, type PortablePath } from "@yarnpkg/fslib";
 import { parseSyml, stringifySyml } from "@yarnpkg/parsers";
 import { Command, Option } from "clipanion";
 import type { CatalogsYmlStructure } from "../types";
-import { resolveAllGroups } from "../utils/inheritance";
+import { InheritanceResolver } from "../utils/inheritance";
+import { FILE_NAMES } from "../constants";
+
+const inheritanceService = new InheritanceResolver();
 
 export class ApplyCommand extends BaseCommand {
   static paths = [["catalogs", "apply"]];
@@ -24,10 +27,7 @@ export class ApplyCommand extends BaseCommand {
     `,
     examples: [
       ["Apply catalogs from catalogs.yml", "yarn catalogs apply"],
-      [
-        "Preview changes without applying",
-        "yarn catalogs apply --dry-run",
-      ],
+      ["Preview changes without applying", "yarn catalogs apply --dry-run"],
     ],
   });
 
@@ -40,7 +40,7 @@ export class ApplyCommand extends BaseCommand {
 
     const catalogsYmlPath = ppath.join(
       project.cwd,
-      "catalogs.yml" as PortablePath,
+      FILE_NAMES.CATALOGS_YML as PortablePath,
     );
 
     if (!(await xfs.existsPromise(catalogsYmlPath))) {
@@ -75,7 +75,7 @@ export class ApplyCommand extends BaseCommand {
 
     let resolvedCatalogs: Record<string, Record<string, string>> = {};
     try {
-      resolvedCatalogs = resolveAllGroups(catalogsToResolve);
+      resolvedCatalogs = inheritanceService.resolveAllGroups(catalogsToResolve);
     } catch (error) {
       this.context.stdout.write(
         `Error: Failed to resolve inheritance: ${(error as Error).message}\n`,
@@ -85,7 +85,7 @@ export class ApplyCommand extends BaseCommand {
 
     const yarnrcPath = ppath.join(
       project.cwd,
-      ".yarnrc.yml" as PortablePath,
+      FILE_NAMES.YARNRC_YML as PortablePath,
     );
     let yarnrcContent: Record<string, unknown> = {};
 
@@ -120,13 +120,17 @@ export class ApplyCommand extends BaseCommand {
     }
     const namedCount = Object.keys(resolvedCatalogs).length;
     if (namedCount > 0) {
-      parts.push(`${namedCount} named catalog group${namedCount > 1 ? "s" : ""}`);
+      parts.push(
+        `${namedCount} named catalog group${namedCount > 1 ? "s" : ""}`,
+      );
     }
 
     if (parts.length === 0) {
       this.context.stdout.write("No catalogs to apply\n");
     } else {
-      this.context.stdout.write(`✓ Applied ${parts.join(" and ")} to .yarnrc.yml\n`);
+      this.context.stdout.write(
+        `✓ Applied ${parts.join(" and ")} to .yarnrc.yml\n`,
+      );
     }
 
     return 0;

@@ -1,5 +1,6 @@
-type ValidationLevel = "warn" | "strict" | "off";
-type ValidationConfig =
+export type ValidationLevel = "warn" | "strict" | "off";
+
+export type ValidationConfig =
   | ValidationLevel
   | { [groupName: string]: ValidationLevel };
 
@@ -22,6 +23,22 @@ export interface CatalogsOptions {
    * Can also be an object with group-specific settings: { [groupName]: 'warn' | 'strict' | 'off' }
    */
   validation?: ValidationConfig;
+}
+
+/**
+ * Internal combined configuration structure
+ */
+export interface CatalogsConfiguration {
+  options?: CatalogsOptions;
+
+  /** Normalized catalog groups from Yarn's native catalog/catalogs configuration */
+  catalogs?: {
+    [alias: string]:
+      | {
+          [packageName: string]: string;
+        }
+      | string;
+  };
 }
 
 /**
