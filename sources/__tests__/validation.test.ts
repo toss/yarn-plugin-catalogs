@@ -397,4 +397,113 @@ describe("validation", () => {
 
     await expect(workspace.yarn.install()).rejects.toThrow();
   });
+
+  it("should only warn for packages in workspace's default alias groups", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          default: ["stable"],
+          validation: "warn",
+        },
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+          beta: {
+            next: "npm:14.0.0",
+          },
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "test-package",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "17.0.0",
+        next: "13.0.0",
+      },
+    });
+
+    const { stdout } = await workspace.yarn.install();
+    expect(stdout).toContain("react");
+    expect(stdout).not.toContain("next");
+  });
+
+  it("should warn for packages in any of multiple default groups", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          default: ["stable", "beta"],
+          validation: "warn",
+        },
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+          beta: {
+            next: "npm:14.0.0",
+          },
+          canary: {
+            lodash: "npm:4.17.21",
+          },
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "test-package",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "17.0.0",
+        next: "13.0.0",
+        lodash: "4.17.20",
+      },
+    });
+
+    const { stdout } = await workspace.yarn.install();
+    expect(stdout).toContain("react");
+    expect(stdout).toContain("next");
+    expect(stdout).not.toContain("lodash");
+  });
+
+  it("should warn for all accessible groups when no default is set", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          validation: "warn",
+        },
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+          beta: {
+            react: "npm:18.0.0",
+          },
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "test-package",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "17.0.0",
+      },
+    });
+
+    const { stdout } = await workspace.yarn.install();
+    expect(stdout).toContain("react");
+    expect(stdout).toContain("stable");
+    expect(stdout).toContain("beta");
+  });
 });
