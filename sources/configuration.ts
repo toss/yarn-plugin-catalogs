@@ -386,12 +386,12 @@ export class CatalogConfigurationReader {
    */
   async getValidationLevelForPackage(
     workspace: Workspace,
-    packageName: string,
+    descriptor: Descriptor,
   ): Promise<ValidationLevel> {
-    const accessibleGroups = await this.findAllAccessibleGroups(
+    const accessibleGroups = (await this.findDependency(
       workspace.project,
-      packageName,
-    );
+      descriptor,
+    )).map(([aliasGroup]) => aliasGroup);
 
     if (accessibleGroups.length === 0) {
       return "off";

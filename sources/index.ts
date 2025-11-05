@@ -18,6 +18,7 @@ import {
   CATALOG_PROTOCOL,
   ROOT_ALIAS_GROUP,
 } from "./configuration";
+import { stringifyIdent } from "@yarnpkg/core/lib/structUtils";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {
@@ -252,8 +253,8 @@ async function getCatalogDependenciesWithoutProtocol(
   }>
 > {
   const dependencyEntries = [
-    ...Object.entries(workspace.manifest.raw["dependencies"] || {}),
-    ...Object.entries(workspace.manifest.raw["devDependencies"] || {}),
+    ...workspace.manifest.dependencies.values(),
+    ...workspace.manifest.devDependencies.values()
   ];
 
   const results = [];
@@ -261,35 +262,33 @@ async function getCatalogDependenciesWithoutProtocol(
   // Get default alias groups for this workspace
   const defaultAliasGroups = await configReader.getDefaultAliasGroups(workspace);
 
-  for (const [packageName, version] of dependencyEntries) {
-    const versionString = version as string;
-
+  for (const descriptor of dependencyEntries) {
     // Skip if already using catalog protocol
-    if (versionString.startsWith(CATALOG_PROTOCOL)) {
+    if (descriptor.range.startsWith(CATALOG_PROTOCOL)) {
       continue;
     }
 
     // Find all groups that can access this package
-    const accessibleGroups = await configReader.findAllAccessibleGroups(
+    const accessibleGroups = (await configReader.findDependency(
       workspace.project,
-      packageName,
-    );
+      descriptor
+    )).map(([aliasGroup]) => aliasGroup);
 
     // Filter to only groups accessible from current workspace's catalog
     const workspaceAccessibleGroups = defaultAliasGroups.length > 0
-      ? accessibleGroups.filter(group => defaultAliasGroups.includes(group))
+      ? accessibleGroups.filter(([aliasGroup]) => defaultAliasGroups.includes(aliasGroup))
       : accessibleGroups;
 
     if (workspaceAccessibleGroups.length > 0) {
       const validationLevel = await configReader.getValidationLevelForPackage(
         workspace,
-        packageName,
+        descriptor
       );
 
       // Only include packages that have validation enabled (not 'off')
       if (validationLevel !== "off") {
         results.push({
-          packageName,
+          packageName: stringifyIdent(descriptor),
           validationLevel: validationLevel as "warn" | "strict",
           applicableGroups: workspaceAccessibleGroups,
         });
@@ -347,7 +346,7 @@ async function fallbackDefaultAliasGroup(
 
   const validationLevel = await configReader.getValidationLevelForPackage(
     workspace,
-    structUtils.stringifyIdent(dependency),
+    dependency,
   );
 
   const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
