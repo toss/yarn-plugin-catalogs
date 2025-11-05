@@ -319,6 +319,7 @@ async function fallbackDefaultAliasGroup(
     workspace.project,
     dependency,
   );
+
   if (aliases.length === 0) return;
 
   // If there's a default alias group, fallback to it
@@ -337,10 +338,18 @@ async function fallbackDefaultAliasGroup(
   const aliasGroups = aliases.map(([aliasGroup]) =>
     aliasGroup === ROOT_ALIAS_GROUP ? "" : aliasGroup,
   );
+  const workspaceAccessibleGroups =
+    defaultAliasGroups.length > 0 ?
+      aliasGroups.filter((aliasGroup) => aliasGroup === '' || defaultAliasGroups.includes(aliasGroup))
+      : aliasGroups;
+
+  if (workspaceAccessibleGroups.length === 0) {
+    return;
+  }
 
   const aliasGroupsText =
-    aliasGroups.filter((aliasGroup) => aliasGroup !== "").length > 0
-      ? ` (${aliasGroups.join(", ")})`
+    workspaceAccessibleGroups.length > 0
+      ? ` (${workspaceAccessibleGroups.join(", ")})`
       : "";
 
   const validationLevel = await configReader.getValidationLevelForPackage(
@@ -348,7 +357,7 @@ async function fallbackDefaultAliasGroup(
     dependency,
   );
 
-  const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
+  const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${workspaceAccessibleGroups[0]}' instead.`;
   if (validationLevel === "strict") {
     throw new Error(chalk.red(message));
   } else if (validationLevel === "warn") {

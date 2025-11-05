@@ -93,35 +93,6 @@ describe("warnings and recommendations", () => {
     expect(dependencies).includes("react@npm:18.0.0");
   });
 
-  it("should warn when adding a dependency not in the default alias group", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeYarnrc({
-      catalogs: {
-        options: {
-          default: ["beta"],
-        },
-        list: {
-          beta: {
-            react: "npm:18.0.0",
-          },
-          stable: {
-            react: "npm:17.0.0",
-            lodash: "npm:3.0.0",
-          },
-        },
-      },
-    });
-
-    await workspace.yarn.add("react");
-    const { stderr } = await workspace.yarn.add("lodash");
-    expect(stderr).toContain("lodash@catalog:stable");
-
-    const { stdout: listOutput } = await workspace.yarn.info();
-    const dependencies = extractDependencies(listOutput);
-    expect(dependencies).includes("react@npm:18.0.0");
-  });
-
   it("should use default alias group without validation warning", async () => {
     workspace = await createTestWorkspace();
 
