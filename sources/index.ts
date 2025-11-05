@@ -18,7 +18,6 @@ import {
   CATALOG_PROTOCOL,
   ROOT_ALIAS_GROUP,
 } from "./configuration";
-import { stringifyIdent } from "@yarnpkg/core/lib/structUtils";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {
@@ -288,7 +287,7 @@ async function getCatalogDependenciesWithoutProtocol(
       // Only include packages that have validation enabled (not 'off')
       if (validationLevel !== "off") {
         results.push({
-          packageName: stringifyIdent(descriptor),
+          packageName: structUtils.stringifyIdent(descriptor),
           validationLevel: validationLevel as "warn" | "strict",
           applicableGroups: workspaceAccessibleGroups,
         });
