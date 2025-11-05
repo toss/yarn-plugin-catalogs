@@ -258,6 +258,9 @@ async function getCatalogDependenciesWithoutProtocol(
 
   const results = [];
 
+  // Get default alias groups for this workspace
+  const defaultAliasGroups = await configReader.getDefaultAliasGroups(workspace);
+
   for (const [packageName, version] of dependencyEntries) {
     const versionString = version as string;
 
@@ -272,7 +275,12 @@ async function getCatalogDependenciesWithoutProtocol(
       packageName,
     );
 
-    if (accessibleGroups.length > 0) {
+    // Filter to only groups accessible from current workspace's catalog
+    const workspaceAccessibleGroups = defaultAliasGroups.length > 0
+      ? accessibleGroups.filter(group => defaultAliasGroups.includes(group))
+      : accessibleGroups;
+
+    if (workspaceAccessibleGroups.length > 0) {
       const validationLevel = await configReader.getValidationLevelForPackage(
         workspace,
         packageName,
@@ -283,7 +291,7 @@ async function getCatalogDependenciesWithoutProtocol(
         results.push({
           packageName,
           validationLevel: validationLevel as "warn" | "strict",
-          applicableGroups: accessibleGroups,
+          applicableGroups: workspaceAccessibleGroups,
         });
       }
     }
