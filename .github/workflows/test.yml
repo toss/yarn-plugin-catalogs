@@ -26,10 +26,6 @@ jobs:
         run: |
           corepack enable
 
-      - name: Set yarn version
-        run: |
-          yarn set version 4.9.4
-
       - name: Install dependencies
         run: yarn
 
