@@ -42,10 +42,10 @@ export interface CatalogsConfiguration {
   };
   list?: {
     [alias: string]:
-    | {
-      [packageName: string]: string;
-    }
-    | string;
+      | {
+          [packageName: string]: string;
+        }
+      | string;
   };
 }
 
@@ -53,10 +53,7 @@ export interface CatalogsConfiguration {
  * Error thrown when .yarnrc.yml#catalogs is invalid or missing
  */
 export class CatalogConfigurationError extends Error {
-  constructor(
-    message: string,
-    public readonly code: string,
-  ) {
+  constructor(message: string, public readonly code: string) {
     super(message);
     this.name = "CatalogConfigurationError";
   }
@@ -247,7 +244,9 @@ export class CatalogConfigurationReader {
     if (inheritedVersion) {
       // If version doesn't have a protocol prefix (e.g., "npm:"), add "npm:" as default
       if (!/^[^:]+:/.test(inheritedVersion)) {
-        return `${project.configuration.get("defaultProtocol")}${inheritedVersion}`;
+        return `${project.configuration.get(
+          "defaultProtocol",
+        )}${inheritedVersion}`;
       }
       return inheritedVersion;
     }

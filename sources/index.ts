@@ -316,8 +316,9 @@ async function fallbackDefaultAliasGroup(
   if (aliases.length === 0) return;
 
   // If there's a default alias group, fallback to it
-  const defaultAliasGroups =
-    await configReader.getDefaultAliasGroups(workspace);
+  const defaultAliasGroups = await configReader.getDefaultAliasGroups(
+    workspace,
+  );
   if (defaultAliasGroups.length > 0) {
     for (const aliasGroup of defaultAliasGroups) {
       if (aliases.some(([alias]) => alias === aliasGroup)) {
