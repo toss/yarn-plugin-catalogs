@@ -416,10 +416,10 @@ export class CatalogConfigurationReader {
   async findDependency(
     project: Project,
     dependency: Descriptor,
-  ): Promise<[string, string][]> {
+  ): Promise<Array<{ groupName: string; version: string }>> {
     const dependencyString = structUtils.stringifyIdent(dependency);
     const config = await this.readConfiguration(project);
-    const results: [string, string][] = [];
+    const results: Array<{ groupName: string; version: string }> = [];
 
     // Use resolveInheritedRange for all groups to handle both direct and inherited matches
     for (const groupName of Object.keys(config.list || {})) {
@@ -430,7 +430,7 @@ export class CatalogConfigurationReader {
       );
 
       if (resolvedVersion) {
-        results.push([groupName, resolvedVersion]);
+        results.push({ groupName, version: resolvedVersion });
       }
     }
 

@@ -321,7 +321,7 @@ async function fallbackDefaultAliasGroup(
   );
   if (defaultAliasGroups.length > 0) {
     for (const aliasGroup of defaultAliasGroups) {
-      if (aliases.some(([alias]) => alias === aliasGroup)) {
+      if (aliases.some(({ groupName }) => groupName === aliasGroup)) {
         dependency.range = `${CATALOG_PROTOCOL}${aliasGroup}`;
         return;
       }
@@ -329,8 +329,8 @@ async function fallbackDefaultAliasGroup(
   }
 
   // If no default alias group is specified, show warning message
-  const aliasGroups = aliases.map(([aliasGroup]) =>
-    aliasGroup === ROOT_ALIAS_GROUP ? "" : aliasGroup,
+  const aliasGroups = aliases.map(({ groupName }) =>
+    groupName === ROOT_ALIAS_GROUP ? "" : groupName,
   );
 
   const aliasGroupsText =
