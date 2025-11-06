@@ -42,10 +42,10 @@ export interface CatalogsConfiguration {
   };
   list?: {
     [alias: string]:
-      | {
-          [packageName: string]: string;
-        }
-      | string;
+    | {
+      [packageName: string]: string;
+    }
+    | string;
   };
 }
 
@@ -422,43 +422,16 @@ export class CatalogConfigurationReader {
     const config = await this.readConfiguration(project);
     const results: [string, string][] = [];
 
-    // Direct lookup (existing behavior)
-    const aliasGroups = Object.entries(config.list || {}).filter(
-      ([_, value]) => {
-        if (typeof value === "string") {
-          return dependencyString === value;
-        } else {
-          return Object.keys(value).includes(dependencyString);
-        }
-      },
-    );
-
-    results.push(
-      ...aliasGroups.map(([alias, aliasConfig]) => {
-        const version =
-          typeof aliasConfig === "string"
-            ? aliasConfig
-            : aliasConfig[dependencyString];
-        return [alias, version] as [string, string];
-      }),
-    );
-
-    // Check for inheritance-based matches
-    for (const [groupName] of Object.entries(config.list || {})) {
-      // Skip if already found in direct lookup
-      if (results.some(([alias]) => alias === groupName)) {
-        continue;
-      }
-
-      // Check if dependency can be resolved through inheritance
-      const inheritedVersion = this.resolveInheritedRange(
+    // Use resolveInheritedRange for all groups to handle both direct and inherited matches
+    for (const groupName of Object.keys(config.list || {})) {
+      const resolvedVersion = this.resolveInheritedRange(
         config,
         groupName,
         dependencyString,
       );
 
-      if (inheritedVersion) {
-        results.push([groupName, inheritedVersion]);
+      if (resolvedVersion) {
+        results.push([groupName, resolvedVersion]);
       }
     }
 
