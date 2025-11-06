@@ -1,4 +1,4 @@
-import { Workspace } from "@yarnpkg/core";
+import { Descriptor, Workspace } from "@yarnpkg/core";
 import { structUtils } from "@yarnpkg/core";
 import { getCatalogProtocolUsability } from "./get-catalog-protocol-usability";
 import { ValidationLevel } from "./types";
@@ -7,7 +7,7 @@ export async function getUnusedCatalogDependencies(
   workspace: Workspace,
 ): Promise<
   Array<{
-    packageName: string;
+    descriptor: Descriptor;
     validationLevel: Omit<ValidationLevel, "off">;
     applicableGroups: string[];
   }>
@@ -31,7 +31,7 @@ export async function getUnusedCatalogDependencies(
     // Only include packages that have validation enabled (not 'off')
     if (validationInfo && validationInfo.validationLevel !== "off") {
       results.push({
-        packageName: structUtils.stringifyIdent(descriptor),
+        descriptor,
         validationLevel: validationInfo.validationLevel,
         applicableGroups: validationInfo.applicableGroups,
       });
