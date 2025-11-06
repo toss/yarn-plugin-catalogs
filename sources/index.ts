@@ -264,30 +264,18 @@ async function getCatalogDependenciesWithoutProtocol(
   const results = [];
 
   for (const descriptor of dependencyDescriptors) {
-    // Skip if already using catalog protocol
-    if (descriptor.range.startsWith(CATALOG_PROTOCOL)) {
-      continue;
-    }
+    const validationInfo = await getValidationInfoForNonCatalogDependency(
+      workspace,
+      descriptor,
+    );
 
-    // Find all groups that can access this package
-    const accessibleGroups = (
-      await configReader.findDependency(workspace.project, descriptor)
-    ).map(({ groupName }) => groupName);
-
-    if (accessibleGroups.length > 0) {
-      const validationLevel = await configReader.getValidationLevelForPackage(
-        workspace,
-        descriptor,
-      );
-
-      // Only include packages that have validation enabled (not 'off')
-      if (validationLevel !== "off") {
-        results.push({
-          packageName: structUtils.stringifyIdent(descriptor),
-          validationLevel: validationLevel as "warn" | "strict",
-          applicableGroups: accessibleGroups,
-        });
-      }
+    // Only include packages that have validation enabled (not 'off')
+    if (validationInfo && validationInfo.validationLevel !== "off") {
+      results.push({
+        packageName: structUtils.stringifyIdent(descriptor),
+        validationLevel: validationInfo.validationLevel as "warn" | "strict",
+        applicableGroups: validationInfo.applicableGroups,
+      });
     }
   }
 
@@ -309,13 +297,15 @@ async function fallbackDefaultAliasGroup(
     return;
   }
 
-  if (await configReader.shouldIgnoreWorkspace(workspace)) return;
-
-  const aliases = await configReader.findDependency(
-    workspace.project,
+  const validationInfo = await getValidationInfoForNonCatalogDependency(
+    workspace,
     dependency,
   );
-  if (aliases.length === 0) return;
+
+  // If no applicable groups found, return early
+  if (!validationInfo) return;
+
+  const { validationLevel, applicableGroups } = validationInfo;
 
   // If there's a default alias group, fallback to it
   const defaultAliasGroups = await configReader.getDefaultAliasGroups(
@@ -323,7 +313,7 @@ async function fallbackDefaultAliasGroup(
   );
   if (defaultAliasGroups.length > 0) {
     for (const aliasGroup of defaultAliasGroups) {
-      if (aliases.some(({ groupName }) => groupName === aliasGroup)) {
+      if (applicableGroups.includes(aliasGroup)) {
         dependency.range = `${CATALOG_PROTOCOL}${aliasGroup}`;
         return;
       }
@@ -331,7 +321,7 @@ async function fallbackDefaultAliasGroup(
   }
 
   // If no default alias group is specified, show warning message
-  const aliasGroups = aliases.map(({ groupName }) =>
+  const aliasGroups = applicableGroups.map((groupName) =>
     groupName === ROOT_ALIAS_GROUP ? "" : groupName,
   );
 
@@ -340,17 +330,51 @@ async function fallbackDefaultAliasGroup(
       ? ` (${aliasGroups.join(", ")})`
       : "";
 
-  const validationLevel = await configReader.getValidationLevelForPackage(
-    workspace,
-    dependency,
-  );
-
   const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
   if (validationLevel === "strict") {
     throw new Error(chalk.red(message));
   } else if (validationLevel === "warn") {
     console.warn(chalk.yellow(message));
   }
+}
+
+async function getValidationInfoForNonCatalogDependency(
+  workspace: Workspace,
+  descriptor: Descriptor,
+): Promise<{
+  validationLevel: "warn" | "strict" | "off";
+  applicableGroups: string[];
+} | null> {
+  // Skip if already using catalog protocol
+  if (descriptor.range.startsWith(CATALOG_PROTOCOL)) {
+    return null;
+  }
+
+  // Skip if workspace is ignored
+  if (await configReader.shouldIgnoreWorkspace(workspace)) {
+    return null;
+  }
+
+  // Find all groups that can access this package
+  const accessibleGroups = (
+    await configReader.findDependency(workspace.project, descriptor)
+  ).map(({ groupName }) => groupName);
+
+  // Return null if no applicable groups found
+  if (accessibleGroups.length === 0) {
+    return null;
+  }
+
+  // Get validation level for the package
+  const validationLevel = await configReader.getValidationLevelForPackage(
+    workspace,
+    descriptor,
+  );
+
+  return {
+    validationLevel,
+    applicableGroups: accessibleGroups,
+  };
 }
 
 // Export the plugin factory
