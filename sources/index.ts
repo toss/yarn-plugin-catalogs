@@ -82,9 +82,11 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
 
       // Check the workspace's raw manifest to find dependencies with the catalog protocol
       const hasCatalogProtocol = [
-        ...Object.values(workspace.manifest.raw["dependencies"] || {}),
-        ...Object.values(workspace.manifest.raw["devDependencies"] || {}),
-      ].some((version) => (version as string).startsWith(CATALOG_PROTOCOL));
+        ...Object.values<string>(workspace.manifest.raw["dependencies"] || {}),
+        ...Object.values<string>(
+          workspace.manifest.raw["devDependencies"] || {},
+        ),
+      ].some((version) => version.startsWith(CATALOG_PROTOCOL));
 
       if (shouldIgnore && hasCatalogProtocol) {
         report.reportError(
