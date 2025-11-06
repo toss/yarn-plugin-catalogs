@@ -2,7 +2,7 @@ import { Workspace, Descriptor } from "@yarnpkg/core";
 import { configReader } from "./configuration";
 import { CATALOG_PROTOCOL } from "./constants";
 
-export async function valiateCatalogUsability(
+export async function getCatalogProtocolUsability(
   workspace: Workspace,
   descriptor: Descriptor,
 ): Promise<{

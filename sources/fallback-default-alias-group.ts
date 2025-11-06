@@ -1,7 +1,7 @@
 import { Descriptor, Workspace } from "@yarnpkg/core";
 import chalk from "chalk";
 import { configReader } from "./configuration";
-import { valiateCatalogUsability } from "./validate-catalog-usability";
+import { getCatalogProtocolUsability } from "./get-catalog-protocol-usability";
 import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "./constants";
 
 export async function fallbackDefaultAliasGroup(
@@ -19,7 +19,10 @@ export async function fallbackDefaultAliasGroup(
     return;
   }
 
-  const validationInfo = await valiateCatalogUsability(workspace, dependency);
+  const validationInfo = await getCatalogProtocolUsability(
+    workspace,
+    dependency,
+  );
 
   // If no applicable groups found, return early
   if (!validationInfo) return;
