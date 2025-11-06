@@ -324,7 +324,6 @@ async function fallbackDefaultAliasGroup(
   if (defaultAliasGroups.length > 0) {
     for (const aliasGroup of defaultAliasGroups) {
       if (aliases.some(({ groupName }) => groupName === aliasGroup)) {
-        console.log(`fallback to ${aliasGroup}`);
         dependency.range = `${CATALOG_PROTOCOL}${aliasGroup}`;
         return;
       }
