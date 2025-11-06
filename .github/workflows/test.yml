@@ -18,9 +18,17 @@ jobs:
           node-version: "22.11.0"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Install yarn
+      - name: Install corepack
         run: |
-          npm i -g yarn
+          npm install -g corepack
+
+      - name: Enable corepack
+        run: |
+          corepack enable
+
+      - name: Set yarn version
+        run: |
+          yarn set version 4.9.4
 
       - name: Install dependencies
         run: yarn
