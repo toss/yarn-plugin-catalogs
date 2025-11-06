@@ -330,30 +330,6 @@ export class CatalogConfigurationReader {
   }
 
   /**
-   * Find all groups that can access a specific package (including inheritance)
-   */
-  async findAllAccessibleGroups(
-    project: Project,
-    packageName: string,
-  ): Promise<string[]> {
-    const config = await this.readConfiguration(project);
-    const accessibleGroups: string[] = [];
-
-    for (const groupName of Object.keys(config.list || {})) {
-      const resolvedRange = this.resolveInheritedRange(
-        config,
-        groupName,
-        packageName,
-      );
-      if (resolvedRange) {
-        accessibleGroups.push(groupName);
-      }
-    }
-
-    return accessibleGroups;
-  }
-
-  /**
    * Get validation level for a specific group (considering inheritance)
    */
   async getGroupValidationLevel(
@@ -385,12 +361,11 @@ export class CatalogConfigurationReader {
    */
   async getValidationLevelForPackage(
     workspace: Workspace,
-    packageName: string,
+    descriptor: Descriptor,
   ): Promise<ValidationLevel> {
-    const accessibleGroups = await this.findAllAccessibleGroups(
-      workspace.project,
-      packageName,
-    );
+    const accessibleGroups = (
+      await this.findDependency(workspace.project, descriptor)
+    ).map(({ groupName }) => groupName);
 
     if (accessibleGroups.length === 0) {
       return "off";

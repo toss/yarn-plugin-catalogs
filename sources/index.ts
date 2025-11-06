@@ -251,37 +251,37 @@ async function getCatalogDependenciesWithoutProtocol(
     applicableGroups: string[];
   }>
 > {
-  const dependencyEntries = [
-    ...Object.entries(workspace.manifest.raw["dependencies"] || {}),
-    ...Object.entries(workspace.manifest.raw["devDependencies"] || {}),
-  ];
+  const dependencyDescriptors = [
+    ...Object.entries<string>(workspace.manifest.raw["dependencies"] ?? {}),
+    ...Object.entries<string>(workspace.manifest.raw["devDependencies"] ?? {}),
+  ].map(([stringifiedIdent, version]) => {
+    const ident = structUtils.parseIdent(stringifiedIdent);
+    return structUtils.makeDescriptor(ident, version);
+  });
 
   const results = [];
 
-  for (const [packageName, version] of dependencyEntries) {
-    const versionString = version as string;
-
+  for (const descriptor of dependencyDescriptors) {
     // Skip if already using catalog protocol
-    if (versionString.startsWith(CATALOG_PROTOCOL)) {
+    if (descriptor.range.startsWith(CATALOG_PROTOCOL)) {
       continue;
     }
 
     // Find all groups that can access this package
-    const accessibleGroups = await configReader.findAllAccessibleGroups(
-      workspace.project,
-      packageName,
-    );
+    const accessibleGroups = (
+      await configReader.findDependency(workspace.project, descriptor)
+    ).map(({ groupName }) => groupName);
 
     if (accessibleGroups.length > 0) {
       const validationLevel = await configReader.getValidationLevelForPackage(
         workspace,
-        packageName,
+        descriptor,
       );
 
       // Only include packages that have validation enabled (not 'off')
       if (validationLevel !== "off") {
         results.push({
-          packageName,
+          packageName: structUtils.stringifyIdent(descriptor),
           validationLevel: validationLevel as "warn" | "strict",
           applicableGroups: accessibleGroups,
         });
@@ -322,6 +322,7 @@ async function fallbackDefaultAliasGroup(
   if (defaultAliasGroups.length > 0) {
     for (const aliasGroup of defaultAliasGroups) {
       if (aliases.some(({ groupName }) => groupName === aliasGroup)) {
+        console.log(`fallback to ${aliasGroup}`);
         dependency.range = `${CATALOG_PROTOCOL}${aliasGroup}`;
         return;
       }
@@ -340,7 +341,7 @@ async function fallbackDefaultAliasGroup(
 
   const validationLevel = await configReader.getValidationLevelForPackage(
     workspace,
-    structUtils.stringifyIdent(dependency),
+    dependency,
   );
 
   const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
