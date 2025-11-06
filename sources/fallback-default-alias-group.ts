@@ -1,7 +1,7 @@
 import { Descriptor, Workspace } from "@yarnpkg/core";
 import chalk from "chalk";
 import { configReader } from "./configuration";
-import { getValidationInfoForNonCatalogDependency } from "./get-validation-info-for-non-catalog-dependency";
+import { valiateCatalogUsability } from "./validate-catalog-usability";
 import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "./constants";
 
 export async function fallbackDefaultAliasGroup(
@@ -19,10 +19,7 @@ export async function fallbackDefaultAliasGroup(
     return;
   }
 
-  const validationInfo = await getValidationInfoForNonCatalogDependency(
-    workspace,
-    dependency,
-  );
+  const validationInfo = await valiateCatalogUsability(workspace, dependency);
 
   // If no applicable groups found, return early
   if (!validationInfo) return;

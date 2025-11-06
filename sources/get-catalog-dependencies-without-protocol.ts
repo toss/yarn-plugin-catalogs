@@ -1,6 +1,6 @@
 import { Workspace } from "@yarnpkg/core";
 import { structUtils } from "@yarnpkg/core";
-import { getValidationInfoForNonCatalogDependency } from "./get-validation-info-for-non-catalog-dependency";
+import { valiateCatalogUsability } from "./validate-catalog-usability";
 import { ValidationLevel } from "./types";
 
 export async function getCatalogDependenciesWithoutProtocol(
@@ -23,10 +23,7 @@ export async function getCatalogDependenciesWithoutProtocol(
   const results = [];
 
   for (const descriptor of dependencyDescriptors) {
-    const validationInfo = await getValidationInfoForNonCatalogDependency(
-      workspace,
-      descriptor,
-    );
+    const validationInfo = await valiateCatalogUsability(workspace, descriptor);
 
     // Only include packages that have validation enabled (not 'off')
     if (validationInfo && validationInfo.validationLevel !== "off") {
