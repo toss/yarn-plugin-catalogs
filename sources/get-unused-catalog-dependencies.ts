@@ -3,7 +3,7 @@ import { structUtils } from "@yarnpkg/core";
 import { getCatalogProtocolUsability } from "./get-catalog-protocol-usability";
 import { ValidationLevel } from "./types";
 
-export async function getCatalogDependenciesWithoutProtocol(
+export async function getUnusedCatalogDependencies(
   workspace: Workspace,
 ): Promise<
   Array<{

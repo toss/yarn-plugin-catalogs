@@ -16,7 +16,7 @@ import {
   CatalogsConfiguration,
   configReader,
 } from "./configuration";
-import { getCatalogDependenciesWithoutProtocol } from "./get-catalog-dependencies-without-protocol";
+import { getUnusedCatalogDependencies } from "./get-unused-catalog-dependencies";
 import { fallbackDefaultAliasGroup } from "./fallback-default-alias-group";
 import { CATALOG_PROTOCOL } from "./constants";
 
@@ -41,8 +41,9 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
 
       // Check if any dependencies in manifest are in catalog but not using catalog protocol
       if (!shouldIgnore) {
-        const violatedDependencies =
-          await getCatalogDependenciesWithoutProtocol(workspace);
+        const violatedDependencies = await getUnusedCatalogDependencies(
+          workspace,
+        );
 
         if (violatedDependencies.length > 0) {
           // Group dependencies by validation level
