@@ -1,13 +1,14 @@
 import { Workspace } from "@yarnpkg/core";
 import { structUtils } from "@yarnpkg/core";
 import { getValidationInfoForNonCatalogDependency } from "./get-validation-info-for-non-catalog-dependency";
+import { ValidationLevel } from "./types";
 
 export async function getCatalogDependenciesWithoutProtocol(
   workspace: Workspace,
 ): Promise<
   Array<{
     packageName: string;
-    validationLevel: "warn" | "strict";
+    validationLevel: Omit<ValidationLevel, "off">;
     applicableGroups: string[];
   }>
 > {
@@ -31,7 +32,7 @@ export async function getCatalogDependenciesWithoutProtocol(
     if (validationInfo && validationInfo.validationLevel !== "off") {
       results.push({
         packageName: structUtils.stringifyIdent(descriptor),
-        validationLevel: validationInfo.validationLevel as "warn" | "strict",
+        validationLevel: validationInfo.validationLevel,
         applicableGroups: validationInfo.applicableGroups,
       });
     }
