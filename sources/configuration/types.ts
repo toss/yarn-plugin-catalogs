@@ -1,10 +1,11 @@
+import { ValidationLevel } from "../types";
+
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {
     catalogs?: CatalogsConfiguration;
   }
 }
 
-export type ValidationLevel = "warn" | "strict" | "off";
 export type ValidationConfig =
   | ValidationLevel
   | { [groupName: string]: ValidationLevel };

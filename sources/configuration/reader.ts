@@ -1,8 +1,9 @@
 import { Descriptor, Project, structUtils, Workspace } from "@yarnpkg/core";
 import { isMatch } from "picomatch";
-import { CatalogsConfiguration, ValidationLevel } from "./types";
+import { CatalogsConfiguration } from "./types";
 import { CatalogConfigurationError } from "./errors";
 import { ROOT_ALIAS_GROUP, CATALOG_PROTOCOL } from "../constants";
+import { ValidationLevel } from "../types";
 
 /**
  * Handles reading and parsing of .yarnrc.yml#catalogs configuration
