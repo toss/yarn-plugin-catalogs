@@ -11,14 +11,14 @@ import {
 import { Hooks as EssentialHooks } from "@yarnpkg/plugin-essentials";
 import { Hooks as PackHooks } from "@yarnpkg/plugin-pack";
 import chalk from "chalk";
-import { configReader } from "./config-reader";
 import {
-  CATALOG_PROTOCOL,
   CatalogConfigurationError,
   CatalogsConfiguration,
+  configReader,
 } from "./configuration";
 import { getCatalogDependenciesWithoutProtocol } from "./get-catalog-dependencies-without-protocol";
 import { fallbackDefaultAliasGroup } from "./fallback-default-alias-group";
+import { CATALOG_PROTOCOL } from "./constants";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {

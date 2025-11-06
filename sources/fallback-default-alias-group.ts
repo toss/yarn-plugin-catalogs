@@ -1,8 +1,8 @@
 import { Descriptor, Workspace } from "@yarnpkg/core";
 import chalk from "chalk";
-import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "./configuration";
-import { configReader } from "./config-reader";
+import { configReader } from "./configuration";
 import { getValidationInfoForNonCatalogDependency } from "./get-validation-info-for-non-catalog-dependency";
+import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "./constants";
 
 export async function fallbackDefaultAliasGroup(
   workspace: Workspace,

@@ -1,67 +1,8 @@
 import { Descriptor, Project, structUtils, Workspace } from "@yarnpkg/core";
 import { isMatch } from "picomatch";
-
-export const ROOT_ALIAS_GROUP = "root";
-
-export const CATALOG_PROTOCOL = "catalog:";
-
-declare module "@yarnpkg/core" {
-  interface ConfigurationValueMap {
-    catalogs?: CatalogsConfiguration;
-  }
-}
-
-type ValidationLevel = "warn" | "strict" | "off";
-type ValidationConfig =
-  | ValidationLevel
-  | { [groupName: string]: ValidationLevel };
-
-/**
- * Configuration structure for .yarnrc.yml#catalogs
- */
-export interface CatalogsConfiguration {
-  options?: {
-    /**
-     * The default alias group to be used when no group is specified when adding a dependency
-     * - if list of alias groups, it will be used in order
-     * - if 'max', the most frequently used alias group will be used
-     */
-    default?: string[] | "max";
-    /**
-     * List of workspaces to ignore
-     */
-    ignoredWorkspaces?: string[];
-    /**
-     * Validation level for catalog usage
-     * - 'warn': Show warnings when catalog versions are not used (default)
-     * - 'strict': Throw errors when catalog versions are not used
-     * - 'off': Disable validation
-     * Can also be an object with group-specific settings: { [groupName]: 'warn' | 'strict' | 'off' }
-     */
-    validation?: ValidationConfig;
-  };
-  list?: {
-    [alias: string]:
-      | {
-          [packageName: string]: string;
-        }
-      | string;
-  };
-}
-
-/**
- * Error thrown when .yarnrc.yml#catalogs is invalid or missing
- */
-export class CatalogConfigurationError extends Error {
-  constructor(message: string, public readonly code: string) {
-    super(message);
-    this.name = "CatalogConfigurationError";
-  }
-
-  static FILE_NOT_FOUND = "FILE_NOT_FOUND";
-  static INVALID_FORMAT = "INVALID_FORMAT";
-  static INVALID_ALIAS = "INVALID_ALIAS";
-}
+import { CatalogsConfiguration, ValidationLevel } from "./types";
+import { CatalogConfigurationError } from "./errors";
+import { ROOT_ALIAS_GROUP, CATALOG_PROTOCOL } from "../constants";
 
 /**
  * Handles reading and parsing of .yarnrc.yml#catalogs configuration

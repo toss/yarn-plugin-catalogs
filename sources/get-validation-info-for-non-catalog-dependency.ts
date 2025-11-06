@@ -1,6 +1,6 @@
 import { Workspace, Descriptor } from "@yarnpkg/core";
-import { configReader } from "./config-reader";
-import { CATALOG_PROTOCOL } from "./configuration";
+import { configReader } from "./configuration";
+import { CATALOG_PROTOCOL } from "./constants";
 
 export async function getValidationInfoForNonCatalogDependency(
   workspace: Workspace,
