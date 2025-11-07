@@ -115,7 +115,7 @@ describe("warnings and recommendations", () => {
 
     await workspace.yarn.add("react");
     const { stderr } = await workspace.yarn.add("lodash");
-    expect(stderr).toContain("lodash@catalog:stable");
+    expect(stderr).not.toContain("lodash@catalog:stable");
 
     const { stdout: listOutput } = await workspace.yarn.info();
     const dependencies = extractDependencies(listOutput);

@@ -4,6 +4,7 @@ import { getInheritanceChain } from "./functions";
 import { configReader } from "../configuration";
 import { findAllGroupsWithSpecificDependency } from "./resolution";
 import { CATALOG_PROTOCOL } from "../constants";
+import { getDefaultAliasGroups } from "./default";
 
 /**
  * Check if a package can be used with the catalog protocol
@@ -25,18 +26,29 @@ export async function validateCatalogUsability(
     return null;
   }
 
-  // Find all groups that can access this package
-  const accessibleGroups = (
-    await findAllGroupsWithSpecificDependency(workspace.project, descriptor)
-  ).map(({ groupName }) => groupName);
+  const defaultAliasGroups = await getDefaultAliasGroups(workspace);
 
-  // Return null if no applicable groups found
+  // Find all groups that can access this package
+  const packageName = structUtils.stringifyIdent(descriptor);
+  const groupsWithDependency = await findAllGroupsWithSpecificDependency(
+    workspace.project,
+    packageName,
+  );
+  const accessibleGroups = groupsWithDependency.flatMap(({ groupName }) =>
+    defaultAliasGroups.length === 0 || defaultAliasGroups.includes(groupName)
+      ? [groupName]
+      : [],
+  );
+
   if (accessibleGroups.length === 0) {
     return null;
   }
 
   // Get validation level for the package
-  const validationLevel = await getPackageVaidationLevel(workspace, descriptor);
+  const validationLevel = await getPackageVaidationLevel(
+    workspace,
+    packageName,
+  );
 
   return {
     validationLevel,
@@ -114,10 +126,10 @@ async function getGroupValidationLevel(
  */
 async function getPackageVaidationLevel(
   workspace: Workspace,
-  descriptor: Descriptor,
+  packageName: string,
 ): Promise<ValidationLevel> {
   const accessibleGroups = (
-    await findAllGroupsWithSpecificDependency(workspace.project, descriptor)
+    await findAllGroupsWithSpecificDependency(workspace.project, packageName)
   ).map(({ groupName }) => groupName);
 
   if (accessibleGroups.length === 0) {

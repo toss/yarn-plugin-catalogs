@@ -60,7 +60,9 @@ export async function fallbackDefaultAliasGroup(
 /**
  * Get the default alias group from the configuration if it exists
  */
-async function getDefaultAliasGroups(workspace: Workspace): Promise<string[]> {
+export async function getDefaultAliasGroups(
+  workspace: Workspace,
+): Promise<string[]> {
   const config = await configReader.readConfiguration(workspace.project);
 
   if (config.options) {
