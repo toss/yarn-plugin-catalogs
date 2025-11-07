@@ -9,6 +9,7 @@ import type { CatalogsConfiguration } from "./types";
 import { CatalogConfigurationError } from "./errors";
 import { ROOT_ALIAS_GROUP, CATALOG_PROTOCOL } from "../constants";
 import type { ValidationLevel } from "../types";
+import { getInheritanceChain } from "../utils";
 
 /**
  * Handles reading and parsing of .yarnrc.yml#catalogs configuration
@@ -102,7 +103,7 @@ export class CatalogConfigurationReader {
 
       // Validate that parent groups exist
       if (group.includes("/")) {
-        const chain = this.getInheritanceChain(group);
+        const chain = getInheritanceChain(group);
         for (let i = 0; i < chain.length - 1; i++) {
           const parentGroup = chain[i];
           if (
@@ -176,7 +177,7 @@ export class CatalogConfigurationReader {
             if (group !== "root" && !aliasGroups.includes(group)) {
               // Check if it's a valid inheritance chain
               if (group.includes("/")) {
-                const chain = this.getInheritanceChain(group);
+                const chain = getInheritanceChain(group);
                 let isValid = true;
                 for (const chainGroup of chain) {
                   if (
@@ -230,7 +231,7 @@ export class CatalogConfigurationReader {
               groupName !== ROOT_ALIAS_GROUP
             ) {
               if (groupName.includes("/")) {
-                const chain = this.getInheritanceChain(groupName);
+                const chain = getInheritanceChain(groupName);
                 let isValid = true;
                 for (const chainGroup of chain) {
                   if (
@@ -259,21 +260,6 @@ export class CatalogConfigurationReader {
   }
 
   /**
-   * Parse inheritance chain from group name
-   * e.g., "stable/canary/next" to ["stable", "stable/canary", "stable/canary/next"]
-   */
-  private getInheritanceChain(groupName: string): string[] {
-    const parts = groupName.split("/");
-    const chain: string[] = [];
-
-    for (let i = 0; i < parts.length; i++) {
-      chain.push(parts.slice(0, i + 1).join("/"));
-    }
-
-    return chain;
-  }
-
-  /**
    * Resolve package version through inheritance chain
    */
   private resolveInheritedRange(
@@ -281,7 +267,7 @@ export class CatalogConfigurationReader {
     groupName: string,
     packageName: string,
   ): string | null {
-    const chain = this.getInheritanceChain(groupName);
+    const chain = getInheritanceChain(groupName);
 
     // Search from most specific to least specific
     for (let i = chain.length - 1; i >= 0; i--) {
@@ -439,7 +425,7 @@ export class CatalogConfigurationReader {
     }
 
     // Search inheritance chain for explicit validation setting
-    const inheritanceChain = this.getInheritanceChain(groupName);
+    const inheritanceChain = getInheritanceChain(groupName);
 
     for (let i = inheritanceChain.length - 1; i >= 0; i--) {
       const currentGroup = inheritanceChain[i];
