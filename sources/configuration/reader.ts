@@ -88,6 +88,176 @@ export class CatalogConfigurationReader {
   }
 
   /**
+   * Validate inheritance structure in configuration
+   */
+  private validateInheritanceStructure(config: CatalogsConfiguration): boolean {
+    if (!config.list) return true;
+
+    const groups = Object.keys(config.list);
+
+    for (const group of groups) {
+      // Skip root-level string values
+      if (typeof config.list[group] === "string") continue;
+
+      // Validate that parent groups exist
+      if (group.includes("/")) {
+        const chain = this.getInheritanceChain(group);
+        for (let i = 0; i < chain.length - 1; i++) {
+          const parentGroup = chain[i];
+          if (
+            !groups.includes(parentGroup) &&
+            parentGroup !== ROOT_ALIAS_GROUP
+          ) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
+  private isValidConfiguration(
+    config: unknown,
+  ): config is CatalogsConfiguration {
+    if (!config || typeof config !== "object") {
+      return false;
+    }
+
+    // The list property must be an object
+    if (
+      !("list" in config) ||
+      !config.list ||
+      typeof config.list !== "object"
+    ) {
+      return false;
+    }
+
+    for (const [_, aliasConfig] of Object.entries(config.list)) {
+      if (!aliasConfig || typeof aliasConfig !== "object") {
+        return false;
+      }
+
+      for (const version of Object.values(aliasConfig)) {
+        if (typeof version !== "string") {
+          return false;
+        }
+      }
+    }
+
+    // Check the default option if it exists
+    if (
+      "options" in config &&
+      config.options &&
+      typeof config.options === "object"
+    ) {
+      if (
+        "ignoredWorkspaces" in config.options &&
+        config.options.ignoredWorkspaces
+      ) {
+        if (!Array.isArray(config.options.ignoredWorkspaces)) {
+          return false;
+        }
+
+        if (config.options.ignoredWorkspaces.length === 0) {
+          return false;
+        }
+      }
+
+      if ("default" in config.options && config.options.default) {
+        if (Array.isArray(config.options.default)) {
+          if (config.options.default.length === 0) {
+            return false;
+          }
+
+          const aliasGroups = Object.keys(config.list || {});
+          for (const group of config.options.default) {
+            if (group !== "root" && !aliasGroups.includes(group)) {
+              // Check if it's a valid inheritance chain
+              if (group.includes("/")) {
+                const chain = this.getInheritanceChain(group);
+                let isValid = true;
+                for (const chainGroup of chain) {
+                  if (
+                    chainGroup !== "root" &&
+                    !aliasGroups.includes(chainGroup)
+                  ) {
+                    isValid = false;
+                    break;
+                  }
+                }
+                if (!isValid) {
+                  return false;
+                }
+              } else {
+                return false;
+              }
+            }
+          }
+        } else {
+          if (typeof config.options.default !== "string") {
+            return false;
+          }
+
+          if (config.options.default !== "max") {
+            return false;
+          }
+        }
+      }
+
+      if ("validation" in config.options) {
+        const validation = config.options.validation;
+
+        if (typeof validation === "string") {
+          if (!["warn", "strict", "off"].includes(validation)) {
+            return false;
+          }
+        } else if (typeof validation === "object" && validation !== null) {
+          // Validate group-specific validation config
+          for (const [groupName, level] of Object.entries(validation)) {
+            if (
+              typeof level !== "string" ||
+              !["warn", "strict", "off"].includes(level)
+            ) {
+              return false;
+            }
+
+            // Validate that the group exists or is a valid inheritance chain
+            const aliasGroups = Object.keys(config.list || {});
+            if (
+              !aliasGroups.includes(groupName) &&
+              groupName !== ROOT_ALIAS_GROUP
+            ) {
+              if (groupName.includes("/")) {
+                const chain = this.getInheritanceChain(groupName);
+                let isValid = true;
+                for (const chainGroup of chain) {
+                  if (
+                    chainGroup !== ROOT_ALIAS_GROUP &&
+                    !aliasGroups.includes(chainGroup)
+                  ) {
+                    isValid = false;
+                    break;
+                  }
+                }
+                if (!isValid) {
+                  return false;
+                }
+              } else {
+                return false;
+              }
+            }
+          }
+        } else {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /**
    * Parse inheritance chain from group name
    * e.g., "stable/canary/next" to ["stable", "stable/canary", "stable/canary/next"]
    */
@@ -143,36 +313,6 @@ export class CatalogConfigurationReader {
     }
 
     return null;
-  }
-
-  /**
-   * Validate inheritance structure in configuration
-   */
-  private validateInheritanceStructure(config: CatalogsConfiguration): boolean {
-    if (!config.list) return true;
-
-    const groups = Object.keys(config.list);
-
-    for (const group of groups) {
-      // Skip root-level string values
-      if (typeof config.list[group] === "string") continue;
-
-      // Validate that parent groups exist
-      if (group.includes("/")) {
-        const chain = this.getInheritanceChain(group);
-        for (let i = 0; i < chain.length - 1; i++) {
-          const parentGroup = chain[i];
-          if (
-            !groups.includes(parentGroup) &&
-            parentGroup !== ROOT_ALIAS_GROUP
-          ) {
-            return false;
-          }
-        }
-      }
-    }
-
-    return true;
   }
 
   /**
@@ -394,145 +534,5 @@ export class CatalogConfigurationReader {
     }
 
     return "warn";
-  }
-
-  private isValidConfiguration(
-    config: unknown,
-  ): config is CatalogsConfiguration {
-    if (!config || typeof config !== "object") {
-      return false;
-    }
-
-    // The list property must be an object
-    if (
-      !("list" in config) ||
-      !config.list ||
-      typeof config.list !== "object"
-    ) {
-      return false;
-    }
-
-    for (const [_, aliasConfig] of Object.entries(config.list)) {
-      if (!aliasConfig || typeof aliasConfig !== "object") {
-        return false;
-      }
-
-      for (const version of Object.values(aliasConfig)) {
-        if (typeof version !== "string") {
-          return false;
-        }
-      }
-    }
-
-    // Check the default option if it exists
-    if (
-      "options" in config &&
-      config.options &&
-      typeof config.options === "object"
-    ) {
-      if (
-        "ignoredWorkspaces" in config.options &&
-        config.options.ignoredWorkspaces
-      ) {
-        if (!Array.isArray(config.options.ignoredWorkspaces)) {
-          return false;
-        }
-
-        if (config.options.ignoredWorkspaces.length === 0) {
-          return false;
-        }
-      }
-
-      if ("default" in config.options && config.options.default) {
-        if (Array.isArray(config.options.default)) {
-          if (config.options.default.length === 0) {
-            return false;
-          }
-
-          const aliasGroups = Object.keys(config.list || {});
-          for (const group of config.options.default) {
-            if (group !== "root" && !aliasGroups.includes(group)) {
-              // Check if it's a valid inheritance chain
-              if (group.includes("/")) {
-                const chain = this.getInheritanceChain(group);
-                let isValid = true;
-                for (const chainGroup of chain) {
-                  if (
-                    chainGroup !== "root" &&
-                    !aliasGroups.includes(chainGroup)
-                  ) {
-                    isValid = false;
-                    break;
-                  }
-                }
-                if (!isValid) {
-                  return false;
-                }
-              } else {
-                return false;
-              }
-            }
-          }
-        } else {
-          if (typeof config.options.default !== "string") {
-            return false;
-          }
-
-          if (config.options.default !== "max") {
-            return false;
-          }
-        }
-      }
-
-      if ("validation" in config.options) {
-        const validation = config.options.validation;
-
-        if (typeof validation === "string") {
-          if (!["warn", "strict", "off"].includes(validation)) {
-            return false;
-          }
-        } else if (typeof validation === "object" && validation !== null) {
-          // Validate group-specific validation config
-          for (const [groupName, level] of Object.entries(validation)) {
-            if (
-              typeof level !== "string" ||
-              !["warn", "strict", "off"].includes(level)
-            ) {
-              return false;
-            }
-
-            // Validate that the group exists or is a valid inheritance chain
-            const aliasGroups = Object.keys(config.list || {});
-            if (
-              !aliasGroups.includes(groupName) &&
-              groupName !== ROOT_ALIAS_GROUP
-            ) {
-              if (groupName.includes("/")) {
-                const chain = this.getInheritanceChain(groupName);
-                let isValid = true;
-                for (const chainGroup of chain) {
-                  if (
-                    chainGroup !== ROOT_ALIAS_GROUP &&
-                    !aliasGroups.includes(chainGroup)
-                  ) {
-                    isValid = false;
-                    break;
-                  }
-                }
-                if (!isValid) {
-                  return false;
-                }
-              } else {
-                return false;
-              }
-            }
-          }
-        } else {
-          return false;
-        }
-      }
-    }
-
-    return true;
   }
 }
