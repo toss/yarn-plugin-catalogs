@@ -17,6 +17,77 @@ export class CatalogConfigurationReader {
   private configCache: Map<string, CatalogsConfiguration> = new Map();
 
   /**
+   * Read and parse the .yarnrc.yml#catalogs file
+   */
+  async readConfiguration(project: Project): Promise<CatalogsConfiguration> {
+    const workspaceRoot = project.cwd;
+    const cacheKey = workspaceRoot;
+
+    // Check cache first
+    const cached = this.configCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // Get config from project configuration
+    const rawConfig = (project.configuration.get("catalogs") || {}) as Record<
+      string,
+      object
+    >;
+
+    const config = rawConfig;
+    // Transform config to handle root-level string values
+    if (rawConfig.list) {
+      config.list = Object.entries(rawConfig.list).reduce(
+        (acc, [key, value]) => {
+          if (typeof value === "string") {
+            // If value is a string, put it under BASE_ALIAS_GROUP
+            acc[ROOT_ALIAS_GROUP] = {
+              ...(acc[ROOT_ALIAS_GROUP] || {}),
+              [key]: value,
+            };
+          } else {
+            // Otherwise keep the original structure
+            acc[key] = value;
+          }
+          return acc;
+        },
+        {} as Record<string, object>,
+      );
+    } else {
+      config.list = {};
+    }
+
+    // Validate configuration structure
+    if (!this.isValidConfiguration(config)) {
+      throw new CatalogConfigurationError(
+        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] | 'max', ignoredWorkspaces?: string[], validation?: 'off' | 'warn' | 'strict' | { [package: string]: 'off' | 'warn' | 'strict' } }, list: { [alias: string]: { [packageName: string]: string } } }",
+        CatalogConfigurationError.INVALID_FORMAT,
+      );
+    }
+
+    // Validate inheritance structure
+    if (!this.validateInheritanceStructure(config)) {
+      throw new CatalogConfigurationError(
+        "Invalid inheritance structure in catalogs configuration. Check for missing parent groups.",
+        CatalogConfigurationError.INVALID_ALIAS,
+      );
+    }
+
+    // Cache the configuration
+    this.configCache.set(cacheKey, config);
+
+    return config;
+  }
+
+  /**
+   * Clear the configuration cache for a specific workspace
+   */
+  clearCache(workspaceRoot: string): void {
+    this.configCache.delete(workspaceRoot);
+  }
+
+  /**
    * Parse inheritance chain from group name
    * e.g., "stable/canary/next" to ["stable", "stable/canary", "stable/canary/next"]
    */
@@ -102,70 +173,6 @@ export class CatalogConfigurationReader {
     }
 
     return true;
-  }
-
-  /**
-   * Read and parse the .yarnrc.yml#catalogs file
-   */
-  async readConfiguration(project: Project): Promise<CatalogsConfiguration> {
-    const workspaceRoot = project.cwd;
-    const cacheKey = workspaceRoot;
-
-    // Check cache first
-    const cached = this.configCache.get(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    // Get config from project configuration
-    const rawConfig = (project.configuration.get("catalogs") || {}) as Record<
-      string,
-      object
-    >;
-
-    const config = rawConfig;
-    // Transform config to handle root-level string values
-    if (rawConfig.list) {
-      config.list = Object.entries(rawConfig.list).reduce(
-        (acc, [key, value]) => {
-          if (typeof value === "string") {
-            // If value is a string, put it under BASE_ALIAS_GROUP
-            acc[ROOT_ALIAS_GROUP] = {
-              ...(acc[ROOT_ALIAS_GROUP] || {}),
-              [key]: value,
-            };
-          } else {
-            // Otherwise keep the original structure
-            acc[key] = value;
-          }
-          return acc;
-        },
-        {} as Record<string, object>,
-      );
-    } else {
-      config.list = {};
-    }
-
-    // Validate configuration structure
-    if (!this.isValidConfiguration(config)) {
-      throw new CatalogConfigurationError(
-        "Invalid catalogs configuration format. Expected structure: { options?: { default?: string[] | 'max', ignoredWorkspaces?: string[], validation?: 'off' | 'warn' | 'strict' | { [package: string]: 'off' | 'warn' | 'strict' } }, list: { [alias: string]: { [packageName: string]: string } } }",
-        CatalogConfigurationError.INVALID_FORMAT,
-      );
-    }
-
-    // Validate inheritance structure
-    if (!this.validateInheritanceStructure(config)) {
-      throw new CatalogConfigurationError(
-        "Invalid inheritance structure in catalogs configuration. Check for missing parent groups.",
-        CatalogConfigurationError.INVALID_ALIAS,
-      );
-    }
-
-    // Cache the configuration
-    this.configCache.set(cacheKey, config);
-
-    return config;
   }
 
   /**
@@ -357,13 +364,6 @@ export class CatalogConfigurationReader {
     }
 
     return results;
-  }
-
-  /**
-   * Clear the configuration cache for a specific workspace
-   */
-  clearCache(workspaceRoot: string): void {
-    this.configCache.delete(workspaceRoot);
   }
 
   /**
