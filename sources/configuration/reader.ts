@@ -1,9 +1,14 @@
-import { Descriptor, Project, structUtils, Workspace } from "@yarnpkg/core";
+import {
+  type Descriptor,
+  type Project,
+  structUtils,
+  type Workspace,
+} from "@yarnpkg/core";
 import { isMatch } from "picomatch";
-import { CatalogsConfiguration } from "./types";
+import type { CatalogsConfiguration } from "./types";
 import { CatalogConfigurationError } from "./errors";
 import { ROOT_ALIAS_GROUP, CATALOG_PROTOCOL } from "../constants";
-import { ValidationLevel } from "../types";
+import type { ValidationLevel } from "../types";
 
 /**
  * Handles reading and parsing of .yarnrc.yml#catalogs configuration
@@ -118,10 +123,10 @@ export class CatalogConfigurationReader {
       object
     >;
 
-    let config = rawConfig;
+    const config = rawConfig;
     // Transform config to handle root-level string values
-    if (rawConfig["list"]) {
-      config["list"] = Object.entries(rawConfig["list"]).reduce(
+    if (rawConfig.list) {
+      config.list = Object.entries(rawConfig.list).reduce(
         (acc, [key, value]) => {
           if (typeof value === "string") {
             // If value is a string, put it under BASE_ALIAS_GROUP
@@ -138,7 +143,7 @@ export class CatalogConfigurationReader {
         {} as Record<string, object>,
       );
     } else {
-      config["list"] = {};
+      config.list = {};
     }
 
     // Validate configuration structure
@@ -401,13 +406,13 @@ export class CatalogConfigurationReader {
     // The list property must be an object
     if (
       !("list" in config) ||
-      !config["list"] ||
-      typeof config["list"] !== "object"
+      !config.list ||
+      typeof config.list !== "object"
     ) {
       return false;
     }
 
-    for (const [_, aliasConfig] of Object.entries(config["list"])) {
+    for (const [_, aliasConfig] of Object.entries(config.list)) {
       if (!aliasConfig || typeof aliasConfig !== "object") {
         return false;
       }
@@ -422,25 +427,25 @@ export class CatalogConfigurationReader {
     // Check the default option if it exists
     if (
       "options" in config &&
-      config["options"] &&
-      typeof config["options"] === "object"
+      config.options &&
+      typeof config.options === "object"
     ) {
       if (
-        "ignoredWorkspaces" in config["options"] &&
-        config["options"]["ignoredWorkspaces"]
+        "ignoredWorkspaces" in config.options &&
+        config.options.ignoredWorkspaces
       ) {
-        if (!Array.isArray(config["options"]["ignoredWorkspaces"])) {
+        if (!Array.isArray(config.options.ignoredWorkspaces)) {
           return false;
         }
 
-        if (config["options"]["ignoredWorkspaces"].length === 0) {
+        if (config.options.ignoredWorkspaces.length === 0) {
           return false;
         }
       }
 
-      if ("default" in config["options"] && config["options"]["default"]) {
-        if (Array.isArray(config["options"]["default"])) {
-          if (config["options"]["default"].length === 0) {
+      if ("default" in config.options && config.options.default) {
+        if (Array.isArray(config.options.default)) {
+          if (config.options.default.length === 0) {
             return false;
           }
 
@@ -469,18 +474,18 @@ export class CatalogConfigurationReader {
             }
           }
         } else {
-          if (typeof config["options"]["default"] !== "string") {
+          if (typeof config.options.default !== "string") {
             return false;
           }
 
-          if (config["options"]["default"] !== "max") {
+          if (config.options.default !== "max") {
             return false;
           }
         }
       }
 
-      if ("validation" in config["options"]) {
-        const validation = config["options"]["validation"];
+      if ("validation" in config.options) {
+        const validation = config.options.validation;
 
         if (typeof validation === "string") {
           if (!["warn", "strict", "off"].includes(validation)) {

@@ -1,19 +1,20 @@
 import {
-  Descriptor,
-  Hooks,
+  type Descriptor,
+  type Hooks,
+  Manifest,
   MessageName,
-  Plugin,
-  Project,
+  type Plugin,
+  type Project,
   SettingsType,
   structUtils,
-  Workspace,
+  type Workspace,
 } from "@yarnpkg/core";
-import { Hooks as EssentialHooks } from "@yarnpkg/plugin-essentials";
-import { Hooks as PackHooks } from "@yarnpkg/plugin-pack";
+import type { Hooks as EssentialHooks } from "@yarnpkg/plugin-essentials";
+import type { Hooks as PackHooks } from "@yarnpkg/plugin-pack";
 import chalk from "chalk";
 import {
   CatalogConfigurationError,
-  CatalogsConfiguration,
+  type CatalogsConfiguration,
   configReader,
 } from "./configuration";
 import { getUnusedCatalogDependencies } from "./get-unused-catalog-dependencies";
@@ -41,9 +42,8 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
 
       // Check if any dependencies in manifest are in catalog but not using catalog protocol
       if (!shouldIgnore) {
-        const violatedDependencies = await getUnusedCatalogDependencies(
-          workspace,
-        );
+        const violatedDependencies =
+          await getUnusedCatalogDependencies(workspace);
 
         if (violatedDependencies.length > 0) {
           // Group dependencies by validation level
@@ -83,16 +83,14 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
 
       // Check the workspace's raw manifest to find dependencies with the catalog protocol
       const hasCatalogProtocol = [
-        ...Object.values<string>(workspace.manifest.raw["dependencies"] || {}),
-        ...Object.values<string>(
-          workspace.manifest.raw["devDependencies"] || {},
-        ),
+        ...Object.values<string>(workspace.manifest.raw.dependencies || {}),
+        ...Object.values<string>(workspace.manifest.raw.devDependencies || {}),
       ].some((version) => version.startsWith(CATALOG_PROTOCOL));
 
       if (shouldIgnore && hasCatalogProtocol) {
         report.reportError(
           MessageName.INVALID_MANIFEST,
-          `Workspace is ignored from the catalogs, but it has dependencies with the catalog protocol. Consider removing the protocol.`,
+          "Workspace is ignored from the catalogs, but it has dependencies with the catalog protocol. Consider removing the protocol.",
         );
       }
     },
@@ -190,7 +188,10 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
     ) => {
       fallbackDefaultAliasGroup(workspace, dependency);
     },
-    beforeWorkspacePacking: async (workspace: Workspace, rawManifest: any) => {
+    beforeWorkspacePacking: async (
+      workspace: Workspace,
+      rawManifest: Workspace["manifest"]["raw"],
+    ) => {
       // Only process if the workspace is not ignored
       if (await configReader.shouldIgnoreWorkspace(workspace)) {
         return;

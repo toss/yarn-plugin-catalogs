@@ -1,4 +1,4 @@
-import { ValidationLevel } from "../types";
+import type { ValidationLevel } from "../types";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {

@@ -1,4 +1,4 @@
-import { Descriptor, Workspace } from "@yarnpkg/core";
+import type { Descriptor, Workspace } from "@yarnpkg/core";
 import chalk from "chalk";
 import { configReader } from "./configuration";
 import { getCatalogProtocolUsability } from "./get-catalog-protocol-usability";
@@ -12,7 +12,7 @@ export async function fallbackDefaultAliasGroup(
     if (await configReader.shouldIgnoreWorkspace(workspace)) {
       throw new Error(
         chalk.red(
-          `The workspace is ignored from the catalogs, but the dependency to add is using the catalog protocol. Consider removing the protocol.`,
+          "The workspace is ignored from the catalogs, but the dependency to add is using the catalog protocol. Consider removing the protocol.",
         ),
       );
     }
@@ -30,9 +30,8 @@ export async function fallbackDefaultAliasGroup(
   const { validationLevel, applicableGroups } = validationInfo;
 
   // If there's a default alias group, fallback to it
-  const defaultAliasGroups = await configReader.getDefaultAliasGroups(
-    workspace,
-  );
+  const defaultAliasGroups =
+    await configReader.getDefaultAliasGroups(workspace);
   if (defaultAliasGroups.length > 0) {
     for (const aliasGroup of defaultAliasGroups) {
       if (applicableGroups.includes(aliasGroup)) {
@@ -55,7 +54,9 @@ export async function fallbackDefaultAliasGroup(
   const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
   if (validationLevel === "strict") {
     throw new Error(chalk.red(message));
-  } else if (validationLevel === "warn") {
+  }
+
+  if (validationLevel === "warn") {
     console.warn(chalk.yellow(message));
   }
 }

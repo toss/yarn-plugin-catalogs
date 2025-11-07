@@ -1,7 +1,7 @@
-import { Descriptor, Workspace } from "@yarnpkg/core";
+import type { Descriptor, Workspace } from "@yarnpkg/core";
 import { structUtils } from "@yarnpkg/core";
 import { getCatalogProtocolUsability } from "./get-catalog-protocol-usability";
-import { ValidationLevel } from "./types";
+import type { ValidationLevel } from "./types";
 
 export async function getUnusedCatalogDependencies(
   workspace: Workspace,
@@ -13,8 +13,8 @@ export async function getUnusedCatalogDependencies(
   }>
 > {
   const dependencyDescriptors = [
-    ...Object.entries<string>(workspace.manifest.raw["dependencies"] ?? {}),
-    ...Object.entries<string>(workspace.manifest.raw["devDependencies"] ?? {}),
+    ...Object.entries<string>(workspace.manifest.raw.dependencies ?? {}),
+    ...Object.entries<string>(workspace.manifest.raw.devDependencies ?? {}),
   ].map(([stringifiedIdent, version]) => {
     const ident = structUtils.parseIdent(stringifiedIdent);
     return structUtils.makeDescriptor(ident, version);

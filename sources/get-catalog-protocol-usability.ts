@@ -1,4 +1,4 @@
-import { Workspace, Descriptor } from "@yarnpkg/core";
+import type { Workspace, Descriptor } from "@yarnpkg/core";
 import { configReader } from "./configuration";
 import { CATALOG_PROTOCOL } from "./constants";
 
