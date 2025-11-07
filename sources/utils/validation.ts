@@ -6,60 +6,6 @@ import { findAllGroupsWithSpecificDependency } from "./resolution";
 import { CATALOG_PROTOCOL } from "../constants";
 
 /**
- * Get validation level for a specific group (considering inheritance)
- */
-export async function getGroupValidationLevel(
-  workspace: Workspace,
-  groupName: string,
-): Promise<ValidationLevel> {
-  const config = await configReader.readConfiguration(workspace.project);
-  const validationConfig = config.options?.validation || "warn";
-
-  if (typeof validationConfig === "string") {
-    return validationConfig;
-  }
-
-  // Search inheritance chain for explicit validation setting
-  const inheritanceChain = getInheritanceChain(groupName);
-
-  for (let i = inheritanceChain.length - 1; i >= 0; i--) {
-    const currentGroup = inheritanceChain[i];
-    if (validationConfig[currentGroup] !== undefined) {
-      return validationConfig[currentGroup];
-    }
-  }
-
-  return "warn"; // Default fallback
-}
-
-/**
- * Get the strictest validation level for a package across all accessible groups
- */
-export async function getPackageVaidationLevel(
-  workspace: Workspace,
-  descriptor: Descriptor,
-): Promise<ValidationLevel> {
-  const accessibleGroups = (
-    await findAllGroupsWithSpecificDependency(workspace.project, descriptor)
-  ).map(({ groupName }) => groupName);
-
-  if (accessibleGroups.length === 0) {
-    return "off";
-  }
-
-  const validationLevels: ValidationLevel[] = [];
-  for (const groupName of accessibleGroups) {
-    const level = await getGroupValidationLevel(workspace, groupName);
-    validationLevels.push(level);
-  }
-
-  // Return the strictest level (strict > warn > off)
-  if (validationLevels.includes("strict")) return "strict";
-  if (validationLevels.includes("warn")) return "warn";
-  return "off";
-}
-
-/**
  * Check if a package can be used with the catalog protocol
  */
 export async function validateCatalogUsability(
@@ -134,4 +80,58 @@ export async function validateWorkspaceCatalogUsability(
   }
 
   return results;
+}
+
+/**
+ * Get validation level for a specific group (considering inheritance)
+ */
+async function getGroupValidationLevel(
+  workspace: Workspace,
+  groupName: string,
+): Promise<ValidationLevel> {
+  const config = await configReader.readConfiguration(workspace.project);
+  const validationConfig = config.options?.validation || "warn";
+
+  if (typeof validationConfig === "string") {
+    return validationConfig;
+  }
+
+  // Search inheritance chain for explicit validation setting
+  const inheritanceChain = getInheritanceChain(groupName);
+
+  for (let i = inheritanceChain.length - 1; i >= 0; i--) {
+    const currentGroup = inheritanceChain[i];
+    if (validationConfig[currentGroup] !== undefined) {
+      return validationConfig[currentGroup];
+    }
+  }
+
+  return "warn"; // Default fallback
+}
+
+/**
+ * Get the strictest validation level for a package across all accessible groups
+ */
+async function getPackageVaidationLevel(
+  workspace: Workspace,
+  descriptor: Descriptor,
+): Promise<ValidationLevel> {
+  const accessibleGroups = (
+    await findAllGroupsWithSpecificDependency(workspace.project, descriptor)
+  ).map(({ groupName }) => groupName);
+
+  if (accessibleGroups.length === 0) {
+    return "off";
+  }
+
+  const validationLevels: ValidationLevel[] = [];
+  for (const groupName of accessibleGroups) {
+    const level = await getGroupValidationLevel(workspace, groupName);
+    validationLevels.push(level);
+  }
+
+  // Return the strictest level (strict > warn > off)
+  if (validationLevels.includes("strict")) return "strict";
+  if (validationLevels.includes("warn")) return "warn";
+  return "off";
 }
