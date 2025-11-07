@@ -1,10 +1,10 @@
 import { dir as tmpDir } from "tmp-promise";
-import { writeFile } from "fs/promises";
-import { join } from "path";
-import { execFile } from "child_process";
-import { promisify } from "util";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { dump as yamlDump } from "js-yaml";
-import * as fs from "fs/promises";
+import * as fs from "node:fs/promises";
 
 const execFileAsync = promisify(execFile);
 
@@ -58,7 +58,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
     const existingContent = await fs
       .readFile(yarnrcPath, "utf8")
       .catch(() => "");
-    await writeFile(yarnrcPath, existingContent + "\n" + yamlDump(content));
+    await writeFile(yarnrcPath, `${existingContent}\n${yamlDump(content)}`);
   };
 
   return {
@@ -75,7 +75,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
  */
 export async function createTestProtocolPlugin(
   workspace: TestWorkspace,
-  protocolName: string
+  protocolName: string,
 ): Promise<string> {
   const pluginCode = `
 module.exports = {
@@ -122,7 +122,7 @@ export function extractDependencies(log: string): string[] {
     .filter((str) => str != null && str.length > 0)
     .map(
       (depsString) =>
-        JSON.parse(depsString) as { value: string; children: object }
+        JSON.parse(depsString) as { value: string; children: object },
     )
     .reduce((result, item) => [...result, item.value], [] as string[]);
 }

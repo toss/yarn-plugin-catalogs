@@ -1,32 +1,32 @@
 import {
-  Plugin,
-  Project,
-  Descriptor,
-  structUtils,
-  Hooks,
-  SettingsType,
-  Workspace,
+  type Descriptor,
+  type Hooks,
+  Manifest,
   MessageName,
+  type Plugin,
+  type Project,
+  SettingsType,
+  structUtils,
+  type Workspace,
 } from "@yarnpkg/core";
-import { Hooks as EssentialHooks } from "@yarnpkg/plugin-essentials";
-import { Hooks as PackHooks } from "@yarnpkg/plugin-pack";
+import type { Hooks as EssentialHooks } from "@yarnpkg/plugin-essentials";
+import type { Hooks as PackHooks } from "@yarnpkg/plugin-pack";
 import chalk from "chalk";
 import {
-  CatalogConfigurationReader,
   CatalogConfigurationError,
-  CatalogsConfiguration,
-  CATALOG_PROTOCOL,
-  ROOT_ALIAS_GROUP,
+  type CatalogsConfiguration,
+  configReader,
 } from "./configuration";
+import { CATALOG_PROTOCOL } from "./constants";
+import { validateWorkspaceCatalogUsability } from "./utils/validation";
+import { resolveCatalogDependency } from "./utils/resolution";
+import { fallbackDefaultAliasGroup } from "./utils/default";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {
     catalogs?: CatalogsConfiguration;
   }
 }
-
-// Create a singleton instance of our configuration reader
-const configReader = new CatalogConfigurationReader();
 
 const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
   configuration: {
@@ -44,7 +44,7 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
       // Check if any dependencies in manifest are in catalog but not using catalog protocol
       if (!shouldIgnore) {
         const violatedDependencies =
-          await getCatalogDependenciesWithoutProtocol(workspace);
+          await validateWorkspaceCatalogUsability(workspace);
 
         if (violatedDependencies.length > 0) {
           // Group dependencies by validation level
@@ -59,7 +59,9 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
             violations: typeof strictViolations | typeof warnViolations,
           ) => {
             const packageList = violations
-              .map((dep) => chalk.yellow(dep.packageName))
+              .map((dep) =>
+                chalk.yellow(structUtils.stringifyDescriptor(dep.descriptor)),
+              )
               .join(", ");
             return `The following dependencies are listed in the catalogs but not using the catalog protocol: ${packageList}. Consider using the catalog protocol instead.`;
           };
@@ -82,14 +84,14 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
 
       // Check the workspace's raw manifest to find dependencies with the catalog protocol
       const hasCatalogProtocol = [
-        ...Object.values(workspace.manifest.raw["dependencies"] || {}),
-        ...Object.values(workspace.manifest.raw["devDependencies"] || {}),
-      ].some((version) => (version as string).startsWith(CATALOG_PROTOCOL));
+        ...Object.values<string>(workspace.manifest.raw.dependencies || {}),
+        ...Object.values<string>(workspace.manifest.raw.devDependencies || {}),
+      ].some((version) => version.startsWith(CATALOG_PROTOCOL));
 
       if (shouldIgnore && hasCatalogProtocol) {
         report.reportError(
           MessageName.INVALID_MANIFEST,
-          `Workspace is ignored from the catalogs, but it has dependencies with the catalog protocol. Consider removing the protocol.`,
+          "Workspace is ignored from the catalogs, but it has dependencies with the catalog protocol. Consider removing the protocol.",
         );
       }
     },
@@ -125,7 +127,7 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
 
         // Get the actual version from .yarnrc.yml
         const dependencyName = structUtils.stringifyIdent(dependency);
-        const range = await configReader.getRange(
+        const range = await resolveCatalogDependency(
           project,
           catalogAlias,
           dependencyName,
@@ -187,7 +189,10 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
     ) => {
       fallbackDefaultAliasGroup(workspace, dependency);
     },
-    beforeWorkspacePacking: async (workspace: Workspace, rawManifest: any) => {
+    beforeWorkspacePacking: async (
+      workspace: Workspace,
+      rawManifest: Workspace["manifest"]["raw"],
+    ) => {
       // Only process if the workspace is not ignored
       if (await configReader.shouldIgnoreWorkspace(workspace)) {
         return;
@@ -221,7 +226,7 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
             const catalogAlias = versionString.slice(CATALOG_PROTOCOL.length);
 
             // Get the resolved version from catalog configuration
-            const resolvedRange = await configReader.getRange(
+            const resolvedRange = await resolveCatalogDependency(
               workspace.project,
               catalogAlias,
               packageName,
@@ -241,114 +246,6 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
     },
   },
 };
-
-async function getCatalogDependenciesWithoutProtocol(
-  workspace: Workspace,
-): Promise<
-  Array<{
-    packageName: string;
-    validationLevel: "warn" | "strict";
-    applicableGroups: string[];
-  }>
-> {
-  const dependencyEntries = [
-    ...Object.entries(workspace.manifest.raw["dependencies"] || {}),
-    ...Object.entries(workspace.manifest.raw["devDependencies"] || {}),
-  ];
-
-  const results = [];
-
-  for (const [packageName, version] of dependencyEntries) {
-    const versionString = version as string;
-
-    // Skip if already using catalog protocol
-    if (versionString.startsWith(CATALOG_PROTOCOL)) {
-      continue;
-    }
-
-    // Find all groups that can access this package
-    const accessibleGroups = await configReader.findAllAccessibleGroups(
-      workspace.project,
-      packageName,
-    );
-
-    if (accessibleGroups.length > 0) {
-      const validationLevel = await configReader.getValidationLevelForPackage(
-        workspace,
-        packageName,
-      );
-
-      // Only include packages that have validation enabled (not 'off')
-      if (validationLevel !== "off") {
-        results.push({
-          packageName,
-          validationLevel: validationLevel as "warn" | "strict",
-          applicableGroups: accessibleGroups,
-        });
-      }
-    }
-  }
-
-  return results;
-}
-
-async function fallbackDefaultAliasGroup(
-  workspace: Workspace,
-  dependency: Descriptor,
-) {
-  if (dependency.range.startsWith(CATALOG_PROTOCOL)) {
-    if (await configReader.shouldIgnoreWorkspace(workspace)) {
-      throw new Error(
-        chalk.red(
-          `The workspace is ignored from the catalogs, but the dependency to add is using the catalog protocol. Consider removing the protocol.`,
-        ),
-      );
-    }
-    return;
-  }
-
-  if (await configReader.shouldIgnoreWorkspace(workspace)) return;
-
-  const aliases = await configReader.findDependency(
-    workspace.project,
-    dependency,
-  );
-  if (aliases.length === 0) return;
-
-  // If there's a default alias group, fallback to it
-  const defaultAliasGroups =
-    await configReader.getDefaultAliasGroups(workspace);
-  if (defaultAliasGroups.length > 0) {
-    for (const aliasGroup of defaultAliasGroups) {
-      if (aliases.some(([alias]) => alias === aliasGroup)) {
-        dependency.range = `${CATALOG_PROTOCOL}${aliasGroup}`;
-        return;
-      }
-    }
-  }
-
-  // If no default alias group is specified, show warning message
-  const aliasGroups = aliases.map(([aliasGroup]) =>
-    aliasGroup === ROOT_ALIAS_GROUP ? "" : aliasGroup,
-  );
-
-  const aliasGroupsText =
-    aliasGroups.filter((aliasGroup) => aliasGroup !== "").length > 0
-      ? ` (${aliasGroups.join(", ")})`
-      : "";
-
-  const validationLevel = await configReader.getValidationLevelForPackage(
-    workspace,
-    structUtils.stringifyIdent(dependency),
-  );
-
-  const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
-  if (validationLevel === "strict") {
-    throw new Error(chalk.red(message));
-  } else if (validationLevel === "warn") {
-    console.warn(chalk.yellow(message));
-  }
-}
 
 // Export the plugin factory
 export default plugin;
