@@ -93,7 +93,7 @@ describe("warnings and recommendations", () => {
     expect(dependencies).includes("react@npm:18.0.0");
   });
 
-  it("should warn when adding a dependency not in the default alias group", async () => {
+  it("should not warn when adding a dependency not in the default alias group", async () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
