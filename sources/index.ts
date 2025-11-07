@@ -17,9 +17,10 @@ import {
   type CatalogsConfiguration,
   configReader,
 } from "./configuration";
-import { getUnusedCatalogDependencies } from "./get-unused-catalog-dependencies";
-import { fallbackDefaultAliasGroup } from "./fallback-default-alias-group";
 import { CATALOG_PROTOCOL } from "./constants";
+import { validateWorkspaceCatalogUsability } from "./validation";
+import { getRange } from "./resolution";
+import { fallbackDefaultAliasGroup } from "./default";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {
@@ -43,7 +44,7 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
       // Check if any dependencies in manifest are in catalog but not using catalog protocol
       if (!shouldIgnore) {
         const violatedDependencies =
-          await getUnusedCatalogDependencies(workspace);
+          await validateWorkspaceCatalogUsability(workspace);
 
         if (violatedDependencies.length > 0) {
           // Group dependencies by validation level
@@ -126,11 +127,7 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
 
         // Get the actual version from .yarnrc.yml
         const dependencyName = structUtils.stringifyIdent(dependency);
-        const range = await configReader.getRange(
-          project,
-          catalogAlias,
-          dependencyName,
-        );
+        const range = await getRange(project, catalogAlias, dependencyName);
 
         // Create a new descriptor with the resolved version
         let resolvedDescriptor: Descriptor;
@@ -225,7 +222,7 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
             const catalogAlias = versionString.slice(CATALOG_PROTOCOL.length);
 
             // Get the resolved version from catalog configuration
-            const resolvedRange = await configReader.getRange(
+            const resolvedRange = await getRange(
               workspace.project,
               catalogAlias,
               packageName,
