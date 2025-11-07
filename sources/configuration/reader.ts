@@ -83,7 +83,8 @@ export class CatalogConfigurationReader {
   /**
    * Clear the configuration cache for a specific workspace
    */
-  clearCache(workspaceRoot: string): void {
+  clearCache(project: Project): void {
+    const workspaceRoot = project.cwd;
     this.configCache.delete(workspaceRoot);
   }
 
