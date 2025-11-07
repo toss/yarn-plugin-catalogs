@@ -5,7 +5,7 @@ import {
   configReader,
 } from "../configuration";
 import { ROOT_ALIAS_GROUP } from "../constants";
-import { getInheritanceChain } from "../utils";
+import { getInheritanceChain } from "./functions";
 
 /**
  * Get a specific version from the configuration

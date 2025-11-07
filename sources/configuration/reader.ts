@@ -9,7 +9,7 @@ import type { CatalogsConfiguration } from "./types";
 import { CatalogConfigurationError } from "./errors";
 import { ROOT_ALIAS_GROUP, CATALOG_PROTOCOL } from "../constants";
 import type { ValidationLevel } from "../types";
-import { getInheritanceChain } from "../utils";
+import { getInheritanceChain } from "../utils/functions";
 
 /**
  * Handles reading and parsing of .yarnrc.yml#catalogs configuration

@@ -1,6 +1,6 @@
 import { type Workspace, type Descriptor, structUtils } from "@yarnpkg/core";
 import type { ValidationLevel } from "../types";
-import { getInheritanceChain } from "../utils";
+import { getInheritanceChain } from "./functions";
 import { configReader } from "../configuration";
 import { findDependency } from "./resolution";
 import { CATALOG_PROTOCOL } from "../constants";
