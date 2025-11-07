@@ -2,7 +2,7 @@ import { type Workspace, type Descriptor, structUtils } from "@yarnpkg/core";
 import type { ValidationLevel } from "../types";
 import { getInheritanceChain } from "./functions";
 import { configReader } from "../configuration";
-import { findDependency } from "./resolution";
+import { findAllGroupsWithSpecificDependency } from "./resolution";
 import { CATALOG_PROTOCOL } from "../constants";
 
 /**
@@ -40,7 +40,7 @@ export async function getPackageVaidationLevel(
   descriptor: Descriptor,
 ): Promise<ValidationLevel> {
   const accessibleGroups = (
-    await findDependency(workspace.project, descriptor)
+    await findAllGroupsWithSpecificDependency(workspace.project, descriptor)
   ).map(({ groupName }) => groupName);
 
   if (accessibleGroups.length === 0) {
@@ -81,7 +81,7 @@ export async function validateCatalogUsability(
 
   // Find all groups that can access this package
   const accessibleGroups = (
-    await findDependency(workspace.project, descriptor)
+    await findAllGroupsWithSpecificDependency(workspace.project, descriptor)
   ).map(({ groupName }) => groupName);
 
   // Return null if no applicable groups found

@@ -10,7 +10,7 @@ import { getInheritanceChain } from "./functions";
 /**
  * Get a specific version from the configuration
  */
-export async function getRange(
+export async function resolveCatalogDependency(
   project: Project,
   aliasGroup: string,
   packageName: string,
@@ -64,6 +64,35 @@ export async function getRange(
 }
 
 /**
+ * Find a specific dependency in the configuration
+ * and return the names of alias groups it belongs to, along with its versions.
+ * This method now includes inherited groups in the results.
+ */
+export async function findAllGroupsWithSpecificDependency(
+  project: Project,
+  dependency: Descriptor,
+): Promise<Array<{ groupName: string; version: string }>> {
+  const dependencyString = structUtils.stringifyIdent(dependency);
+  const config = await configReader.readConfiguration(project);
+  const results: Array<{ groupName: string; version: string }> = [];
+
+  // Use resolveInheritedRange for all groups to handle both direct and inherited matches
+  for (const groupName of Object.keys(config.list || {})) {
+    const resolvedVersion = resolveInheritedRange(
+      config,
+      groupName,
+      dependencyString,
+    );
+
+    if (resolvedVersion) {
+      results.push({ groupName, version: resolvedVersion });
+    }
+  }
+
+  return results;
+}
+
+/**
  * Resolve package version through inheritance chain
  */
 function resolveInheritedRange(
@@ -104,33 +133,4 @@ function resolveInheritedRange(
   }
 
   return null;
-}
-
-/**
- * Find a specific dependency in the configuration
- * and return the names of alias groups it belongs to, along with its versions.
- * This method now includes inherited groups in the results.
- */
-export async function findDependency(
-  project: Project,
-  dependency: Descriptor,
-): Promise<Array<{ groupName: string; version: string }>> {
-  const dependencyString = structUtils.stringifyIdent(dependency);
-  const config = await configReader.readConfiguration(project);
-  const results: Array<{ groupName: string; version: string }> = [];
-
-  // Use resolveInheritedRange for all groups to handle both direct and inherited matches
-  for (const groupName of Object.keys(config.list || {})) {
-    const resolvedVersion = resolveInheritedRange(
-      config,
-      groupName,
-      dependencyString,
-    );
-
-    if (resolvedVersion) {
-      results.push({ groupName, version: resolvedVersion });
-    }
-  }
-
-  return results;
 }

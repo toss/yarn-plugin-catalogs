@@ -19,7 +19,7 @@ import {
 } from "./configuration";
 import { CATALOG_PROTOCOL } from "./constants";
 import { validateWorkspaceCatalogUsability } from "./utils/validation";
-import { getRange } from "./utils/resolution";
+import { resolveCatalogDependency } from "./utils/resolution";
 import { fallbackDefaultAliasGroup } from "./utils/default";
 
 declare module "@yarnpkg/core" {
@@ -127,7 +127,11 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
 
         // Get the actual version from .yarnrc.yml
         const dependencyName = structUtils.stringifyIdent(dependency);
-        const range = await getRange(project, catalogAlias, dependencyName);
+        const range = await resolveCatalogDependency(
+          project,
+          catalogAlias,
+          dependencyName,
+        );
 
         // Create a new descriptor with the resolved version
         let resolvedDescriptor: Descriptor;
@@ -222,7 +226,7 @@ const plugin: Plugin<Hooks & EssentialHooks & PackHooks> = {
             const catalogAlias = versionString.slice(CATALOG_PROTOCOL.length);
 
             // Get the resolved version from catalog configuration
-            const resolvedRange = await getRange(
+            const resolvedRange = await resolveCatalogDependency(
               workspace.project,
               catalogAlias,
               packageName,
