@@ -3,9 +3,9 @@ import {
   CatalogConfigurationError,
   type CatalogsConfiguration,
   configReader,
-} from "./configuration";
-import { ROOT_ALIAS_GROUP } from "./constants";
-import { getInheritanceChain } from "./utils";
+} from "../configuration";
+import { ROOT_ALIAS_GROUP } from "../constants";
+import { getInheritanceChain } from "../utils";
 
 /**
  * Get a specific version from the configuration

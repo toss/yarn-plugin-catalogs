@@ -1,9 +1,9 @@
 import { type Workspace, type Descriptor, structUtils } from "@yarnpkg/core";
-import type { ValidationLevel } from "./types";
-import { getInheritanceChain } from "./utils";
-import { configReader } from "./configuration";
+import type { ValidationLevel } from "../types";
+import { getInheritanceChain } from "../utils";
+import { configReader } from "../configuration";
 import { findDependency } from "./resolution";
-import { CATALOG_PROTOCOL } from "./constants";
+import { CATALOG_PROTOCOL } from "../constants";
 
 /**
  * Get validation level for a specific group (considering inheritance)

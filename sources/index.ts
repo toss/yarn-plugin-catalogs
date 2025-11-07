@@ -18,9 +18,9 @@ import {
   configReader,
 } from "./configuration";
 import { CATALOG_PROTOCOL } from "./constants";
-import { validateWorkspaceCatalogUsability } from "./validation";
-import { getRange } from "./resolution";
-import { fallbackDefaultAliasGroup } from "./default";
+import { validateWorkspaceCatalogUsability } from "./utils/validation";
+import { getRange } from "./utils/resolution";
+import { fallbackDefaultAliasGroup } from "./utils/default";
 
 declare module "@yarnpkg/core" {
   interface ConfigurationValueMap {

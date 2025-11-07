@@ -1,6 +1,6 @@
 import type { Descriptor, Workspace } from "@yarnpkg/core";
-import { configReader } from "./configuration";
-import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "./constants";
+import { configReader } from "../configuration";
+import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "../constants";
 import chalk from "chalk";
 import { validateCatalogUsability } from "./validation";
 
