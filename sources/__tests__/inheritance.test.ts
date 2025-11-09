@@ -271,7 +271,6 @@ describe("catalog group inheritance", () => {
       catalogs: {
         options: {
           validation: "warn",
-          default: ["stable/canary"],
         },
         list: {
           stable: {
