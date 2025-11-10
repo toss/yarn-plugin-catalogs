@@ -1,7 +1,7 @@
 import type { Descriptor, Workspace } from "@yarnpkg/core";
-import { configReader } from "../configuration";
-import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "../constants";
 import chalk from "chalk";
+import { configReader } from "./config";
+import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "../constants";
 import { validateCatalogUsability } from "./validation";
 
 export async function fallbackDefaultAliasGroup(
@@ -31,7 +31,12 @@ export async function fallbackDefaultAliasGroup(
   if (defaultAliasGroups.length > 0) {
     for (const aliasGroup of defaultAliasGroups) {
       if (applicableGroups.includes(aliasGroup)) {
-        dependency.range = `${CATALOG_PROTOCOL}${aliasGroup}`;
+        // Root catalog uses "catalog:" without group name, others use "catalog:groupName"
+        const catalogRange =
+          aliasGroup === ROOT_ALIAS_GROUP
+            ? CATALOG_PROTOCOL
+            : `${CATALOG_PROTOCOL}${aliasGroup}`;
+        dependency.range = catalogRange;
         return;
       }
     }
@@ -79,7 +84,7 @@ export async function getDefaultAliasGroups(
 
       // If default value is "max", find the most frequently used alias group
       if (config.options.default === "max") {
-        const aliasGroups = Object.keys(config.list || {});
+        const aliasGroups = Object.keys(config.catalogs || {});
 
         const dependencies = [
           ...workspace.manifest.dependencies,

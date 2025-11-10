@@ -1,10 +1,58 @@
-import { type Workspace, type Descriptor, structUtils } from "@yarnpkg/core";
-import type { ValidationLevel } from "../types";
-import { getInheritanceChain } from "./functions";
-import { configReader } from "../configuration";
-import { findAllGroupsWithSpecificDependency } from "./resolution";
+import {
+  type Descriptor,
+  type Project,
+  type Workspace,
+  structUtils,
+} from "@yarnpkg/core";
+import { configReader } from "./config";
 import { CATALOG_PROTOCOL } from "../constants";
+import type { ValidationLevel } from "../types";
 import { getDefaultAliasGroups } from "./default";
+import { getInheritanceChain } from "./functions";
+
+export interface ValidationResult {
+  shouldIgnore: boolean;
+  catalogProtocolViolations: Array<{
+    descriptor: Descriptor;
+    validationLevel: Omit<ValidationLevel, "off">;
+    applicableGroups: string[];
+  }>;
+  ignoredWorkspaceWithCatalogProtocol: boolean;
+}
+
+/**
+ * Validate workspace for catalog usage
+ * Returns all validation issues without reporting them
+ */
+export async function validateWorkspace(
+  workspace: Workspace,
+): Promise<ValidationResult> {
+  const shouldIgnore = await configReader.shouldIgnoreWorkspace(workspace);
+
+  // Check if ignored workspace uses catalog protocol
+  const hasCatalogProtocol = [
+    ...Object.values<string>(workspace.manifest.raw.dependencies || {}),
+    ...Object.values<string>(workspace.manifest.raw.devDependencies || {}),
+  ].some((version) => version.startsWith(CATALOG_PROTOCOL));
+
+  const ignoredWorkspaceWithCatalogProtocol =
+    shouldIgnore && hasCatalogProtocol;
+
+  // Check catalog protocol violations
+  let catalogProtocolViolations: ValidationResult["catalogProtocolViolations"] =
+    [];
+
+  if (!shouldIgnore) {
+    catalogProtocolViolations =
+      await validateWorkspaceCatalogUsability(workspace);
+  }
+
+  return {
+    shouldIgnore,
+    catalogProtocolViolations,
+    ignoredWorkspaceWithCatalogProtocol,
+  };
+}
 
 /**
  * Check if a package can be used with the catalog protocol
@@ -146,4 +194,29 @@ async function getPackageVaidationLevel(
   if (validationLevels.includes("strict")) return "strict";
   if (validationLevels.includes("warn")) return "warn";
   return "off";
+}
+
+/**
+ * Find all groups that contain a specific dependency
+ * Note: Catalogs from .yarnrc.yml already have inheritance resolved
+ */
+async function findAllGroupsWithSpecificDependency(
+  project: Project,
+  packageName: string,
+): Promise<Array<{ groupName: string; version: string }>> {
+  const config = await configReader.readConfiguration(project);
+  const results: Array<{ groupName: string; version: string }> = [];
+
+  if (!config.catalogs) {
+    return results;
+  }
+
+  for (const [groupName, group] of Object.entries(config.catalogs)) {
+    const version = group[packageName];
+    if (version) {
+      results.push({ groupName, version });
+    }
+  }
+
+  return results;
 }
