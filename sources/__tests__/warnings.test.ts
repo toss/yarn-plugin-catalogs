@@ -93,7 +93,7 @@ describe("warnings and recommendations", () => {
     expect(dependencies).includes("react@npm:18.0.0");
   });
 
-  it("should warn when adding a dependency not in the default alias group", async () => {
+  it("should not warn when adding a dependency not in the default alias group", async () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
@@ -115,7 +115,7 @@ describe("warnings and recommendations", () => {
 
     await workspace.yarn.add("react");
     const { stderr } = await workspace.yarn.add("lodash");
-    expect(stderr).toContain("lodash@catalog:stable");
+    expect(stderr).not.toContain("lodash@catalog:stable");
 
     const { stdout: listOutput } = await workspace.yarn.info();
     const dependencies = extractDependencies(listOutput);
@@ -177,5 +177,44 @@ describe("warnings and recommendations", () => {
     const { stdout: listOutput } = await workspace.yarn.info();
     const dependencies = extractDependencies(listOutput);
     expect(dependencies).includes("react@npm:17.0.0");
+  });
+
+  it("should us default alias group without validation error (default: max)", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeYarnrc({
+      catalogs: {
+        options: {
+          default: "max",
+        },
+        list: {
+          beta: {
+            react: "npm:18.0.0",
+            lodash: "npm:3.0.0",
+          },
+          stable: {
+            react: "npm:17.0.0",
+            lodash: "npm:2.0.0",
+          },
+        },
+      },
+    });
+
+    await workspace.writeJson("package.json", {
+      name: "test-workspace",
+      version: "1.0.0",
+      private: true,
+      dependencies: {
+        react: "catalog:stable",
+        lodash: "catalog:stable",
+      },
+    });
+
+    const { stderr } = await workspace.yarn.add("lodash");
+    expect(stderr).toBe("");
+
+    const { stdout: listOutput } = await workspace.yarn.info();
+    const dependencies = extractDependencies(listOutput);
+    expect(dependencies).includes("lodash@npm:2.0.0");
   });
 });

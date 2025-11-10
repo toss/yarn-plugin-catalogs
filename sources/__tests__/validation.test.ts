@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import {
   createTestWorkspace,
-  TestWorkspace,
+  type TestWorkspace,
   extractDependencies,
 } from "./utils";
 

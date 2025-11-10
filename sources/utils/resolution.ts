@@ -70,9 +70,8 @@ export async function resolveCatalogDependency(
  */
 export async function findAllGroupsWithSpecificDependency(
   project: Project,
-  dependency: Descriptor,
+  packageName: string,
 ): Promise<Array<{ groupName: string; version: string }>> {
-  const dependencyString = structUtils.stringifyIdent(dependency);
   const config = await configReader.readConfiguration(project);
   const results: Array<{ groupName: string; version: string }> = [];
 
@@ -81,7 +80,7 @@ export async function findAllGroupsWithSpecificDependency(
     const resolvedVersion = resolveInheritedRange(
       config,
       groupName,
-      dependencyString,
+      packageName,
     );
 
     if (resolvedVersion) {
