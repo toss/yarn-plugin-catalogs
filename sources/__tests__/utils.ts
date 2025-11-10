@@ -1,10 +1,10 @@
-import { dir as tmpDir } from "tmp-promise";
-import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import { dump as yamlDump } from "js-yaml";
+import { writeFile } from "node:fs/promises";
 import * as fs from "node:fs/promises";
+import { join } from "node:path";
+import { promisify } from "node:util";
+import { dump as yamlDump, load as yamlLoad } from "js-yaml";
+import { dir as tmpDir } from "tmp-promise";
 
 const execFileAsync = promisify(execFile);
 
@@ -12,12 +12,18 @@ export interface TestWorkspace {
   path: string;
   cleanup: () => Promise<void>;
   writeJson: (path: string, content: unknown) => Promise<void>;
+  readPackageJson: () => Promise<any>;
+  readYarnrc: () => Promise<any>;
   writeYarnrc: (content: unknown) => Promise<void>;
+  writeCatalogsYml: (content: unknown) => Promise<void>;
   yarn: {
     (args: string[]): Promise<{ stdout: string; stderr: string }>;
     install(): Promise<{ stdout: string; stderr: string }>;
     info(): Promise<{ stdout: string; stderr: string }>;
-    add(dep: string): Promise<{ stdout: string; stderr: string }>;
+    add(dep: string, ...flags: string[]): Promise<{ stdout: string; stderr: string }>;
+    catalogs: {
+      apply(dryRun?: boolean): Promise<{ stdout: string; stderr: string }>;
+    };
   };
 }
 
@@ -36,7 +42,14 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
 
   yarn.install = async () => await yarn(["install", "--no-immutable"]);
   yarn.info = async () => await yarn(["info", "--json"]);
-  yarn.add = async (dep: string) => await yarn(["add", dep]);
+  yarn.add = async (dep: string, ...flags: string[]) => await yarn(["add", dep, ...flags]);
+  yarn.catalogs = {
+    apply: async (dryRun?: boolean) => {
+      const args = ["catalogs", "apply"];
+      if (dryRun) args.push("--dry-run");
+      return await yarn(args);
+    },
+  };
 
   const { path, cleanup } = await tmpDir({ unsafeCleanup: true });
 
@@ -61,11 +74,31 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
     await writeFile(yarnrcPath, `${existingContent}\n${yamlDump(content)}`);
   };
 
+  const writeCatalogsYml = async (content: unknown) => {
+    const catalogsYmlPath = join(path, "catalogs.yml");
+    await writeFile(catalogsYmlPath, yamlDump(content));
+  };
+
+  const readPackageJson = async () => {
+    const pkgPath = join(path, "package.json");
+    const content = await fs.readFile(pkgPath, "utf8");
+    return JSON.parse(content);
+  };
+
+  const readYarnrc = async () => {
+    const yarnrcPath = join(path, ".yarnrc.yml");
+    const content = await fs.readFile(yarnrcPath, "utf8");
+    return yamlLoad(content);
+  };
+
   return {
     path,
     cleanup,
     writeJson,
+    readPackageJson,
+    readYarnrc,
     writeYarnrc: writeYaml,
+    writeCatalogsYml,
     yarn,
   };
 }

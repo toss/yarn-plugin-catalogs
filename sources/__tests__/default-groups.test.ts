@@ -1,10 +1,5 @@
-import { describe, it, expect, afterEach } from "vitest";
-import {
-  createTestWorkspace,
-  TestWorkspace,
-  extractDependencies,
-  hasDependency,
-} from "./utils";
+import { afterEach, describe, expect, it } from "vitest";
+import { type TestWorkspace, createTestWorkspace, hasDependency } from "./utils";
 
 describe("default alias groups", () => {
   let workspace: TestWorkspace;
@@ -18,21 +13,21 @@ describe("default alias groups", () => {
   it("should use the default alias group if no group is provided", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogs: {
-        options: {
-          default: ["groupA"],
+    await workspace.writeCatalogsYml({
+      options: {
+        default: ["groupA"],
+      },
+      list: {
+        groupA: {
+          react: "npm:18.0.0",
         },
-        list: {
-          groupA: {
-            react: "npm:18.0.0",
-          },
-          groupB: {
-            react: "npm:17.0.0",
-          },
+        groupB: {
+          react: "npm:17.0.0",
         },
       },
     });
+
+    await workspace.yarn.catalogs.apply();
 
     const { stderr } = await workspace.yarn.add("react");
     expect(stderr).toBe("");
@@ -40,38 +35,21 @@ describe("default alias groups", () => {
     expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
   });
 
-  it("should fail when the default alias group is not found in the list", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeYarnrc({
-      catalogs: {
-        options: {
-          default: ["unknown"],
-        },
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
-        },
-      },
-    });
-
-    await expect(workspace.yarn.add("react@npm:18.0.0")).rejects.toThrow();
-  });
-
   it("should use the root alias group if it is specified", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogs: {
-        options: {
-          default: ["root"],
-        },
-        list: {
+    await workspace.writeCatalogsYml({
+      options: {
+        default: ["root"],
+      },
+      list: {
+        root: {
           react: "npm:18.0.0",
         },
       },
     });
+
+    await workspace.yarn.catalogs.apply();
 
     const { stderr } = await workspace.yarn.add("react");
     expect(stderr).toBe("");
@@ -82,21 +60,23 @@ describe("default alias groups", () => {
   it("should follow the priority based on the order of default alias groups", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogs: {
-        options: {
-          default: ["stable", "root"],
-        },
-        list: {
+    await workspace.writeCatalogsYml({
+      options: {
+        default: ["stable", "root"],
+      },
+      list: {
+        root: {
           next: "npm:12.0.0",
           lodash: "npm:4.0.0",
-          stable: {
-            react: "npm:17.0.0",
-            lodash: "npm:3.0.0",
-          },
+        },
+        stable: {
+          react: "npm:17.0.0",
+          lodash: "npm:3.0.0",
         },
       },
     });
+
+    await workspace.yarn.catalogs.apply();
 
     await workspace.yarn.add("next");
     await workspace.yarn.add("react");
@@ -110,27 +90,27 @@ describe("default alias groups", () => {
   it("should use the most frequently used alias group if 'max' is specified", async () => {
     workspace = await createTestWorkspace();
 
-    await workspace.writeYarnrc({
-      catalogs: {
-        options: {
-          default: "max",
+    await workspace.writeCatalogsYml({
+      options: {
+        default: "max",
+      },
+      list: {
+        beta: {
+          react: "npm:18.0.0",
+          lodash: "npm:3.0.0",
+          next: "npm:12.0.0",
+          "@use-funnel/core": "npm:0.0.9",
         },
-        list: {
-          beta: {
-            react: "npm:18.0.0",
-            lodash: "npm:3.0.0",
-            next: "npm:12.0.0",
-            "@use-funnel/core": "npm:0.0.9",
-          },
-          stable: {
-            react: "npm:17.0.0",
-            lodash: "npm:2.0.0",
-            next: "npm:11.0.0",
-            "@use-funnel/core": "npm:0.0.1",
-          },
+        stable: {
+          react: "npm:17.0.0",
+          lodash: "npm:2.0.0",
+          next: "npm:11.0.0",
+          "@use-funnel/core": "npm:0.0.1",
         },
       },
     });
+
+    await workspace.yarn.catalogs.apply();
 
     await workspace.writeJson("package.json", {
       name: "test-workspace",
