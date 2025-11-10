@@ -32,5 +32,5 @@
     "test:watch": "yarn build && vitest watch",
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "yarn@4.6.0"
+  "packageManager": "yarn@4.11.0"
 }
