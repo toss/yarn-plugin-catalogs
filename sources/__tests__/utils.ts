@@ -158,7 +158,7 @@ module.exports = {
   return npath.fromPortablePath(pluginPath);
 }
 
-export function extractDependencies(log: string): string[] {
+function extractDependencies(log: string): string[] {
   return log
     .split("\n")
     .filter((str) => str != null && str.length > 0)
