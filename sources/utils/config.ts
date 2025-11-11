@@ -52,7 +52,9 @@ export class CatalogsConfigurationReader {
       );
     }
 
-    if (!validateInheritanceStructure(parsed, this.getInheritanceChain.bind(this))) {
+    if (
+      !validateInheritanceStructure(parsed, this.getInheritanceChain.bind(this))
+    ) {
       throw new CatalogConfigurationError(
         "Invalid inheritance structure in catalogs.yml. Parent groups must exist in the inheritance chain.",
         CatalogConfigurationError.INVALID_ALIAS,

@@ -70,7 +70,9 @@ describe("basic catalog functionality", () => {
 
     await workspace.yarn.catalogs.apply();
 
-    const { stderr: stderr1 } = await workspace.yarn.add("react@catalog:stable");
+    const { stderr: stderr1 } = await workspace.yarn.add(
+      "react@catalog:stable",
+    );
     expect(stderr1).toBe("");
     expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
 
@@ -176,7 +178,10 @@ describe("basic catalog functionality", () => {
 
     await workspace.yarn.catalogs.apply();
 
-    const { stderr } = await workspace.yarn.add("typescript@catalog:stable", "--dev");
+    const { stderr } = await workspace.yarn.add(
+      "typescript@catalog:stable",
+      "--dev",
+    );
     expect(stderr).toBe("");
 
     const pkg = await workspace.readPackageJson();
@@ -230,11 +235,15 @@ describe("basic catalog functionality", () => {
 
     await workspace.yarn.catalogs.apply();
 
-    const { stderr: stderr1 } = await workspace.yarn.add("react@catalog:stable");
+    const { stderr: stderr1 } = await workspace.yarn.add(
+      "react@catalog:stable",
+    );
     expect(stderr1).toBe("");
     expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
 
-    const { stderr: stderr2 } = await workspace.yarn.add("lodash@catalog:stable");
+    const { stderr: stderr2 } = await workspace.yarn.add(
+      "lodash@catalog:stable",
+    );
     expect(stderr2).toBe("");
     expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
 

@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { type TestWorkspace, createTestWorkspace, hasDependency } from "./utils";
+import {
+  type TestWorkspace,
+  createTestWorkspace,
+  hasDependency,
+} from "./utils";
 
 describe("default alias groups", () => {
   let workspace: TestWorkspace;

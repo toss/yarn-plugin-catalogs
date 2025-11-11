@@ -6,8 +6,8 @@ import {
 } from "@yarnpkg/core";
 import { CATALOG_PROTOCOL } from "../constants";
 import type { ValidationLevel } from "../types";
-import { getDefaultAliasGroups } from "./default";
 import { catalogsConfigReader } from "./config";
+import { getDefaultAliasGroups } from "./default";
 
 export interface ValidationResult {
   shouldIgnore: boolean;
@@ -26,7 +26,8 @@ export interface ValidationResult {
 export async function validateWorkspace(
   workspace: Workspace,
 ): Promise<ValidationResult> {
-  const shouldIgnore = await catalogsConfigReader.shouldIgnoreWorkspace(workspace);
+  const shouldIgnore =
+    await catalogsConfigReader.shouldIgnoreWorkspace(workspace);
 
   const hasCatalogProtocol = [
     ...Object.values<string>(workspace.manifest.raw.dependencies || {}),

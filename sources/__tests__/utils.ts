@@ -18,7 +18,10 @@ export interface TestWorkspace {
     (args: string[]): Promise<{ stdout: string; stderr: string }>;
     install(): Promise<{ stdout: string; stderr: string }>;
     info(): Promise<{ stdout: string; stderr: string }>;
-    add(dep: string, ...flags: string[]): Promise<{ stdout: string; stderr: string }>;
+    add(
+      dep: string,
+      ...flags: string[]
+    ): Promise<{ stdout: string; stderr: string }>;
     catalogs: {
       apply(dryRun?: boolean): Promise<{ stdout: string; stderr: string }>;
     };
@@ -39,7 +42,8 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
 
   yarn.install = async () => await yarn(["install", "--no-immutable"]);
   yarn.info = async () => await yarn(["info", "--json"]);
-  yarn.add = async (dep: string, ...flags: string[]) => await yarn(["add", dep, ...flags]);
+  yarn.add = async (dep: string, ...flags: string[]) =>
+    await yarn(["add", dep, ...flags]);
   yarn.catalogs = {
     apply: async (dryRun?: boolean) => {
       const args = ["catalogs", "apply"];
@@ -145,7 +149,11 @@ module.exports = {
     `${protocolName}-plugin.js` as PortablePath,
   );
   await xfs.writeFilePromise(pluginPath, pluginCode);
-  await workspace.yarn(["plugin", "import", npath.fromPortablePath(pluginPath)]);
+  await workspace.yarn([
+    "plugin",
+    "import",
+    npath.fromPortablePath(pluginPath),
+  ]);
 
   return npath.fromPortablePath(pluginPath);
 }

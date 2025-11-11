@@ -47,10 +47,7 @@ export function isValidCatalogsYml(config: unknown): config is CatalogsYml {
         ) {
           return false;
         }
-      } else if (
-        typeof opts.default !== "string" ||
-        opts.default !== "max"
-      ) {
+      } else if (typeof opts.default !== "string" || opts.default !== "max") {
         return false;
       }
     }
@@ -76,8 +73,7 @@ export function isValidCatalogsYml(config: unknown): config is CatalogsYml {
       } else if (typeof validation === "object" && validation !== null) {
         if (
           !Object.values(validation).every(
-            (level) =>
-              typeof level === "string" && validLevels.includes(level),
+            (level) => typeof level === "string" && validLevels.includes(level),
           )
         ) {
           return false;
@@ -116,7 +112,9 @@ export function validateInheritanceStructure(
   return true;
 }
 
-export function isValidCatalog(value: unknown): value is Record<string, string> {
+export function isValidCatalog(
+  value: unknown,
+): value is Record<string, string> {
   if (!value || typeof value !== "object" || value instanceof Map) {
     return false;
   }
