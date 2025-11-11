@@ -55,10 +55,31 @@ list:
 
 ```bash
 $ yarn catalogs apply
-✓ Applied 1 root catalog and 3 named catalog groups to .yarnrc.yml
 ```
 
-This command reads `catalogs.yml`, resolves all inheritance, and writes the flattened catalogs to `.yarnrc.yml`:
+This command reads `catalogs.yml`, resolves all inheritance, and writes the flattened catalogs to `.yarnrc.yml`.
+
+**Example output:**
+
+```bash
+$ yarn catalogs apply
+➤ YN0000: stable:
+➤ YN0000:   + react: npm:18.2.0
+➤ YN0000:   - react: npm:18.0.0
+
+➤ YN0000: ✓ Applied 1 named catalog group to .yarnrc.yml
+➤ YN0000: Done in 0s 2ms
+```
+
+If there are no changes, you'll see:
+
+```bash
+$ yarn catalogs apply
+➤ YN0000: No changes to apply - .yarnrc.yml is already up to date
+➤ YN0000: Done in 0s 1ms
+```
+
+The generated `.yarnrc.yml` will look like:
 
 ```yaml
 # .yarnrc.yml (generated - do not edit catalogs here)
@@ -105,7 +126,29 @@ $ yarn catalogs apply --check
 
 This is useful in CI/CD pipelines to ensure catalogs are properly synchronized. The command will:
 - Exit with code 0 if `.yarnrc.yml` is up to date
-- Exit with code 1 and show what needs to be applied if changes are detected
+- Exit with code 1 and show a diff of changes if `.yarnrc.yml` is out of date
+
+**Example output when changes are needed:**
+
+```bash
+$ yarn catalogs apply --check
+➤ YN0000: .yarnrc.yml is out of date. Run 'yarn catalogs apply' to update it.
+
+➤ YN0000: stable:
+➤ YN0000:   + react: npm:18.2.0
+➤ YN0000:   - react: npm:18.0.0
+
+➤ YN0000: Would apply 1 named catalog group to .yarnrc.yml
+➤ YN0000: Failed with errors in 0s 1ms
+```
+
+**Example output when up to date:**
+
+```bash
+$ yarn catalogs apply --check
+➤ YN0000: ✓ .yarnrc.yml is up to date
+➤ YN0000: Done in 0s 1ms
+```
 
 ### Protocol Support
 
