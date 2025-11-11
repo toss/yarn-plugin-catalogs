@@ -247,7 +247,7 @@ describe("catalogs apply command", () => {
     expect(stdout).toContain("2 named catalog groups");
   });
 
-  it("should handle dry-run mode", async () => {
+  it("should handle check mode when changes are needed", async () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
@@ -258,13 +258,26 @@ describe("catalogs apply command", () => {
       },
     });
 
-    const { stdout } = await workspace.yarn.catalogs.apply(true);
-    expect(stdout).toContain("Dry run mode");
-    expect(stdout).toContain("Would apply");
+    // Check mode should fail when changes are needed
+    await expect(workspace.yarn.catalogs.apply(true)).rejects.toThrow();
+  });
 
-    // .yarnrc.yml should not be modified in dry-run mode
-    const yarnrc = await workspace.readYarnrc();
-    expect(yarnrc.catalogs).toBeUndefined();
+  it("should handle check mode when up to date", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeCatalogsYml({
+      list: {
+        stable: {
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    // First apply the catalogs
+    await workspace.yarn.catalogs.apply();
+
+    // Then check - should pass without error
+    await expect(workspace.yarn.catalogs.apply(true)).resolves.not.toThrow();
   });
 
   it("should fail when catalogs.yml does not exist", async () => {

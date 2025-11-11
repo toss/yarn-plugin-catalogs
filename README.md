@@ -95,13 +95,17 @@ Yarn's native catalog resolution will automatically resolve these to the version
 
 ## Advanced Features
 
-### Dry Run Mode
+### Check Mode
 
-Preview changes before applying them:
+Check if `.yarnrc.yml` is up to date with `catalogs.yml`:
 
 ```bash
-$ yarn catalogs apply --dry-run
+$ yarn catalogs apply --check
 ```
+
+This is useful in CI/CD pipelines to ensure catalogs are properly synchronized. The command will:
+- Exit with code 0 if `.yarnrc.yml` is up to date
+- Exit with code 1 and show what needs to be applied if changes are detected
 
 ### Protocol Support
 

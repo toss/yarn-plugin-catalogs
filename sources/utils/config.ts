@@ -13,7 +13,7 @@ import {
   validateInheritanceStructure,
 } from "./parser";
 
-const CATALOGS_YML_FILENAME = `catalogs.yml` as Filename;
+const CATALOGS_YML_FILENAME = "catalogs.yml" as Filename;
 
 /**
  * Read and manage catalogs.yml configuration
@@ -157,13 +157,13 @@ export class CatalogsConfigurationReader {
     if (catalogs.root && Object.keys(catalogs.root).length > 0) {
       existingConfig.catalog = catalogs.root;
     } else {
-      delete existingConfig.catalog;
+      existingConfig.catalog = undefined;
     }
 
     if (Object.keys(catalogs.named).length > 0) {
       existingConfig.catalogs = catalogs.named;
     } else {
-      delete existingConfig.catalogs;
+      existingConfig.catalogs = undefined;
     }
 
     const newContent = stringifySyml(existingConfig);

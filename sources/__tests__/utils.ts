@@ -23,7 +23,7 @@ export interface TestWorkspace {
       ...flags: string[]
     ): Promise<{ stdout: string; stderr: string }>;
     catalogs: {
-      apply(dryRun?: boolean): Promise<{ stdout: string; stderr: string }>;
+      apply(check?: boolean): Promise<{ stdout: string; stderr: string }>;
     };
   };
 }
@@ -45,9 +45,9 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
   yarn.add = async (dep: string, ...flags: string[]) =>
     await yarn(["add", dep, ...flags]);
   yarn.catalogs = {
-    apply: async (dryRun?: boolean) => {
+    apply: async (check?: boolean) => {
       const args = ["catalogs", "apply"];
-      if (dryRun) args.push("--dry-run");
+      if (check) args.push("--check");
       return await yarn(args);
     },
   };
