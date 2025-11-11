@@ -6,7 +6,7 @@ import {
 } from "@yarnpkg/core";
 import { CATALOG_PROTOCOL } from "../constants";
 import type { ValidationLevel } from "../types";
-import { catalogsConfigReader } from "./config";
+import { configReader } from "../configuration";
 import { getDefaultAliasGroups } from "./default";
 
 export interface ValidationResult {
@@ -26,8 +26,7 @@ export interface ValidationResult {
 export async function validateWorkspace(
   workspace: Workspace,
 ): Promise<ValidationResult> {
-  const shouldIgnore =
-    await catalogsConfigReader.shouldIgnoreWorkspace(workspace);
+  const shouldIgnore = await configReader.shouldIgnoreWorkspace(workspace);
 
   const hasCatalogProtocol = [
     ...Object.values<string>(workspace.manifest.raw.dependencies || {}),
@@ -68,7 +67,7 @@ export async function validateCatalogUsability(
     return null;
   }
 
-  if (await catalogsConfigReader.shouldIgnoreWorkspace(workspace)) {
+  if (await configReader.shouldIgnoreWorkspace(workspace)) {
     return null;
   }
 
@@ -147,14 +146,14 @@ async function getGroupValidationLevel(
   workspace: Workspace,
   groupName: string,
 ): Promise<ValidationLevel> {
-  const options = await catalogsConfigReader.getOptions(workspace.project);
+  const options = await configReader.getOptions(workspace.project);
   const validationConfig = options?.validation || "warn";
 
   if (typeof validationConfig === "string") {
     return validationConfig;
   }
 
-  const inheritanceChain = catalogsConfigReader.getInheritanceChain(groupName);
+  const inheritanceChain = configReader.getInheritanceChain(groupName);
 
   for (let i = inheritanceChain.length - 1; i >= 0; i--) {
     const currentGroup = inheritanceChain[i];
@@ -201,7 +200,7 @@ async function findAllGroupsWithSpecificDependency(
   project: Project,
   packageName: string,
 ): Promise<Array<{ groupName: string; version: string }>> {
-  const catalogs = await catalogsConfigReader.getAppliedCatalogs(project);
+  const catalogs = await configReader.getAppliedCatalogs(project);
   const results: Array<{ groupName: string; version: string }> = [];
 
   if (!catalogs || Object.keys(catalogs).length === 0) {

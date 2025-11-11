@@ -1,7 +1,7 @@
 import type { Descriptor, Workspace } from "@yarnpkg/core";
 import chalk from "chalk";
 import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "../constants";
-import { catalogsConfigReader } from "./config";
+import { configReader } from "../configuration";
 import { validateCatalogUsability } from "./validation";
 
 export async function fallbackDefaultAliasGroup(
@@ -9,7 +9,7 @@ export async function fallbackDefaultAliasGroup(
   dependency: Descriptor,
 ) {
   if (dependency.range.startsWith(CATALOG_PROTOCOL)) {
-    if (await catalogsConfigReader.shouldIgnoreWorkspace(workspace)) {
+    if (await configReader.shouldIgnoreWorkspace(workspace)) {
       throw new Error(
         chalk.red(
           "The workspace is ignored from the catalogs, but the dependency to add is using the catalog protocol. Consider removing the protocol.",
@@ -68,10 +68,10 @@ export async function fallbackDefaultAliasGroup(
 export async function getDefaultAliasGroups(
   workspace: Workspace,
 ): Promise<string[]> {
-  const options = await catalogsConfigReader.getOptions(workspace.project);
+  const options = await configReader.getOptions(workspace.project);
 
   if (options) {
-    if (await catalogsConfigReader.shouldIgnoreWorkspace(workspace)) {
+    if (await configReader.shouldIgnoreWorkspace(workspace)) {
       return [];
     }
 
@@ -83,7 +83,7 @@ export async function getDefaultAliasGroups(
 
       // If default value is "max", find the most frequently used alias group
       if (options.default === "max") {
-        const catalogs = await catalogsConfigReader.getAppliedCatalogs(
+        const catalogs = await configReader.getAppliedCatalogs(
           workspace.project,
         );
         const aliasGroups = Object.keys(catalogs || {});

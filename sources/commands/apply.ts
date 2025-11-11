@@ -4,7 +4,7 @@ import { type Filename, type PortablePath, ppath, xfs } from "@yarnpkg/fslib";
 import { parseSyml, stringifySyml } from "@yarnpkg/parsers";
 import chalk from "chalk";
 import { Command, Option } from "clipanion";
-import { catalogsConfigReader } from "../utils/config";
+import { configReader } from "../configuration";
 
 export class ApplyCommand extends BaseCommand {
   static paths = [["catalogs", "apply"]];
@@ -43,7 +43,7 @@ export class ApplyCommand extends BaseCommand {
         stdout: this.context.stdout,
       },
       async (report) => {
-        const catalogsYml = await catalogsConfigReader.read(project);
+        const catalogsYml = await configReader.read(project);
 
         if (!catalogsYml) {
           report.reportError(
@@ -53,7 +53,7 @@ export class ApplyCommand extends BaseCommand {
           return;
         }
 
-        const resolved = catalogsConfigReader.resolveAllCatalogs(catalogsYml);
+        const resolved = configReader.resolveAllCatalogs(catalogsYml);
         const existingConfig = await readExistingYarnrc(project);
         const hasChanges = checkForChanges(existingConfig, resolved);
 
@@ -113,8 +113,8 @@ export class ApplyCommand extends BaseCommand {
   ): Promise<void> {
     showCatalogDiff(report, existingConfig, resolved);
 
-    await catalogsConfigReader.writeToYarnrc(project, resolved);
-    catalogsConfigReader.clearCache(project);
+    await configReader.writeToYarnrc(project, resolved);
+    configReader.clearCache(project);
 
     const summary = formatCatalogSummary(
       resolved.root ? 1 : 0,

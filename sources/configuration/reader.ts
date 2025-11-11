@@ -244,5 +244,3 @@ export class CatalogsConfigurationReader {
     this.cache.delete(String(project.cwd));
   }
 }
-
-export const catalogsConfigReader = new CatalogsConfigurationReader();
