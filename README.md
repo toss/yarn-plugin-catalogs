@@ -21,7 +21,7 @@ Since Yarn 4.10.0, Yarn natively supports catalogs for managing dependency versi
 ## Installation
 
 ```bash
-yarn plugin import https://raw.githubusercontent.com/parksb/yarn-plugin-catalogs/main/bundles/%40yarnpkg/plugin-catalogs.js
+yarn plugin import https://raw.githubusercontent.com/toss/yarn-plugin-catalogs/main/bundles/%40yarnpkg/plugin-catalogs.js
 ```
 
 ## Usage
