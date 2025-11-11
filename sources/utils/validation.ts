@@ -4,11 +4,10 @@ import {
   type Workspace,
   structUtils,
 } from "@yarnpkg/core";
-import { configReader } from "./config";
 import { CATALOG_PROTOCOL } from "../constants";
 import type { ValidationLevel } from "../types";
 import { getDefaultAliasGroups } from "./default";
-import { getInheritanceChain } from "./functions";
+import { catalogsConfigReader } from "./config";
 
 export interface ValidationResult {
   shouldIgnore: boolean;
@@ -27,9 +26,8 @@ export interface ValidationResult {
 export async function validateWorkspace(
   workspace: Workspace,
 ): Promise<ValidationResult> {
-  const shouldIgnore = await configReader.shouldIgnoreWorkspace(workspace);
+  const shouldIgnore = await catalogsConfigReader.shouldIgnoreWorkspace(workspace);
 
-  // Check if ignored workspace uses catalog protocol
   const hasCatalogProtocol = [
     ...Object.values<string>(workspace.manifest.raw.dependencies || {}),
     ...Object.values<string>(workspace.manifest.raw.devDependencies || {}),
@@ -69,8 +67,7 @@ export async function validateCatalogUsability(
     return null;
   }
 
-  // Skip if workspace is ignored
-  if (await configReader.shouldIgnoreWorkspace(workspace)) {
+  if (await catalogsConfigReader.shouldIgnoreWorkspace(workspace)) {
     return null;
   }
 
@@ -93,7 +90,7 @@ export async function validateCatalogUsability(
   }
 
   // Get validation level for the package
-  const validationLevel = await getPackageVaidationLevel(
+  const validationLevel = await getPackageValidationLevel(
     workspace,
     packageName,
   );
@@ -149,15 +146,14 @@ async function getGroupValidationLevel(
   workspace: Workspace,
   groupName: string,
 ): Promise<ValidationLevel> {
-  const config = await configReader.readConfiguration(workspace.project);
-  const validationConfig = config.options?.validation || "warn";
+  const options = await catalogsConfigReader.getOptions(workspace.project);
+  const validationConfig = options?.validation || "warn";
 
   if (typeof validationConfig === "string") {
     return validationConfig;
   }
 
-  // Search inheritance chain for explicit validation setting
-  const inheritanceChain = getInheritanceChain(groupName);
+  const inheritanceChain = catalogsConfigReader.getInheritanceChain(groupName);
 
   for (let i = inheritanceChain.length - 1; i >= 0; i--) {
     const currentGroup = inheritanceChain[i];
@@ -166,13 +162,13 @@ async function getGroupValidationLevel(
     }
   }
 
-  return "warn"; // Default fallback
+  return "warn";
 }
 
 /**
  * Get the strictest validation level for a package across all accessible groups
  */
-async function getPackageVaidationLevel(
+async function getPackageValidationLevel(
   workspace: Workspace,
   packageName: string,
 ): Promise<ValidationLevel> {
@@ -204,14 +200,14 @@ async function findAllGroupsWithSpecificDependency(
   project: Project,
   packageName: string,
 ): Promise<Array<{ groupName: string; version: string }>> {
-  const config = await configReader.readConfiguration(project);
+  const catalogs = await catalogsConfigReader.getAppliedCatalogs(project);
   const results: Array<{ groupName: string; version: string }> = [];
 
-  if (!config.catalogs) {
+  if (!catalogs || Object.keys(catalogs).length === 0) {
     return results;
   }
 
-  for (const [groupName, group] of Object.entries(config.catalogs)) {
+  for (const [groupName, group] of Object.entries(catalogs)) {
     const version = group[packageName];
     if (version) {
       results.push({ groupName, version });

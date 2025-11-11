@@ -2,12 +2,7 @@ import { BaseCommand } from "@yarnpkg/cli";
 import { Configuration, Project, StreamReport } from "@yarnpkg/core";
 import chalk from "chalk";
 import { Command, Option } from "clipanion";
-import {
-  readCatalogsYml,
-  resolveAllCatalogs,
-  writeCatalogsToYarnrc,
-} from "../utils/catalogs";
-import { configReader } from "../utils/config";
+import { catalogsConfigReader } from "../utils/config";
 
 export class ApplyCommand extends BaseCommand {
   static paths = [["catalogs", "apply"]];
@@ -45,8 +40,7 @@ export class ApplyCommand extends BaseCommand {
         stdout: this.context.stdout,
       },
       async (report) => {
-        // Read catalogs.yml
-        const catalogsYml = await readCatalogsYml(project);
+        const catalogsYml = await catalogsConfigReader.read(project);
 
         if (!catalogsYml) {
           report.reportError(
@@ -56,15 +50,12 @@ export class ApplyCommand extends BaseCommand {
           return;
         }
 
-        // Resolve all catalogs with inheritance
-        const resolved = resolveAllCatalogs(catalogsYml);
+        const resolved = catalogsConfigReader.resolveAllCatalogs(catalogsYml);
 
-        // Count catalogs
         const rootCount = resolved.root ? 1 : 0;
         const namedCount = Object.keys(resolved.named).length;
 
         if (this.dryRun) {
-          // Dry run: just display what would be written
           report.reportInfo(
             0,
             chalk.bold("Dry run mode - no files will be modified"),
@@ -95,11 +86,9 @@ export class ApplyCommand extends BaseCommand {
             `Would apply ${rootCount > 0 ? "1 root catalog" : "no root catalog"}${rootCount > 0 && namedCount > 0 ? " and" : ""}${namedCount > 0 ? ` ${namedCount} named catalog group${namedCount > 1 ? "s" : ""}` : ""} to .yarnrc.yml`,
           );
         } else {
-          // Actually write to .yarnrc.yml
-          await writeCatalogsToYarnrc(project, resolved);
+          await catalogsConfigReader.writeToYarnrc(project, resolved);
 
-          // Clear the configuration cache so it reloads from .yarnrc.yml
-          configReader.clearCache(project);
+          catalogsConfigReader.clearCache(project);
 
           report.reportInfo(
             0,

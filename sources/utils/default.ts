@@ -1,7 +1,7 @@
 import type { Descriptor, Workspace } from "@yarnpkg/core";
 import chalk from "chalk";
-import { configReader } from "./config";
 import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "../constants";
+import { catalogsConfigReader } from "./config";
 import { validateCatalogUsability } from "./validation";
 
 export async function fallbackDefaultAliasGroup(
@@ -9,7 +9,7 @@ export async function fallbackDefaultAliasGroup(
   dependency: Descriptor,
 ) {
   if (dependency.range.startsWith(CATALOG_PROTOCOL)) {
-    if (await configReader.shouldIgnoreWorkspace(workspace)) {
+    if (await catalogsConfigReader.shouldIgnoreWorkspace(workspace)) {
       throw new Error(
         chalk.red(
           "The workspace is ignored from the catalogs, but the dependency to add is using the catalog protocol. Consider removing the protocol.",
@@ -68,23 +68,25 @@ export async function fallbackDefaultAliasGroup(
 export async function getDefaultAliasGroups(
   workspace: Workspace,
 ): Promise<string[]> {
-  const config = await configReader.readConfiguration(workspace.project);
+  const options = await catalogsConfigReader.getOptions(workspace.project);
 
-  if (config.options) {
-    // There's no default alias group if the workspace should be ignored
-    if (await configReader.shouldIgnoreWorkspace(workspace)) {
+  if (options) {
+    if (await catalogsConfigReader.shouldIgnoreWorkspace(workspace)) {
       return [];
     }
 
-    if (config.options.default) {
+    if (options.default) {
       // If default value is an list of alias groups, return it
-      if (Array.isArray(config.options.default)) {
-        return config.options.default;
+      if (Array.isArray(options.default)) {
+        return options.default;
       }
 
       // If default value is "max", find the most frequently used alias group
-      if (config.options.default === "max") {
-        const aliasGroups = Object.keys(config.catalogs || {});
+      if (options.default === "max") {
+        const catalogs = await catalogsConfigReader.getAppliedCatalogs(
+          workspace.project,
+        );
+        const aliasGroups = Object.keys(catalogs || {});
 
         const dependencies = [
           ...workspace.manifest.dependencies,

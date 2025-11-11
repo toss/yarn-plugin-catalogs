@@ -1,158 +1,246 @@
-import {
-  type Project,
-  type Workspace,
-  structUtils,
-} from "@yarnpkg/core";
+import type { Project, Workspace } from "@yarnpkg/core";
+import { structUtils } from "@yarnpkg/core";
+import { type Filename, type PortablePath, ppath, xfs } from "@yarnpkg/fslib";
+import { parseSyml, stringifySyml } from "@yarnpkg/parsers";
 import { isMatch } from "picomatch";
-import { readCatalogsYml } from "./catalogs";
 import { ROOT_ALIAS_GROUP } from "../constants";
 import { CatalogConfigurationError } from "../errors";
-import type { CatalogsConfiguration } from "../types";
+import type { CatalogsYml } from "../types";
+import {
+  isValidCatalog,
+  isValidCatalogs,
+  isValidCatalogsYml,
+  validateInheritanceStructure,
+} from "./parser";
+
+const CATALOGS_YML_FILENAME = `catalogs.yml` as Filename;
 
 /**
- * Handles reading and parsing of .yarnrc.yml#catalogs configuration
+ * Read and manage catalogs.yml configuration
+ * This is the core of the plugin - catalogs.yml is the source of truth
  */
-export class CatalogConfigurationReader {
-  private configCache: Map<string, CatalogsConfiguration> = new Map();
+export class CatalogsConfigurationReader {
+  private cache: Map<string, CatalogsYml | null> = new Map();
 
   /**
-   * Read configuration from catalogs.yml (options) and .yarnrc.yml (catalogs)
+   * Read catalogs.yml file from project root
    */
-  async readConfiguration(project: Project): Promise<CatalogsConfiguration> {
-    const workspaceRoot = project.cwd;
-    const cacheKey = workspaceRoot;
-
-    // Check cache first
-    const cached = this.configCache.get(cacheKey);
-    if (cached) {
+  async read(project: Project): Promise<CatalogsYml | null> {
+    const cacheKey = String(project.cwd);
+    const cached = this.cache.get(cacheKey);
+    if (cached !== undefined) {
       return cached;
     }
 
-    // Read options from catalogs.yml
-    const catalogsYml = await readCatalogsYml(project);
-    const options = catalogsYml?.options;
+    const catalogsYmlPath = ppath.join(
+      project.cwd,
+      CATALOGS_YML_FILENAME as PortablePath,
+    );
 
-    // Read catalogs from .yarnrc.yml (Yarn's native format)
+    if (!(await xfs.existsPromise(catalogsYmlPath))) {
+      this.cache.set(cacheKey, null);
+      return null;
+    }
+
+    const content = await xfs.readFilePromise(catalogsYmlPath, "utf8");
+    const parsed: unknown = parseSyml(content);
+
+    if (!isValidCatalogsYml(parsed)) {
+      throw new CatalogConfigurationError(
+        "Invalid catalogs.yml format. Expected structure: { options?: {...}, list: { [alias: string]: { [packageName: string]: string } } }",
+        CatalogConfigurationError.INVALID_FORMAT,
+      );
+    }
+
+    if (!validateInheritanceStructure(parsed, this.getInheritanceChain.bind(this))) {
+      throw new CatalogConfigurationError(
+        "Invalid inheritance structure in catalogs.yml. Parent groups must exist in the inheritance chain.",
+        CatalogConfigurationError.INVALID_ALIAS,
+      );
+    }
+
+    this.cache.set(cacheKey, parsed);
+    return parsed;
+  }
+
+  /**
+   * Get options from catalogs.yml
+   */
+  async getOptions(project: Project): Promise<CatalogsYml["options"]> {
+    const catalogsYml = await this.read(project);
+    return catalogsYml?.options;
+  }
+
+  /**
+   * Get applied catalogs from .yarnrc.yml (what Yarn currently uses)
+   * This reads from .yarnrc.yml to see what's actually been applied
+   */
+  async getAppliedCatalogs(
+    project: Project,
+  ): Promise<Record<string, Record<string, string>>> {
     const yarnrcCatalog = project.configuration.get("catalog");
     const yarnrcCatalogs = project.configuration.get("catalogs");
 
-    // Combine into single structure
     const catalogs: Record<string, Record<string, string>> = {};
 
     // Add root catalog if exists
     if (yarnrcCatalog && typeof yarnrcCatalog === "object") {
-      // Yarn stores catalog as Map<string, string>
-      // We need to convert to Record<string, string>
       if (yarnrcCatalog instanceof Map) {
-        catalogs[ROOT_ALIAS_GROUP] = Object.fromEntries(yarnrcCatalog.entries());
-      } else {
-        catalogs[ROOT_ALIAS_GROUP] = yarnrcCatalog as Record<string, string>;
+        catalogs[ROOT_ALIAS_GROUP] = Object.fromEntries(
+          yarnrcCatalog.entries(),
+        );
+      } else if (isValidCatalog(yarnrcCatalog)) {
+        catalogs[ROOT_ALIAS_GROUP] = yarnrcCatalog;
       }
     }
 
     // Add named catalogs if exists
     if (yarnrcCatalogs && typeof yarnrcCatalogs === "object") {
-      // Yarn stores catalogs as Map<string, Map<string, string>>
-      // We need to convert to Record<string, Record<string, string>>
       if (yarnrcCatalogs instanceof Map) {
         for (const [groupName, group] of yarnrcCatalogs.entries()) {
           if (group instanceof Map) {
             catalogs[groupName] = Object.fromEntries(group.entries());
-          } else {
-            catalogs[groupName] = group as Record<string, string>;
+          } else if (isValidCatalog(group)) {
+            catalogs[groupName] = group;
           }
         }
-      } else {
-        // If it's already a plain object, just assign
+      } else if (isValidCatalogs(yarnrcCatalogs)) {
         Object.assign(catalogs, yarnrcCatalogs);
       }
     }
 
-    const config: CatalogsConfiguration = {
-      options,
-      catalogs,
-    };
-
-    // Validate options if present - validate against catalogs.yml list, not .yarnrc.yml catalogs
-    if (options && catalogsYml) {
-      const catalogsYmlGroups = Object.keys(catalogsYml.list);
-      if (!this.isValidOptions(options as Record<string, unknown>, catalogsYmlGroups)) {
-        throw new CatalogConfigurationError(
-          "Invalid catalogs.yml options. Check that referenced catalog groups exist.",
-          CatalogConfigurationError.INVALID_FORMAT,
-        );
-      }
-    }
-
-    // Cache the configuration
-    this.configCache.set(cacheKey, config);
-
-    return config;
+    return catalogs;
   }
 
   /**
-   * Clear the configuration cache for a specific workspace
-   */
-  clearCache(project: Project): void {
-    const workspaceRoot = project.cwd;
-    this.configCache.delete(workspaceRoot);
-  }
-
-  /**
-   * Validate options against existing catalog groups from catalogs.yml
-   */
-  private isValidOptions(
-    options: Record<string, unknown>,
-    groups: string[],
-  ): boolean {
-    // Validate default option
-    if ("default" in options && options.default) {
-      if (Array.isArray(options.default)) {
-        for (const group of options.default) {
-          if (typeof group !== "string") {
-            return false;
-          }
-          if (group !== ROOT_ALIAS_GROUP && !groups.includes(group)) {
-            return false;
-          }
-        }
-      } else if (options.default !== "max") {
-        return false;
-      }
-    }
-
-    // Validate validation option
-    if ("validation" in options && options.validation) {
-      const validation = options.validation;
-      if (typeof validation === "object" && validation !== null) {
-        for (const [groupName, _] of Object.entries(validation)) {
-          if (groupName !== ROOT_ALIAS_GROUP && !groups.includes(groupName)) {
-            return false;
-          }
-        }
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Check if a workspace is ignored based on the configuration
+   * Check if a workspace is ignored based on catalogs.yml configuration
    */
   async shouldIgnoreWorkspace(workspace: Workspace): Promise<boolean> {
     if (!workspace.manifest.name) return false;
 
-    const config = await this.readConfiguration(workspace.project);
+    const catalogsYml = await this.read(workspace.project);
 
-    if (config.options?.ignoredWorkspaces) {
+    if (catalogsYml?.options?.ignoredWorkspaces) {
       return isMatch(
         structUtils.stringifyIdent(workspace.manifest.name),
-        config.options.ignoredWorkspaces,
+        catalogsYml.options.ignoredWorkspaces,
       );
     }
 
     return false;
   }
+
+  /**
+   * Write catalogs to .yarnrc.yml in Yarn's native format
+   * This applies catalogs.yml to .yarnrc.yml
+   */
+  async writeToYarnrc(
+    project: Project,
+    catalogs: {
+      root?: Record<string, string>;
+      named: Record<string, Record<string, string>>;
+    },
+  ): Promise<void> {
+    const yarnrcPath = ppath.join(
+      project.cwd,
+      ".yarnrc.yml" as Filename as PortablePath,
+    );
+
+    let existingConfig: Record<string, unknown> = {};
+    if (await xfs.existsPromise(yarnrcPath)) {
+      const content = await xfs.readFilePromise(yarnrcPath, "utf8");
+      existingConfig = (parseSyml(content) as Record<string, unknown>) || {};
+    }
+
+    if (catalogs.root && Object.keys(catalogs.root).length > 0) {
+      existingConfig.catalog = catalogs.root;
+    } else {
+      delete existingConfig.catalog;
+    }
+
+    if (Object.keys(catalogs.named).length > 0) {
+      existingConfig.catalogs = catalogs.named;
+    } else {
+      delete existingConfig.catalogs;
+    }
+
+    const newContent = stringifySyml(existingConfig);
+    await xfs.writeFilePromise(yarnrcPath, newContent);
+  }
+
+  /**
+   * Resolve all catalogs with inheritance
+   */
+  resolveAllCatalogs(catalogsYml: CatalogsYml): {
+    root?: Record<string, string>;
+    named: Record<string, Record<string, string>>;
+  } {
+    const result: {
+      root?: Record<string, string>;
+      named: Record<string, Record<string, string>>;
+    } = {
+      named: {},
+    };
+
+    for (const [groupName, group] of Object.entries(catalogsYml.list)) {
+      if (groupName === ROOT_ALIAS_GROUP) {
+        result.root = { ...group };
+      } else {
+        result.named[groupName] = this.resolveInheritedCatalog(
+          groupName,
+          catalogsYml.list,
+        );
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Resolve inheritance for a single catalog group
+   */
+  resolveInheritedCatalog(
+    groupName: string,
+    allGroups: CatalogsYml["list"],
+  ): Record<string, string> {
+    const chain = this.getInheritanceChain(groupName);
+    const resolved: Record<string, string> = {};
+
+    for (const ancestor of chain) {
+      const group = allGroups[ancestor];
+      if (!group) {
+        throw new CatalogConfigurationError(
+          `Parent group "${ancestor}" not found in inheritance chain for "${groupName}"`,
+          CatalogConfigurationError.INVALID_ALIAS,
+        );
+      }
+      Object.assign(resolved, group);
+    }
+
+    return resolved;
+  }
+
+  /**
+   * Get inheritance chain for a group name
+   * e.g., "frontend/react" => ["frontend", "frontend/react"]
+   */
+  getInheritanceChain(groupName: string): string[] {
+    const parts = groupName.split("/");
+    const chain: string[] = [];
+
+    for (let i = 0; i < parts.length; i++) {
+      chain.push(parts.slice(0, i + 1).join("/"));
+    }
+
+    return chain;
+  }
+
+  /**
+   * Clear the cache for a specific project
+   */
+  clearCache(project: Project): void {
+    this.cache.delete(String(project.cwd));
+  }
 }
 
-export const configReader = new CatalogConfigurationReader();
+export const catalogsConfigReader = new CatalogsConfigurationReader();

@@ -1,8 +1,6 @@
 import { execFile } from "node:child_process";
-import { writeFile } from "node:fs/promises";
-import * as fs from "node:fs/promises";
-import { join } from "node:path";
 import { promisify } from "node:util";
+import { type PortablePath, npath, ppath, xfs } from "@yarnpkg/fslib";
 import { dump as yamlDump, load as yamlLoad } from "js-yaml";
 import { dir as tmpDir } from "tmp-promise";
 
@@ -27,13 +25,12 @@ export interface TestWorkspace {
   };
 }
 
-/**
- * Creates a temporary Yarn workspace for testing
- */
 export async function createTestWorkspace(): Promise<TestWorkspace> {
-  const mainProjectYarnPath = join(
-    process.cwd(),
-    ".yarn/releases/yarn-4.11.0.cjs",
+  const mainProjectYarnPath = npath.fromPortablePath(
+    ppath.join(
+      npath.toPortablePath(process.cwd()),
+      ".yarn/releases/yarn-4.11.0.cjs" as PortablePath,
+    ),
   );
 
   const yarn = async (args: string[]) => {
@@ -52,42 +49,50 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
   };
 
   const { path, cleanup } = await tmpDir({ unsafeCleanup: true });
+  const portablePath = npath.toPortablePath(path);
 
   await yarn(["init", "-y"]);
   await yarn(["set", "version", "stable"]);
 
-  await yarn([
-    "plugin",
-    "import",
-    join(process.cwd(), "bundles/@yarnpkg/plugin-catalogs.js"),
-  ]);
+  const bundlePath = ppath.join(
+    npath.toPortablePath(process.cwd()),
+    "bundles/@yarnpkg/plugin-catalogs.js" as PortablePath,
+  );
+  await yarn(["plugin", "import", npath.fromPortablePath(bundlePath)]);
 
   const writeJson = async (filePath: string, content: unknown) => {
-    await writeFile(join(path, filePath), JSON.stringify(content, null, 2));
+    const fullPath = ppath.join(portablePath, filePath as PortablePath);
+    await xfs.writeFilePromise(fullPath, JSON.stringify(content, null, 2));
   };
 
   const writeYaml = async (content: unknown) => {
-    const yarnrcPath = join(path, ".yarnrc.yml");
-    const existingContent = await fs
-      .readFile(yarnrcPath, "utf8")
+    const yarnrcPath = ppath.join(portablePath, ".yarnrc.yml" as PortablePath);
+    const existingContent = await xfs
+      .readFilePromise(yarnrcPath, "utf8")
       .catch(() => "");
-    await writeFile(yarnrcPath, `${existingContent}\n${yamlDump(content)}`);
+    await xfs.writeFilePromise(
+      yarnrcPath,
+      `${existingContent}\n${yamlDump(content)}`,
+    );
   };
 
   const writeCatalogsYml = async (content: unknown) => {
-    const catalogsYmlPath = join(path, "catalogs.yml");
-    await writeFile(catalogsYmlPath, yamlDump(content));
+    const catalogsYmlPath = ppath.join(
+      portablePath,
+      "catalogs.yml" as PortablePath,
+    );
+    await xfs.writeFilePromise(catalogsYmlPath, yamlDump(content));
   };
 
   const readPackageJson = async () => {
-    const pkgPath = join(path, "package.json");
-    const content = await fs.readFile(pkgPath, "utf8");
+    const pkgPath = ppath.join(portablePath, "package.json" as PortablePath);
+    const content = await xfs.readFilePromise(pkgPath, "utf8");
     return JSON.parse(content);
   };
 
   const readYarnrc = async () => {
-    const yarnrcPath = join(path, ".yarnrc.yml");
-    const content = await fs.readFile(yarnrcPath, "utf8");
+    const yarnrcPath = ppath.join(portablePath, ".yarnrc.yml" as PortablePath);
+    const content = await xfs.readFilePromise(yarnrcPath, "utf8");
     return yamlLoad(content);
   };
 
@@ -103,9 +108,6 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
   };
 }
 
-/**
- * Creates a simple test protocol plugin for testing chained protocol resolution
- */
 export async function createTestProtocolPlugin(
   workspace: TestWorkspace,
   protocolName: string,
@@ -115,20 +117,17 @@ module.exports = {
   name: 'plugin-${protocolName}',
   factory: function(require) {
     const {structUtils} = require('@yarnpkg/core');
-    
+
     return {
       default: {
         hooks: {
           reduceDependency(dependency, project) {
-            // Only handle ${protocolName}: prefixed dependencies
             if (!dependency.range.startsWith('${protocolName}:')) {
               return dependency;
             }
-            
-            // Extract the version from the range
+
             const version = dependency.range.slice('${protocolName}:'.length);
-            
-            // Create a new descriptor with the resolved version
+
             return structUtils.makeDescriptor(
               structUtils.makeIdent(dependency.scope, dependency.name),
               \`npm:\$\{version\}\`
@@ -140,13 +139,15 @@ module.exports = {
   }
 };`;
 
-  const pluginPath = join(workspace.path, `${protocolName}-plugin.js`);
-  await fs.writeFile(pluginPath, pluginCode, "utf8");
+  const portablePath = npath.toPortablePath(workspace.path);
+  const pluginPath = ppath.join(
+    portablePath,
+    `${protocolName}-plugin.js` as PortablePath,
+  );
+  await xfs.writeFilePromise(pluginPath, pluginCode);
+  await workspace.yarn(["plugin", "import", npath.fromPortablePath(pluginPath)]);
 
-  // Import the plugin
-  await workspace.yarn(["plugin", "import", pluginPath]);
-
-  return pluginPath;
+  return npath.fromPortablePath(pluginPath);
 }
 
 export function extractDependencies(log: string): string[] {
