@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { type TestWorkspace, createTestWorkspace, hasDependency } from "./utils";
+import {
+  type TestWorkspace,
+  createTestProtocolPlugin,
+  createTestWorkspace,
+  hasDependency,
+} from "./utils";
 
 describe("basic catalog functionality", () => {
   let workspace: TestWorkspace;
@@ -207,5 +212,34 @@ describe("basic catalog functionality", () => {
     expect(stderr).toBe("");
 
     expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
+  });
+
+  it("should work with custom protocol in catalog", async () => {
+    workspace = await createTestWorkspace();
+
+    await createTestProtocolPlugin(workspace, "custom");
+
+    await workspace.writeCatalogsYml({
+      list: {
+        stable: {
+          react: "custom:18.0.0",
+          lodash: "custom:4.17.21",
+        },
+      },
+    });
+
+    await workspace.yarn.catalogs.apply();
+
+    const { stderr: stderr1 } = await workspace.yarn.add("react@catalog:stable");
+    expect(stderr1).toBe("");
+    expect(await hasDependency(workspace, "react@npm:18.0.0")).toBe(true);
+
+    const { stderr: stderr2 } = await workspace.yarn.add("lodash@catalog:stable");
+    expect(stderr2).toBe("");
+    expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
+
+    const pkg = await workspace.readPackageJson();
+    expect(pkg.dependencies?.react).toBe("catalog:stable");
+    expect(pkg.dependencies?.lodash).toBe("catalog:stable");
   });
 });
