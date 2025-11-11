@@ -5,7 +5,7 @@ import { parseSyml, stringifySyml } from "@yarnpkg/parsers";
 import { isMatch } from "picomatch";
 import { ROOT_ALIAS_GROUP } from "../constants";
 import { CatalogConfigurationError } from "../errors";
-import type { CatalogsYml } from "../types";
+import type { CatalogsConfiguration } from "./types";
 import {
   isValidCatalog,
   isValidCatalogs,
@@ -20,12 +20,12 @@ const CATALOGS_YML_FILENAME = "catalogs.yml" as Filename;
  * This is the core of the plugin - catalogs.yml is the source of truth
  */
 export class CatalogsConfigurationReader {
-  private cache: Map<string, CatalogsYml | null> = new Map();
+  private cache: Map<string, CatalogsConfiguration | null> = new Map();
 
   /**
    * Read catalogs.yml file from project root
    */
-  async read(project: Project): Promise<CatalogsYml | null> {
+  async read(project: Project): Promise<CatalogsConfiguration | null> {
     const cacheKey = String(project.cwd);
     const cached = this.cache.get(cacheKey);
     if (cached !== undefined) {
@@ -68,7 +68,9 @@ export class CatalogsConfigurationReader {
   /**
    * Get options from catalogs.yml
    */
-  async getOptions(project: Project): Promise<CatalogsYml["options"]> {
+  async getOptions(
+    project: Project,
+  ): Promise<CatalogsConfiguration["options"]> {
     const catalogsYml = await this.read(project);
     return catalogsYml?.options;
   }
@@ -173,7 +175,7 @@ export class CatalogsConfigurationReader {
   /**
    * Resolve all catalogs with inheritance
    */
-  resolveAllCatalogs(catalogsYml: CatalogsYml): {
+  resolveAllCatalogs(catalogsYml: CatalogsConfiguration): {
     root?: Record<string, string>;
     named: Record<string, Record<string, string>>;
   } {
@@ -203,7 +205,7 @@ export class CatalogsConfigurationReader {
    */
   resolveInheritedCatalog(
     groupName: string,
-    allGroups: CatalogsYml["list"],
+    allGroups: CatalogsConfiguration["list"],
   ): Record<string, string> {
     const chain = this.getInheritanceChain(groupName);
     const resolved: Record<string, string> = {};

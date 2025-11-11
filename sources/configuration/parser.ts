@@ -1,10 +1,12 @@
 import { ROOT_ALIAS_GROUP } from "../constants";
-import type { CatalogsYml } from "../types";
+import type { CatalogsConfiguration } from "./types";
 
 /**
  * Validate catalogs.yml structure
  */
-export function isValidCatalogsYml(config: unknown): config is CatalogsYml {
+export function isValidCatalogsYml(
+  config: unknown,
+): config is CatalogsConfiguration {
   if (!config || typeof config !== "object") {
     return false;
   }
@@ -92,7 +94,7 @@ export function isValidCatalogsYml(config: unknown): config is CatalogsYml {
  * Ensures all parent groups exist in the inheritance chain
  */
 export function validateInheritanceStructure(
-  config: CatalogsYml,
+  config: CatalogsConfiguration,
   getInheritanceChain: (groupName: string) => string[],
 ): boolean {
   const groups = Object.keys(config.list);
