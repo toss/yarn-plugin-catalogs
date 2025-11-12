@@ -179,7 +179,7 @@ describe("warnings and recommendations", () => {
     expect(dependencies).includes("react@npm:17.0.0");
   });
 
-  it("should us default alias group without validation error (default: max)", async () => {
+  it("should use default alias group without validation error (default: max)", async () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeYarnrc({
@@ -206,7 +206,6 @@ describe("warnings and recommendations", () => {
       private: true,
       dependencies: {
         react: "catalog:stable",
-        lodash: "catalog:stable",
       },
     });
 
