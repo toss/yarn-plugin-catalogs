@@ -198,7 +198,6 @@ describe("warnings and recommendations", () => {
       private: true,
       dependencies: {
         react: "catalog:stable",
-        lodash: "catalog:stable",
       },
     });
 
