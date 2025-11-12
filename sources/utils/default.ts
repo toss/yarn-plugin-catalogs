@@ -82,19 +82,19 @@ export async function getDefaultAliasGroups(
         const aliasGroups = Object.keys(config.list || {});
 
         const dependencies = [
-          ...workspace.manifest.dependencies,
-          ...workspace.manifest.devDependencies,
+          ...Object.entries<string>(workspace.manifest.raw.dependencies ?? {}),
+          ...Object.entries<string>(
+            workspace.manifest.raw.devDependencies ?? {},
+          ),
         ];
         const counts: Record<string, number> = Object.fromEntries(
           aliasGroups.map((aliasGroup) => [aliasGroup, 0]),
         );
 
         // Count the occurrences of each alias group in the dependencies
-        for (const [_, descriptor] of dependencies) {
-          if (descriptor.range.startsWith(CATALOG_PROTOCOL)) {
-            const aliasGroup = descriptor.range.substring(
-              CATALOG_PROTOCOL.length,
-            );
+        for (const [_, range] of dependencies) {
+          if (range.startsWith(CATALOG_PROTOCOL)) {
+            const aliasGroup = range.substring(CATALOG_PROTOCOL.length);
             counts[aliasGroup] = (counts[aliasGroup] || 0) + 1;
           }
         }
