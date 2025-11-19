@@ -21,7 +21,7 @@ interface CatalogsOptions {
   includedWorkspaces?: string[];
   /**
    * List of workspaces to ignore (opt-out)
-   * Workspaces matching these patterns will be excluded from catalog processing
+   * Workspaces matching these patterns will be excluded from catalog processing, regardless of `includedWorkspaces`
    */
   ignoredWorkspaces?: string[];
   /**
