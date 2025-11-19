@@ -1,10 +1,56 @@
-import { type Workspace, type Descriptor, structUtils } from "@yarnpkg/core";
-import type { ValidationLevel } from "../types";
-import { getInheritanceChain } from "./functions";
-import { configReader } from "../configuration";
-import { findAllGroupsWithSpecificDependency } from "./resolution";
+import {
+  type Descriptor,
+  type Project,
+  type Workspace,
+  structUtils,
+} from "@yarnpkg/core";
 import { CATALOG_PROTOCOL } from "../constants";
+import type { ValidationLevel } from "../types";
+import { configReader } from "../configuration";
 import { getDefaultAliasGroups } from "./default";
+
+export interface ValidationResult {
+  shouldIgnore: boolean;
+  catalogProtocolViolations: Array<{
+    descriptor: Descriptor;
+    validationLevel: Omit<ValidationLevel, "off">;
+    applicableGroups: string[];
+  }>;
+  ignoredWorkspaceWithCatalogProtocol: boolean;
+}
+
+/**
+ * Validate workspace for catalog usage
+ * Returns all validation issues without reporting them
+ */
+export async function validateWorkspace(
+  workspace: Workspace,
+): Promise<ValidationResult> {
+  const shouldIgnore = await configReader.shouldIgnoreWorkspace(workspace);
+
+  const hasCatalogProtocol = [
+    ...Object.values<string>(workspace.manifest.raw.dependencies || {}),
+    ...Object.values<string>(workspace.manifest.raw.devDependencies || {}),
+  ].some((version) => version.startsWith(CATALOG_PROTOCOL));
+
+  const ignoredWorkspaceWithCatalogProtocol =
+    shouldIgnore && hasCatalogProtocol;
+
+  // Check catalog protocol violations
+  let catalogProtocolViolations: ValidationResult["catalogProtocolViolations"] =
+    [];
+
+  if (!shouldIgnore) {
+    catalogProtocolViolations =
+      await validateWorkspaceCatalogUsability(workspace);
+  }
+
+  return {
+    shouldIgnore,
+    catalogProtocolViolations,
+    ignoredWorkspaceWithCatalogProtocol,
+  };
+}
 
 /**
  * Check if a package can be used with the catalog protocol
@@ -21,7 +67,6 @@ export async function validateCatalogUsability(
     return null;
   }
 
-  // Skip if workspace is ignored
   if (await configReader.shouldIgnoreWorkspace(workspace)) {
     return null;
   }
@@ -45,7 +90,7 @@ export async function validateCatalogUsability(
   }
 
   // Get validation level for the package
-  const validationLevel = await getPackageVaidationLevel(
+  const validationLevel = await getPackageValidationLevel(
     workspace,
     packageName,
   );
@@ -101,15 +146,14 @@ async function getGroupValidationLevel(
   workspace: Workspace,
   groupName: string,
 ): Promise<ValidationLevel> {
-  const config = await configReader.readConfiguration(workspace.project);
-  const validationConfig = config.options?.validation || "warn";
+  const options = await configReader.getOptions(workspace.project);
+  const validationConfig = options?.validation || "warn";
 
   if (typeof validationConfig === "string") {
     return validationConfig;
   }
 
-  // Search inheritance chain for explicit validation setting
-  const inheritanceChain = getInheritanceChain(groupName);
+  const inheritanceChain = configReader.getInheritanceChain(groupName);
 
   for (let i = inheritanceChain.length - 1; i >= 0; i--) {
     const currentGroup = inheritanceChain[i];
@@ -118,13 +162,13 @@ async function getGroupValidationLevel(
     }
   }
 
-  return "warn"; // Default fallback
+  return "warn";
 }
 
 /**
  * Get the strictest validation level for a package across all accessible groups
  */
-async function getPackageVaidationLevel(
+async function getPackageValidationLevel(
   workspace: Workspace,
   packageName: string,
 ): Promise<ValidationLevel> {
@@ -146,4 +190,29 @@ async function getPackageVaidationLevel(
   if (validationLevels.includes("strict")) return "strict";
   if (validationLevels.includes("warn")) return "warn";
   return "off";
+}
+
+/**
+ * Find all groups that contain a specific dependency
+ * Note: Catalogs from .yarnrc.yml already have inheritance resolved
+ */
+async function findAllGroupsWithSpecificDependency(
+  project: Project,
+  packageName: string,
+): Promise<Array<{ groupName: string; version: string }>> {
+  const catalogs = await configReader.getAppliedCatalogs(project);
+  const results: Array<{ groupName: string; version: string }> = [];
+
+  if (!catalogs || Object.keys(catalogs).length === 0) {
+    return results;
+  }
+
+  for (const [groupName, group] of Object.entries(catalogs)) {
+    const version = group[packageName];
+    if (version) {
+      results.push({ groupName, version });
+    }
+  }
+
+  return results;
 }

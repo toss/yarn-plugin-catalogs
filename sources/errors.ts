@@ -2,7 +2,10 @@
  * Error thrown when .yarnrc.yml#catalogs is invalid or missing
  */
 export class CatalogConfigurationError extends Error {
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: string,
+  ) {
     super(message);
     this.name = "CatalogConfigurationError";
   }
