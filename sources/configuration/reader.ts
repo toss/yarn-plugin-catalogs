@@ -129,16 +129,13 @@ export class CatalogsConfigurationReader {
 
     const workspaceName = structUtils.stringifyIdent(workspace.manifest.name);
 
-    // Check ignoredWorkspaces first - if workspace matches, exclude it regardless of inclusion
     if (options.ignoredWorkspaces) {
       const isIgnored = isMatch(workspaceName, options.ignoredWorkspaces);
       if (isIgnored) return true;
     }
 
-    // If includedWorkspaces is specified, check if workspace matches
     if (options.includedWorkspaces) {
       const isIncluded = isMatch(workspaceName, options.includedWorkspaces);
-      // If not included, ignore it
       if (!isIncluded) return true;
     }
 
