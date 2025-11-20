@@ -15,7 +15,13 @@ interface CatalogsOptions {
    */
   default?: string[] | "max";
   /**
-   * List of workspaces to ignore
+   * List of workspaces to include (opt-in)
+   * If specified, only matching workspaces will be processed
+   */
+  includedWorkspaces?: string[];
+  /**
+   * List of workspaces to ignore (opt-out)
+   * Workspaces matching these patterns will be excluded from catalog processing, regardless of `includedWorkspaces`
    */
   ignoredWorkspaces?: string[];
   /**

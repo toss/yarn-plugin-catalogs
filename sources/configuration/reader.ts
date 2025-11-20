@@ -118,17 +118,25 @@ export class CatalogsConfigurationReader {
 
   /**
    * Check if a workspace is ignored based on catalogs.yml configuration
+   * Logic: includedWorkspaces - ignoredWorkspaces = final set
    */
   async shouldIgnoreWorkspace(workspace: Workspace): Promise<boolean> {
     if (!workspace.manifest.name) return false;
 
     const catalogsYml = await this.read(workspace.project);
+    const options = catalogsYml?.options;
+    if (!options) return false;
 
-    if (catalogsYml?.options?.ignoredWorkspaces) {
-      return isMatch(
-        structUtils.stringifyIdent(workspace.manifest.name),
-        catalogsYml.options.ignoredWorkspaces,
-      );
+    const workspaceName = structUtils.stringifyIdent(workspace.manifest.name);
+
+    if (options.ignoredWorkspaces) {
+      const isIgnored = isMatch(workspaceName, options.ignoredWorkspaces);
+      if (isIgnored) return true;
+    }
+
+    if (options.includedWorkspaces) {
+      const isIncluded = isMatch(workspaceName, options.includedWorkspaces);
+      if (!isIncluded) return true;
     }
 
     return false;

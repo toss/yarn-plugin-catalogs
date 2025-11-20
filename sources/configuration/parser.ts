@@ -54,6 +54,16 @@ export function isValidCatalogsYml(
       }
     }
 
+    if (opts.includedWorkspaces) {
+      if (
+        !Array.isArray(opts.includedWorkspaces) ||
+        opts.includedWorkspaces.length === 0 ||
+        !opts.includedWorkspaces.every((item) => typeof item === "string")
+      ) {
+        return false;
+      }
+    }
+
     if (opts.ignoredWorkspaces) {
       if (
         !Array.isArray(opts.ignoredWorkspaces) ||

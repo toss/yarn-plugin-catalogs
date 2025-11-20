@@ -12,7 +12,7 @@ Since Yarn 4.10.0, Yarn natively supports catalogs for managing dependency versi
 - **Supporting hierarchical catalog inheritance** (e.g., `stable/canary` inherits from `stable`)
 - **Providing validation** to ensure consistent catalog usage across workspaces
 - **Auto-applying default catalogs** when adding dependencies
-- **Ignoring specific workspaces** from catalog enforcement
+- **Filtering workspaces** with opt-in (`includedWorkspaces`) and opt-out (`ignoredWorkspaces`) options
 
 ## Requirements
 
@@ -32,9 +32,10 @@ yarn plugin import https://raw.githubusercontent.com/toss/yarn-plugin-catalogs/m
 # catalogs.yml
 
 options:
-  default: [stable]      # Optional: Default catalog groups for 'yarn add'
-  validation: warn       # Optional: 'warn' | 'strict' | 'off'
-  ignoredWorkspaces: []  # Optional: Workspaces to ignore
+  default: [stable]           # Optional: Default catalog groups for 'yarn add'
+  validation: warn            # Optional: 'warn' | 'strict' | 'off'
+  includedWorkspaces: []       # Optional: Workspaces to include 
+  ignoredWorkspaces: []       # Optional: Workspaces to ignore 
 
 list:
   root:  # Special alias for the root catalog (accessed via catalog:)
@@ -243,9 +244,33 @@ list:
 
 If your `package.json` has more `catalog:stable` dependencies than `catalog:beta`, running `yarn add next` will automatically use `catalog:stable`.
 
-### Ignoring Workspaces
+### Workspace Filtering
 
-Disable catalog enforcement for specific workspaces using glob patterns:
+Control which workspaces are included in catalog protocol processing using `includedWorkspaces` and `ignoredWorkspaces` options.
+
+#### Including Workspaces 
+
+Use `includedWorkspaces` to specify which workspaces should be processed for catalogs. Only matching workspaces will receive catalog validation and default catalog auto-application:
+
+```yaml
+# In catalogs.yml
+options:
+  includedWorkspaces: [apps-*, packages]
+
+list:
+  stable:
+    react: npm:18.0.0
+```
+
+When `includedWorkspaces` is specified:
+- Only matching workspaces receive validation warnings/errors
+- Only matching workspaces have default catalogs auto-applied
+
+If `includedWorkspaces` is not specified, all workspaces are included by default.
+
+#### Ignoring Workspaces
+
+Use `ignoredWorkspaces` to exclude specific workspaces from catalog processing:
 
 ```yaml
 # In catalogs.yml
@@ -260,7 +285,8 @@ list:
 Ignored workspaces:
 - Won't receive validation warnings/errors
 - Won't have default catalogs auto-applied
-- Can still use `catalog:` protocol if needed
+
+`ignoredWorkspaces` takes precedence over `includedWorkspaces`.
 
 ### Validation
 
