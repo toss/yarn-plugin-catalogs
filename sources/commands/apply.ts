@@ -127,7 +127,7 @@ export class ApplyCommand extends BaseCommand {
 /**
  * Read existing .yarnrc.yml configuration
  */
-async function readExistingYarnrc(
+export async function readExistingYarnrc(
   project: Project,
 ): Promise<Record<string, unknown>> {
   const yarnrcPath = ppath.join(
@@ -146,7 +146,7 @@ async function readExistingYarnrc(
 /**
  * Check if there are changes between existing and resolved catalogs
  */
-function checkForChanges(
+export function checkForChanges(
   existingConfig: Record<string, unknown>,
   resolved: {
     root?: Record<string, string>;
