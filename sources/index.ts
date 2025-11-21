@@ -36,7 +36,7 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
       if (hasChanges) {
         report.reportError(
           MessageName.INVALID_MANIFEST,
-          ".yarnrc.yml is out of sync with catalogs.yml. Run 'yarn catalogs apply' to update it.",
+          ".yarnrc.yml is out of date. Run 'yarn catalogs apply' to update it.",
         );
       }
     },
