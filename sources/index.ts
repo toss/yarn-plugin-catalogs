@@ -3,18 +3,43 @@ import {
   type Hooks,
   MessageName,
   type Plugin,
+  type Project,
   type Workspace,
   structUtils,
 } from "@yarnpkg/core";
 import type { Hooks as EssentialHooks } from "@yarnpkg/plugin-essentials";
 import chalk from "chalk";
-import { ApplyCommand } from "./commands/apply";
+import {
+  ApplyCommand,
+  checkForChanges,
+  readExistingYarnrc,
+} from "./commands/apply";
+import { configReader } from "./configuration";
 import { fallbackDefaultAliasGroup } from "./utils/default";
 import { validateWorkspace } from "./utils/validation";
 
 const plugin: Plugin<Hooks & EssentialHooks> = {
   commands: [ApplyCommand],
   hooks: {
+    validateProject: async (project: Project, report) => {
+      const catalogsYml = await configReader.read(project);
+
+      // Skip validation if no catalogs.yml exists
+      if (!catalogsYml) {
+        return;
+      }
+
+      const resolved = configReader.resolveAllCatalogs(catalogsYml);
+      const existingConfig = await readExistingYarnrc(project);
+      const hasChanges = checkForChanges(existingConfig, resolved);
+
+      if (hasChanges) {
+        report.reportError(
+          MessageName.INVALID_MANIFEST,
+          ".yarnrc.yml is out of sync with catalogs.yml. Run 'yarn catalogs apply' to update it.",
+        );
+      }
+    },
     validateWorkspace: async (workspace: Workspace, report) => {
       const result = await validateWorkspace(workspace);
 
