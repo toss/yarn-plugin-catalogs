@@ -156,7 +156,7 @@ describe("validation", () => {
 
     const { stderr } = await workspace.yarn.add("react@17.0.0");
     expect(stderr).toContain("react");
-    expect(stderr).toContain("beta, stable");
+    expect(stderr).toContain("stable, beta");
     expect(stderr).toContain("react@catalog:");
   });
 

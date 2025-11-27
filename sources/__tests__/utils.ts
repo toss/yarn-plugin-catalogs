@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { type PortablePath, npath, ppath, xfs } from "@yarnpkg/fslib";
-import { dump as yamlDump, load as yamlLoad } from "js-yaml";
+import { parse as yamlParse, stringify as yamlStringify } from "yaml";
 import { dir as tmpDir } from "tmp-promise";
 
 const execFileAsync = promisify(execFile);
@@ -76,7 +76,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
       .catch(() => "");
     await xfs.writeFilePromise(
       yarnrcPath,
-      `${existingContent}\n${yamlDump(content)}`,
+      `${existingContent}\n${yamlStringify(content)}`,
     );
   };
 
@@ -85,7 +85,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
       portablePath,
       "catalogs.yml" as PortablePath,
     );
-    await xfs.writeFilePromise(catalogsYmlPath, yamlDump(content));
+    await xfs.writeFilePromise(catalogsYmlPath, yamlStringify(content));
   };
 
   const readPackageJson = async () => {
@@ -97,7 +97,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
   const readYarnrc = async () => {
     const yarnrcPath = ppath.join(portablePath, ".yarnrc.yml" as PortablePath);
     const content = await xfs.readFilePromise(yarnrcPath, "utf8");
-    return yamlLoad(content);
+    return yamlParse(content);
   };
 
   return {

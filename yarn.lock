@@ -610,13 +610,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/js-yaml@npm:^4.0.9":
-  version: 4.0.9
-  resolution: "@types/js-yaml@npm:4.0.9"
-  checksum: 10c0/24de857aa8d61526bbfbbaa383aa538283ad17363fcd5bb5148e2c7f604547db36646440e739d78241ed008702a8920665d1add5618687b6743858fae00da211
-  languageName: node
-  linkType: hard
-
 "@types/keyv@npm:^3.1.4":
   version: 3.1.4
   resolution: "@types/keyv@npm:3.1.4"
@@ -1964,13 +1957,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"argparse@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "argparse@npm:2.0.1"
-  checksum: 10c0/c5640c2d89045371c7cedd6a70212a04e360fd34d6edeae32f6952c63949e3525ea77dbec0289d8213a99bbaeab5abfa860b5c12cf88a2e6cf8106e90dd27a7e
-  languageName: node
-  linkType: hard
-
 "assertion-error@npm:^1.1.0":
   version: 1.1.0
   resolution: "assertion-error@npm:1.1.0"
@@ -3018,17 +3004,6 @@ __metadata:
   bin:
     js-yaml: bin/js-yaml.js
   checksum: 10c0/6746baaaeac312c4db8e75fa22331d9a04cccb7792d126ed8ce6a0bbcfef0cedaddd0c5098fade53db067c09fe00aa1c957674b4765610a8b06a5a189e46433b
-  languageName: node
-  linkType: hard
-
-"js-yaml@npm:^4.1.0":
-  version: 4.1.0
-  resolution: "js-yaml@npm:4.1.0"
-  dependencies:
-    argparse: "npm:^2.0.1"
-  bin:
-    js-yaml: bin/js-yaml.js
-  checksum: 10c0/184a24b4eaacfce40ad9074c64fd42ac83cf74d8c8cd137718d456ced75051229e5061b8633c3366b8aada17945a7a356b337828c19da92b51ae62126575018f
   languageName: node
   linkType: hard
 
@@ -4570,11 +4545,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"yaml@npm:^2.8.1":
+  version: 2.8.1
+  resolution: "yaml@npm:2.8.1"
+  bin:
+    yaml: bin.mjs
+  checksum: 10c0/7c587be00d9303d2ae1566e03bc5bc7fe978ba0d9bf39cc418c3139d37929dfcb93a230d9749f2cb578b6aa5d9ebebc322415e4b653cb83acd8bc0bc321707f3
+  languageName: node
+  linkType: hard
+
 "yarn-plugin-catalogs@workspace:.":
   version: 0.0.0-use.local
   resolution: "yarn-plugin-catalogs@workspace:."
   dependencies:
-    "@types/js-yaml": "npm:^4.0.9"
     "@types/node": "npm:^22.0.0"
     "@types/picomatch": "npm:^4"
     "@types/tmp": "npm:^0.2.6"
@@ -4588,12 +4571,12 @@ __metadata:
     "@yarnpkg/plugin-pack": "npm:^4.0.1"
     chalk: "npm:^5.4.1"
     clipanion: "npm:^4.0.0-rc.2"
-    js-yaml: "npm:^4.1.0"
     picomatch: "npm:^4.0.2"
     rimraf: "npm:5.0.0"
     tmp-promise: "npm:^3.0.3"
     typescript: "npm:^5.5.2"
     vitest: "npm:^1.3.1"
+    yaml: "npm:^2.8.1"
   languageName: unknown
   linkType: soft
 

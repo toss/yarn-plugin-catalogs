@@ -1,8 +1,9 @@
 import type { Project, Workspace } from "@yarnpkg/core";
 import { structUtils } from "@yarnpkg/core";
 import { type Filename, type PortablePath, ppath, xfs } from "@yarnpkg/fslib";
-import { parseSyml, stringifySyml } from "@yarnpkg/parsers";
+import { parseSyml } from "@yarnpkg/parsers";
 import { isMatch } from "picomatch";
+import { parseDocument } from "yaml";
 import { ROOT_ALIAS_GROUP } from "../constants";
 import { CatalogConfigurationError } from "../errors";
 import type { CatalogsConfiguration } from "./types";
@@ -158,26 +159,26 @@ export class CatalogsConfigurationReader {
       ".yarnrc.yml" as Filename as PortablePath,
     );
 
-    let existingConfig: Record<string, unknown> = {};
+    let content = "";
     if (await xfs.existsPromise(yarnrcPath)) {
-      const content = await xfs.readFilePromise(yarnrcPath, "utf8");
-      existingConfig = (parseSyml(content) as Record<string, unknown>) || {};
+      content = await xfs.readFilePromise(yarnrcPath, "utf8");
     }
 
+    const doc = parseDocument(content);
+
     if (catalogs.root && Object.keys(catalogs.root).length > 0) {
-      existingConfig.catalog = catalogs.root;
+      doc.set("catalog", doc.createNode(catalogs.root));
     } else {
-      existingConfig.catalog = undefined;
+      doc.delete("catalog");
     }
 
     if (Object.keys(catalogs.named).length > 0) {
-      existingConfig.catalogs = catalogs.named;
+      doc.set("catalogs", doc.createNode(catalogs.named));
     } else {
-      existingConfig.catalogs = undefined;
+      doc.delete("catalogs");
     }
 
-    const newContent = stringifySyml(existingConfig);
-    await xfs.writeFilePromise(yarnrcPath, newContent);
+    await xfs.writeFilePromise(yarnrcPath, doc.toString());
   }
 
   /**
