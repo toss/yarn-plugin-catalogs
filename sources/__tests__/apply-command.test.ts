@@ -328,4 +328,98 @@ describe("catalogs apply command", () => {
     const yarnrc = await workspace.readYarnrc();
     expect(yarnrc.catalogs).toBeUndefined();
   });
+
+  it("should preserve comments and formatting when updating catalogs", async () => {
+    workspace = await createTestWorkspace();
+
+    const existingYarnrc = await workspace.readYarnrcRaw();
+    await workspace.writeYarnrcRaw(`${existingYarnrc}
+# Yarn configuration
+nodeLinker: node-modules # inline comment
+
+# Registry configuration
+npmRegistryServer: https://registry.npmjs.org
+
+# Catalog configuration
+catalogs:
+  stable:
+    react: npm:17.0.0
+`);
+
+    await workspace.writeCatalogsYml({
+      list: {
+        stable: {
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    await workspace.yarn.catalogs.apply();
+
+    const rawContent = await workspace.readYarnrcRaw();
+    expect(rawContent).toContain("# Yarn configuration");
+    expect(rawContent).toContain("# inline comment");
+    expect(rawContent).toContain("# Registry configuration");
+    expect(rawContent).toContain("# Catalog configuration");
+  });
+
+  it("should preserve comments when updating both root and named catalogs", async () => {
+    workspace = await createTestWorkspace();
+
+    const existingYarnrc = await workspace.readYarnrcRaw();
+    await workspace.writeYarnrcRaw(`${existingYarnrc}
+# Root catalog
+catalog:
+  lodash: npm:4.0.0
+
+# Named catalogs
+catalogs:
+  stable:
+    react: npm:17.0.0
+`);
+
+    await workspace.writeCatalogsYml({
+      list: {
+        root: {
+          lodash: "npm:4.17.21",
+        },
+        stable: {
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    await workspace.yarn.catalogs.apply();
+
+    const rawContent = await workspace.readYarnrcRaw();
+    expect(rawContent).toContain("# Root catalog");
+    expect(rawContent).toContain("# Named catalogs");
+  });
+
+  it("should preserve comments when removing catalogs", async () => {
+    workspace = await createTestWorkspace();
+
+    const existingYarnrc = await workspace.readYarnrcRaw();
+    await workspace.writeYarnrcRaw(`${existingYarnrc}
+# Config comment
+nodeLinker: node-modules
+
+catalogs:
+  stable:
+    react: npm:18.0.0
+
+# End comment
+`);
+
+    await workspace.writeCatalogsYml({
+      list: {},
+    });
+
+    await workspace.yarn.catalogs.apply();
+
+    const rawContent = await workspace.readYarnrcRaw();
+    expect(rawContent).toContain("# Config comment");
+    expect(rawContent).toContain("# End comment");
+    expect(rawContent).not.toContain("catalogs:");
+  });
 });

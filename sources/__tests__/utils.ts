@@ -12,7 +12,9 @@ export interface TestWorkspace {
   writeJson: (path: string, content: unknown) => Promise<void>;
   readPackageJson: () => Promise<any>;
   readYarnrc: () => Promise<any>;
+  readYarnrcRaw: () => Promise<string>;
   writeYarnrc: (content: unknown) => Promise<void>;
+  writeYarnrcRaw: (content: string) => Promise<void>;
   writeCatalogsYml: (content: unknown) => Promise<void>;
   yarn: {
     (args: string[]): Promise<{ stdout: string; stderr: string }>;
@@ -100,13 +102,25 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
     return yamlParse(content);
   };
 
+  const readYarnrcRaw = async () => {
+    const yarnrcPath = ppath.join(portablePath, ".yarnrc.yml" as PortablePath);
+    return await xfs.readFilePromise(yarnrcPath, "utf8");
+  };
+
+  const writeYarnrcRaw = async (content: string) => {
+    const yarnrcPath = ppath.join(portablePath, ".yarnrc.yml" as PortablePath);
+    await xfs.writeFilePromise(yarnrcPath, content);
+  };
+
   return {
     path,
     cleanup,
     writeJson,
     readPackageJson,
     readYarnrc,
+    readYarnrcRaw,
     writeYarnrc: writeYaml,
+    writeYarnrcRaw,
     writeCatalogsYml,
     yarn,
   };
