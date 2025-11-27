@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema#",
+  "title": "Yarn Catalogs Configuration",
+  "description": "The schema for the Yarn catalogs configuration file (catalogs.yml). Strictly validates options and catalog mappings.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "options": {
+      "type": "object",
+      "description": "Optional options that control the catalog behavior",
+      "additionalProperties": false,
+      "properties": {
+        "default": {
+          "description": "Default enabled catalog groups for 'yarn add'. Can be the reserved token 'max' for max mode, a single group name, or an array of group names.",
+          "oneOf": [
+            { "type": "string", "enum": ["max"] },
+            { "$ref": "#/$defs/catalogGroupName" },
+            {
+              "type": "array",
+              "items": { "$ref": "#/$defs/catalogGroupName" }
+            }
+          ]
+        },
+        "validation": {
+          "type": "string",
+          "description": "The level of dependency source validation",
+          "enum": ["warn", "strict", "off"]
+        },
+        "includedWorkspaces": {
+          "type": "array",
+          "description": "The list of workspace names/paths to include in catalog application",
+          "items": { "$ref": "#/$defs/workspaceName" }
+        },
+        "ignoredWorkspaces": {
+          "type": "array",
+          "description": "The list of workspace names/paths to exclude from catalog application",
+          "items": { "$ref": "#/$defs/workspaceName" }
+        }
+      }
+    },
+    "list": {
+      "type": "object",
+      "description": "The mapping of package sources by catalog group",
+      "propertyNames": { "$ref": "#/$defs/catalogGroupName" },
+      "additionalProperties": { "$ref": "#/$defs/catalogGroup" },
+      "minProperties": 1
+    }
+  },
+  "required": ["list"],
+  "$defs": {
+    "workspaceName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "catalogGroupName": {
+      "type": "string",
+      "description": "Catalog group name; may include '/' to indicate inheritance (e.g., stable, stable/canary). Excludes the reserved token 'max'.",
+      "pattern": "^(?!max$)[A-Za-z0-9._-]+(?:\\/[A-Za-z0-9._-]+)*$"
+    },
+    "packageName": {
+      "type": "string",
+      "description": "The package name",
+      "pattern": "^(?:@[a-z0-9][a-z0-9-_]*\\/)?[a-z0-9][a-z0-9-._]*$"
+    },
+    "sourceString": {
+      "type": "string",
+      "description": "Free-form version/source string (e.g. \"18.2.0\", \"log-v3:45.0.1::__version=7.0.16\", \"1.0.14-nightly.20251119194855\")."
+    },
+    "catalogGroup": {
+      "type": "object",
+      "description": "Mapping of package name → source specification",
+      "additionalProperties": { "$ref": "#/$defs/sourceString" },
+      "propertyNames": { "$ref": "#/$defs/packageName" },
+      "minProperties": 0
+    }
+  }
+}

@@ -52,7 +52,21 @@ list:
     react: npm:19.0.0
 ```
 
-### 2. Apply catalogs to `.yarnrc.yml`
+### 2. (Optional) Configure schema validation in VSCode
+
+For better editing experience with `catalogs.yml`, you can enable schema validation in VSCode by adding the following to `.vscode/settings.json`:
+
+```json
+{
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/toss/yarn-plugin-catalogs/refs/heads/main/sources/configuration/schema.json": "catalogs.yml"
+  }
+}
+```
+
+This will provide autocomplete and validation for your `catalogs.yml` file.
+
+### 3. Apply catalogs to `.yarnrc.yml`
 
 ```bash
 $ yarn catalogs apply
@@ -101,7 +115,7 @@ catalogs:
     react: npm:19.0.0
 ```
 
-### 3. Use catalog protocol in package.json
+### 4. Use catalog protocol in package.json
 
 ```json
 {
