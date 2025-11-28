@@ -7231,7 +7231,7 @@ ${end.comment}` : end.comment;
         }
         return doc;
       }
-      function parse(src, reviver, options) {
+      function parse2(src, reviver, options) {
         let _reviver = void 0;
         if (typeof reviver === "function") {
           _reviver = reviver;
@@ -7272,7 +7272,7 @@ ${end.comment}` : end.comment;
           return value.toString(options);
         return new Document.Document(value, _replacer, options).toString(options);
       }
-      exports.parse = parse;
+      exports.parse = parse2;
       exports.parseAllDocuments = parseAllDocuments;
       exports.parseDocument = parseDocument3;
       exports.stringify = stringify2;
@@ -7952,7 +7952,7 @@ ${end.comment}` : end.comment;
       var syntaxError = (type, char) => {
         return `Missing ${type}: "${char}" - use "\\\\${char}" to match literal characters`;
       };
-      var parse = (input, options) => {
+      var parse2 = (input, options) => {
         if (typeof input !== "string") {
           throw new TypeError("Expected a string");
         }
@@ -8100,7 +8100,7 @@ ${end.comment}` : end.comment;
               output = token.close = `)$))${extglobStar}`;
             }
             if (token.inner.includes("*") && (rest = remaining()) && /^\.[^\\/.]+$/.test(rest)) {
-              const expression = parse(rest, { ...options, fastpaths: false }).output;
+              const expression = parse2(rest, { ...options, fastpaths: false }).output;
               output = token.close = `)${expression})${extglobStar})`;
             }
             if (token.prev.type === "bos") {
@@ -8622,7 +8622,7 @@ ${end.comment}` : end.comment;
         }
         return state;
       };
-      parse.fastpaths = (input, options) => {
+      parse2.fastpaths = (input, options) => {
         const opts = { ...options };
         const max = typeof opts.maxLength === "number" ? Math.min(MAX_LENGTH, opts.maxLength) : MAX_LENGTH;
         const len = input.length;
@@ -8687,7 +8687,7 @@ ${end.comment}` : end.comment;
         }
         return source;
       };
-      module.exports = parse;
+      module.exports = parse2;
     }
   });
 
@@ -8696,7 +8696,7 @@ ${end.comment}` : end.comment;
     "../../.yarn/berry/cache/picomatch-npm-4.0.2-e93516ddf2-10c0.zip/node_modules/picomatch/lib/picomatch.js"(exports, module) {
       "use strict";
       var scan = require_scan();
-      var parse = require_parse();
+      var parse2 = require_parse();
       var utils = require_utils();
       var constants = require_constants();
       var isObject = (val) => val && typeof val === "object" && !Array.isArray(val);
@@ -8784,7 +8784,7 @@ ${end.comment}` : end.comment;
       picomatch.isMatch = (str, patterns, options) => picomatch(patterns, options)(str);
       picomatch.parse = (pattern, options) => {
         if (Array.isArray(pattern)) return pattern.map((p) => picomatch.parse(p, options));
-        return parse(pattern, { ...options, fastpaths: false });
+        return parse2(pattern, { ...options, fastpaths: false });
       };
       picomatch.scan = (input, options) => scan(input, options);
       picomatch.compileRe = (state, options, returnOutput = false, returnState = false) => {
@@ -8810,10 +8810,10 @@ ${end.comment}` : end.comment;
         }
         let parsed = { negated: false, fastpaths: true };
         if (options.fastpaths !== false && (input[0] === "." || input[0] === "*")) {
-          parsed.output = parse.fastpaths(input, options);
+          parsed.output = parse2.fastpaths(input, options);
         }
         if (!parsed.output) {
-          parsed = parse(input, options);
+          parsed = parse2(input, options);
         }
         return picomatch.compileRe(parsed, options, returnOutput, returnState);
       };
@@ -9354,7 +9354,6 @@ ${end.comment}` : end.comment;
   // sources/configuration/reader.ts
   var import_core = __require("@yarnpkg/core");
   var import_fslib = __require("@yarnpkg/fslib");
-  var import_parsers = __require("@yarnpkg/parsers");
   var import_picomatch = __toESM(require_picomatch2());
   var import_yaml = __toESM(require_dist());
 
@@ -9499,7 +9498,7 @@ ${end.comment}` : end.comment;
         return null;
       }
       const content = await import_fslib.xfs.readFilePromise(catalogsYmlPath, "utf8");
-      const parsed = (0, import_parsers.parseSyml)(content);
+      const parsed = (0, import_yaml.parse)(content);
       if (!isValidCatalogsYml(parsed)) {
         throw new CatalogConfigurationError(
           "Invalid catalogs.yml format. Expected structure: { options?: {...}, list: { [alias: string]: { [packageName: string]: string } } }",

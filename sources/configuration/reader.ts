@@ -1,9 +1,8 @@
 import type { Project, Workspace } from "@yarnpkg/core";
 import { structUtils } from "@yarnpkg/core";
 import { type Filename, type PortablePath, ppath, xfs } from "@yarnpkg/fslib";
-import { parseSyml } from "@yarnpkg/parsers";
 import { isMatch } from "picomatch";
-import { parseDocument } from "yaml";
+import { parse, parseDocument } from "yaml";
 import { ROOT_ALIAS_GROUP } from "../constants";
 import { CatalogConfigurationError } from "../errors";
 import type { CatalogsConfiguration } from "./types";
@@ -44,7 +43,7 @@ export class CatalogsConfigurationReader {
     }
 
     const content = await xfs.readFilePromise(catalogsYmlPath, "utf8");
-    const parsed: unknown = parseSyml(content);
+    const parsed: unknown = parse(content);
 
     if (!isValidCatalogsYml(parsed)) {
       throw new CatalogConfigurationError(
