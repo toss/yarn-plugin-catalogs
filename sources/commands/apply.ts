@@ -1,9 +1,9 @@
 import { BaseCommand } from "@yarnpkg/cli";
 import { Configuration, Project, StreamReport } from "@yarnpkg/core";
 import { type Filename, type PortablePath, ppath, xfs } from "@yarnpkg/fslib";
-import { parseSyml, stringifySyml } from "@yarnpkg/parsers";
 import chalk from "chalk";
 import { Command, Option } from "clipanion";
+import { parseDocument, stringify } from "yaml";
 import { configReader } from "../configuration";
 
 export class ApplyCommand extends BaseCommand {
@@ -140,7 +140,8 @@ export async function readExistingYarnrc(
   }
 
   const content = await xfs.readFilePromise(yarnrcPath, "utf8");
-  return (parseSyml(content) as Record<string, unknown>) || {};
+  const doc = parseDocument(content);
+  return (doc.toJSON() as Record<string, unknown>) || {};
 }
 
 /**
@@ -167,8 +168,8 @@ export function checkForChanges(
     newConfig.catalogs = undefined;
   }
 
-  const oldContent = stringifySyml(existingConfig);
-  const newContent = stringifySyml(newConfig);
+  const oldContent = stringify(existingConfig);
+  const newContent = stringify(newConfig);
 
   return oldContent !== newContent;
 }

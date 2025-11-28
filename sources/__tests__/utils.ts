@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { type PortablePath, npath, ppath, xfs } from "@yarnpkg/fslib";
-import { dump as yamlDump, load as yamlLoad } from "js-yaml";
+import { parse as yamlParse, stringify as yamlStringify } from "yaml";
 import { dir as tmpDir } from "tmp-promise";
 
 const execFileAsync = promisify(execFile);
@@ -12,7 +12,9 @@ export interface TestWorkspace {
   writeJson: (path: string, content: unknown) => Promise<void>;
   readPackageJson: () => Promise<any>;
   readYarnrc: () => Promise<any>;
+  readYarnrcRaw: () => Promise<string>;
   writeYarnrc: (content: unknown) => Promise<void>;
+  writeYarnrcRaw: (content: string) => Promise<void>;
   writeCatalogsYml: (content: unknown) => Promise<void>;
   yarn: {
     (args: string[]): Promise<{ stdout: string; stderr: string }>;
@@ -76,7 +78,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
       .catch(() => "");
     await xfs.writeFilePromise(
       yarnrcPath,
-      `${existingContent}\n${yamlDump(content)}`,
+      `${existingContent}\n${yamlStringify(content)}`,
     );
   };
 
@@ -85,7 +87,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
       portablePath,
       "catalogs.yml" as PortablePath,
     );
-    await xfs.writeFilePromise(catalogsYmlPath, yamlDump(content));
+    await xfs.writeFilePromise(catalogsYmlPath, yamlStringify(content));
   };
 
   const readPackageJson = async () => {
@@ -97,7 +99,17 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
   const readYarnrc = async () => {
     const yarnrcPath = ppath.join(portablePath, ".yarnrc.yml" as PortablePath);
     const content = await xfs.readFilePromise(yarnrcPath, "utf8");
-    return yamlLoad(content);
+    return yamlParse(content);
+  };
+
+  const readYarnrcRaw = async () => {
+    const yarnrcPath = ppath.join(portablePath, ".yarnrc.yml" as PortablePath);
+    return await xfs.readFilePromise(yarnrcPath, "utf8");
+  };
+
+  const writeYarnrcRaw = async (content: string) => {
+    const yarnrcPath = ppath.join(portablePath, ".yarnrc.yml" as PortablePath);
+    await xfs.writeFilePromise(yarnrcPath, content);
   };
 
   return {
@@ -106,7 +118,9 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
     writeJson,
     readPackageJson,
     readYarnrc,
+    readYarnrcRaw,
     writeYarnrc: writeYaml,
+    writeYarnrcRaw,
     writeCatalogsYml,
     yarn,
   };
