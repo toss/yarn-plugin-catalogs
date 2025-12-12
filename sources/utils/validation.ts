@@ -89,10 +89,10 @@ export async function validateCatalogUsability(
     return null;
   }
 
-  // Get validation level for the package
+  // Get validation level for the package (scoped to accessible groups)
   const validationLevel = await getPackageValidationLevel(
     workspace,
-    packageName,
+    accessibleGroups,
   );
 
   return {
@@ -166,16 +166,14 @@ async function getGroupValidationLevel(
 }
 
 /**
- * Get the strictest validation level for a package across all accessible groups
+ * Get the strictest validation level for a package across the specified accessible groups
+ * @param workspace The workspace context
+ * @param accessibleGroups The catalog groups to consider (already filtered by default scope)
  */
 async function getPackageValidationLevel(
   workspace: Workspace,
-  packageName: string,
+  accessibleGroups: string[],
 ): Promise<ValidationLevel> {
-  const accessibleGroups = (
-    await findAllGroupsWithSpecificDependency(workspace.project, packageName)
-  ).map(({ groupName }) => groupName);
-
   if (accessibleGroups.length === 0) {
     return "off";
   }
