@@ -394,4 +394,119 @@ describe("validation", () => {
 
     await expect(workspace.yarn.install()).rejects.toThrow();
   });
+
+  describe("validation with default groups", () => {
+    it("should only apply validation from catalogs in default groups", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        options: {
+          default: ["stable"],
+          validation: {
+            stable: "off",
+            experimental: "strict",
+          },
+        },
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+          experimental: {
+            react: "npm:19.0.0-alpha",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "test-package",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          react: "17.0.0",
+        },
+      });
+
+      const { stderr } = await workspace.yarn.install();
+      expect(stderr).toBe("");
+      expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
+    });
+
+    it("should not validate packages only in non-default groups", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        options: {
+          default: ["stable"],
+          validation: {
+            stable: "strict",
+            experimental: "strict",
+          },
+        },
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+          experimental: {
+            lodash: "npm:4.17.21",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "test-package",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          lodash: "4.17.20",
+        },
+      });
+
+      const { stderr } = await workspace.yarn.install();
+      expect(stderr).toBe("");
+      expect(await hasDependency(workspace, "lodash@npm:4.17.20")).toBe(true);
+    });
+
+    it("should apply strictest validation across multiple default groups", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        options: {
+          default: ["stable", "beta"],
+          validation: {
+            stable: "warn",
+            beta: "strict",
+            experimental: "off",
+          },
+        },
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+          beta: {
+            react: "npm:18.2.0",
+          },
+          experimental: {
+            react: "npm:19.0.0-alpha",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "test-package",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          react: "17.0.0",
+        },
+      });
+
+      await expect(workspace.yarn.install()).rejects.toThrow();
+    });
+  });
 });
