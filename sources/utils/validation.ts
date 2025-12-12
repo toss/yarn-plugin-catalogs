@@ -89,7 +89,7 @@ export async function validateCatalogUsability(
     return null;
   }
 
-  // Get validation level for the package 
+  // Get validation level for the package
   const validationLevel = await getPackageValidationLevel(
     workspace,
     accessibleGroups,
