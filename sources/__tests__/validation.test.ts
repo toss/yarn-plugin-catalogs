@@ -470,15 +470,15 @@ describe("validation", () => {
       expect(await hasDependency(workspace, "lodash@npm:4.17.20")).toBe(true);
     });
 
-    it("should apply strictest validation across multiple default groups", async () => {
+    it("should calculate validation level only within default groups", async () => {
       workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
         options: {
-          default: ["stable", "beta"],
+          default: ["beta", "experimental"],
           validation: {
-            stable: "warn",
-            beta: "strict",
+            stable: "strict",
+            beta: "off",
             experimental: "off",
           },
         },
@@ -506,7 +506,9 @@ describe("validation", () => {
         },
       });
 
-      await expect(workspace.yarn.install()).rejects.toThrow();
+      const { stderr } = await workspace.yarn.install();
+      expect(stderr).toBe("");
+      expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
     });
   });
 });
