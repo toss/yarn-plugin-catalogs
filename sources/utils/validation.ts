@@ -89,7 +89,7 @@ export async function validateCatalogUsability(
     return null;
   }
 
-  // Get validation level for the package (scoped to accessible groups)
+  // Get validation level for the package 
   const validationLevel = await getPackageValidationLevel(
     workspace,
     accessibleGroups,
@@ -167,8 +167,6 @@ async function getGroupValidationLevel(
 
 /**
  * Get the strictest validation level for a package across the specified accessible groups
- * @param workspace The workspace context
- * @param accessibleGroups The catalog groups to consider (already filtered by default scope)
  */
 async function getPackageValidationLevel(
   workspace: Workspace,
