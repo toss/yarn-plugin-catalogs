@@ -394,4 +394,70 @@ describe("validation", () => {
 
     await expect(workspace.yarn.install()).rejects.toThrow();
   });
+
+  describe("per-workspace validation overrides", () => {
+    it("should apply workspace filters before handling validation", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        options: {
+          default: ["root"],
+          includedWorkspaces: ["workspace-*"],
+          ignoredWorkspaces: ["workspace-ignored"],
+          noValidationWorkspaces: ["workspace-*"],
+        },
+        list: {
+          root: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "workspace-ignored",
+        version: "1.0.0",
+        private: true,
+        dependencies: {},
+      });
+
+      const { stderr } = await workspace.yarn.add("react@17.0.0");
+      expect(stderr).toBe("");
+
+      expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
+    });
+
+    it("should skip validation even when validation is strict", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        options: {
+          validation: "strict",
+          noValidationWorkspaces: ["workspace-no-validation"],
+        },
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "workspace-no-validation",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          react: "17.0.0",
+        },
+      });
+
+      const { stderr } = await workspace.yarn.install();
+      expect(stderr).toBe("");
+
+      expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
+    });
+  });
 });
