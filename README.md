@@ -34,8 +34,8 @@ yarn plugin import https://raw.githubusercontent.com/toss/yarn-plugin-catalogs/m
 options:
   default: [stable]           # Optional: Default catalog groups for 'yarn add'
   validation: warn            # Optional: 'warn' | 'strict' | 'off'
-  includedWorkspaces: []       # Optional: Workspaces to include 
-  ignoredWorkspaces: []       # Optional: Workspaces to ignore 
+  includedWorkspaces: []       # Optional: Workspaces to include
+  ignoredWorkspaces: []       # Optional: Workspaces to ignore
 
 list:
   root:  # Special alias for the root catalog (accessed via catalog:)
@@ -262,7 +262,7 @@ If your `package.json` has more `catalog:stable` dependencies than `catalog:beta
 
 Control which workspaces are included in catalog protocol processing using `includedWorkspaces` and `ignoredWorkspaces` options.
 
-#### Including Workspaces 
+#### Including Workspaces
 
 Use `includedWorkspaces` to specify which workspaces should be processed for catalogs. Only matching workspaces will receive catalog validation and default catalog auto-application:
 
@@ -309,7 +309,7 @@ Control how strictly catalog usage is enforced:
 ```yaml
 # In catalogs.yml
 options:
-  validation: warn  # 'warn' | 'strict' | 'off'
+  validation: warn  # 'warn' | 'strict' | 'off' or a per-catalog map (see below)
 
 list:
   stable:
@@ -363,6 +363,25 @@ list:
 In this example:
 - `react` will use `strict` validation (from `stable/canary`)
 - `lodash` will use `strict` validation (from `stable/canary` since it's not in parent)
+
+#### Skipping Validation for Specific Workspaces
+
+Use `noValidationWorkspaces` to bypass validation for certain workspaces:
+
+```yaml
+# In catalogs.yml
+options:
+  validation: strict
+  includedWorkspaces: [apps-*]
+  ignoredWorkspaces: [apps-legacy]
+  noValidationWorkspaces: [apps-demo]
+
+list:
+  stable:
+    react: npm:18.0.0
+```
+
+`apps-demo` will skip validation entirely (even though validation is `strict`), while `apps-legacy` stays ignored and still won't be validated.
 
 ## Contributing
 
