@@ -35,6 +35,11 @@
           "type": "array",
           "description": "The list of workspace names/paths to exclude from catalog application",
           "items": { "$ref": "#/$defs/workspaceName" }
+        },
+        "noValidationWorkspaces": {
+          "type": "array",
+          "description": "The list of workspace names/paths to bypass validation regardless of validation settings",
+          "items": { "$ref": "#/$defs/workspaceName" }
         }
       }
     },
