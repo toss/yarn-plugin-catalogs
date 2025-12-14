@@ -25,6 +25,18 @@ interface CatalogsOptions {
    */
   ignoredWorkspaces?: string[];
   /**
+   * List of workspaces to exclude from validation (opt-out) Workspaces matching
+   * these patterns will be excluded from catalog validation, regardless of
+   * `validation` settings
+   *
+   * This is useful for workspaces that are known to not comply with catalog
+   * usage
+   *
+   * This filter is applied after `includedWorkspaces` and `ignoredWorkspaces`
+   * are resolved and takes precedence over `validation` settings
+  */
+  noValidationWorkspaces?: string[];
+  /**
    * Validation level for catalog usage
    * - 'warn': Show warnings when catalog versions are not used (default)
    * - 'strict': Throw errors when catalog versions are not used
