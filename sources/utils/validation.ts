@@ -71,6 +71,10 @@ export async function validateCatalogUsability(
     return null;
   }
 
+  if (await configReader.shouldSkipWorkspaceValidation(workspace)) {
+    return null;
+  }
+
   const defaultAliasGroups = await getDefaultAliasGroups(workspace);
 
   // Find all groups that can access this package

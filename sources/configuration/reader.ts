@@ -143,6 +143,26 @@ export class CatalogsConfigurationReader {
   }
 
   /**
+   * Check if a workspace should skip validation based on catalogs.yml
+   * configuration
+   */
+  async shouldSkipWorkspaceValidation(workspace: Workspace): Promise<boolean> {
+    if (!workspace.manifest.name) return false;
+
+    const catalogsYml = await this.read(workspace.project);
+    const options = catalogsYml?.options;
+    if (!options) return false;
+    const workspaceName = structUtils.stringifyIdent(workspace.manifest.name);
+
+    if (options.noValidationWorkspaces) {
+      const noValidationRequired = isMatch(workspaceName, options.noValidationWorkspaces);
+      if (noValidationRequired) return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Write catalogs to .yarnrc.yml in Yarn's native format
    * This applies catalogs.yml to .yarnrc.yml
    */
