@@ -22,9 +22,23 @@
           ]
         },
         "validation": {
-          "type": "string",
           "description": "The level of dependency source validation",
-          "enum": ["warn", "strict", "off"]
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": ["warn", "strict", "off"]
+            },
+            {
+              "type": "object",
+              "description": "Per-catalog validation levels keyed by catalog group name",
+              "propertyNames": { "$ref": "#/$defs/catalogGroupName" },
+              "additionalProperties": {
+                "type": "string",
+                "enum": ["warn", "strict", "off"]
+              },
+              "minProperties": 1
+            }
+          ]
         },
         "includedWorkspaces": {
           "type": "array",
