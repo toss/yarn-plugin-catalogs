@@ -9960,25 +9960,18 @@ ${end.comment}` : end.comment;
         }
       }
     }
-    if (rules?.catalog_protocol_usage === "strict") {
-      const message2 = `\u27A4 ${dependency.name} is listed in the catalogs config, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${applicableGroups[0] === ROOT_ALIAS_GROUP ? "" : applicableGroups[0]}' instead.`;
-      throw new Error(source_default.red(message2));
-    }
-    if (rules?.catalog_protocol_usage === "warn") {
-      const aliasGroups2 = applicableGroups.map(
-        (groupName) => groupName === ROOT_ALIAS_GROUP ? "" : groupName
-      );
-      const aliasGroupsText2 = aliasGroups2.filter((aliasGroup) => aliasGroup !== "").length > 0 ? ` (${aliasGroups2.join(", ")})` : "";
-      const message2 = `\u27A4 ${dependency.name} is listed in the catalogs config${aliasGroupsText2}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups2[0]}' instead.`;
-      console.warn(source_default.yellow(message2));
-      return;
-    }
     const aliasGroups = applicableGroups.map(
       (groupName) => groupName === ROOT_ALIAS_GROUP ? "" : groupName
     );
     const aliasGroupsText = aliasGroups.filter((aliasGroup) => aliasGroup !== "").length > 0 ? ` (${aliasGroups.join(", ")})` : "";
     const message = `\u27A4 ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
-    console.warn(source_default.yellow(message));
+    if (rules?.catalog_protocol_usage === "strict") {
+      throw new Error(source_default.red(message));
+    }
+    if (rules?.catalog_protocol_usage === "warn") {
+      console.warn(source_default.yellow(message));
+      return;
+    }
   }
   async function getDefaultAliasGroups(workspace) {
     const options = await configReader.getOptions(workspace.project);

@@ -54,29 +54,6 @@ export async function fallbackDefaultAliasGroup(
     }
   }
 
-  // If "strict" rule is set, throw error
-  if (rules?.catalog_protocol_usage === "strict") {
-    const message = `➤ ${dependency.name} is listed in the catalogs config, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${applicableGroups[0] === ROOT_ALIAS_GROUP ? "" : applicableGroups[0]}' instead.`;
-    throw new Error(chalk.red(message));
-  }
-
-  // For "warn", show warning message
-  if (rules?.catalog_protocol_usage === "warn") {
-    const aliasGroups = applicableGroups.map((groupName) =>
-      groupName === ROOT_ALIAS_GROUP ? "" : groupName,
-    );
-
-    const aliasGroupsText =
-      aliasGroups.filter((aliasGroup) => aliasGroup !== "").length > 0
-        ? ` (${aliasGroups.join(", ")})`
-        : "";
-
-    const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
-    console.warn(chalk.yellow(message));
-    return;
-  }
-
-  // For "optional" or no rule, show suggestion message
   const aliasGroups = applicableGroups.map((groupName) =>
     groupName === ROOT_ALIAS_GROUP ? "" : groupName,
   );
@@ -87,7 +64,14 @@ export async function fallbackDefaultAliasGroup(
       : "";
 
   const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
-  console.warn(chalk.yellow(message));
+
+  if (rules?.catalog_protocol_usage === "strict") {
+    throw new Error(chalk.red(message));
+  }
+
+  if (rules?.catalog_protocol_usage === "warn") {
+    console.warn(chalk.yellow(message));
+  }
 }
 
 /**
