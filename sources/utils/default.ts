@@ -9,13 +9,6 @@ export async function fallbackDefaultAliasGroup(
   dependency: Descriptor,
 ) {
   if (dependency.range.startsWith(CATALOG_PROTOCOL)) {
-    if (await configReader.shouldIgnoreWorkspace(workspace)) {
-      throw new Error(
-        chalk.red(
-          "The workspace is ignored from the catalogs, but the dependency to add is using the catalog protocol. Consider removing the protocol.",
-        ),
-      );
-    }
     return;
   }
 
@@ -71,10 +64,6 @@ export async function getDefaultAliasGroups(
   const options = await configReader.getOptions(workspace.project);
 
   if (options) {
-    if (await configReader.shouldIgnoreWorkspace(workspace)) {
-      return [];
-    }
-
     if (options.default) {
       // If default value is an list of alias groups, return it
       if (Array.isArray(options.default)) {

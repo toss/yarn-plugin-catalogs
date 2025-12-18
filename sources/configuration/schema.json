@@ -25,16 +25,6 @@
           "type": "string",
           "description": "The level of dependency source validation",
           "enum": ["warn", "strict", "off"]
-        },
-        "includedWorkspaces": {
-          "type": "array",
-          "description": "The list of workspace names/paths to include in catalog application",
-          "items": { "$ref": "#/$defs/workspaceName" }
-        },
-        "ignoredWorkspaces": {
-          "type": "array",
-          "description": "The list of workspace names/paths to exclude from catalog application",
-          "items": { "$ref": "#/$defs/workspaceName" }
         }
       }
     },
@@ -48,10 +38,6 @@
   },
   "required": ["list"],
   "$defs": {
-    "workspaceName": {
-      "type": "string",
-      "minLength": 1
-    },
     "catalogGroupName": {
       "type": "string",
       "description": "Catalog group name; may include '/' to indicate inheritance (e.g., stable, stable/canary). Excludes the reserved token 'max'.",

@@ -10,46 +10,11 @@ import { configReader } from "../configuration";
 import { getDefaultAliasGroups } from "./default";
 
 export interface ValidationResult {
-  shouldIgnore: boolean;
   catalogProtocolViolations: Array<{
     descriptor: Descriptor;
     validationLevel: Omit<ValidationLevel, "off">;
     applicableGroups: string[];
   }>;
-  ignoredWorkspaceWithCatalogProtocol: boolean;
-}
-
-/**
- * Validate workspace for catalog usage
- * Returns all validation issues without reporting them
- */
-export async function validateWorkspace(
-  workspace: Workspace,
-): Promise<ValidationResult> {
-  const shouldIgnore = await configReader.shouldIgnoreWorkspace(workspace);
-
-  const hasCatalogProtocol = [
-    ...Object.values<string>(workspace.manifest.raw.dependencies || {}),
-    ...Object.values<string>(workspace.manifest.raw.devDependencies || {}),
-  ].some((version) => version.startsWith(CATALOG_PROTOCOL));
-
-  const ignoredWorkspaceWithCatalogProtocol =
-    shouldIgnore && hasCatalogProtocol;
-
-  // Check catalog protocol violations
-  let catalogProtocolViolations: ValidationResult["catalogProtocolViolations"] =
-    [];
-
-  if (!shouldIgnore) {
-    catalogProtocolViolations =
-      await validateWorkspaceCatalogUsability(workspace);
-  }
-
-  return {
-    shouldIgnore,
-    catalogProtocolViolations,
-    ignoredWorkspaceWithCatalogProtocol,
-  };
 }
 
 /**
@@ -64,10 +29,6 @@ export async function validateCatalogUsability(
 } | null> {
   // Skip if already using catalog protocol
   if (descriptor.range.startsWith(CATALOG_PROTOCOL)) {
-    return null;
-  }
-
-  if (await configReader.shouldIgnoreWorkspace(workspace)) {
     return null;
   }
 

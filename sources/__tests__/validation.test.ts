@@ -160,38 +160,6 @@ describe("validation", () => {
     expect(stderr).toContain("react@catalog:");
   });
 
-  it("should not enforce on ignored workspaces", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: "strict",
-        ignoredWorkspaces: ["test-package"],
-      },
-      list: {
-        stable: {
-          react: "npm:18.0.0",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        react: "17.0.0",
-      },
-    });
-
-    const { stderr } = await workspace.yarn.install();
-    expect(stderr).toBe("");
-
-    expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
-  });
-
   it("should handle root catalog groups with validation", async () => {
     workspace = await createTestWorkspace();
 
