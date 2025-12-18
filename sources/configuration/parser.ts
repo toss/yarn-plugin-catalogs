@@ -11,7 +11,7 @@ export function isValidValidationConfig(
     return false;
   }
 
-  const validRuleValues = ["always", "optional", "restrict"];
+  const validRuleValues = ["strict", "warn", "optional", "restrict"];
 
   for (const rule of validation) {
     if (!rule || typeof rule !== "object") {

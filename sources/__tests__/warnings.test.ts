@@ -123,9 +123,16 @@ describe("warnings and recommendations", () => {
 
     await workspace.writeCatalogsYml({
       options: {
-        validation: "warn",
         default: ["stable"],
       },
+      validation: [
+        {
+          workspaces: ["*"],
+          rules: {
+            catalog_protocol_usage: "warn",
+          },
+        },
+      ],
       list: {
         stable: {
           react: "npm:17.0.0",
@@ -150,9 +157,16 @@ describe("warnings and recommendations", () => {
 
     await workspace.writeCatalogsYml({
       options: {
-        validation: "strict",
         default: ["stable"],
       },
+      validation: [
+        {
+          workspaces: ["*"],
+          rules: {
+            catalog_protocol_usage: "strict",
+          },
+        },
+      ],
       list: {
         stable: {
           react: "npm:17.0.0",

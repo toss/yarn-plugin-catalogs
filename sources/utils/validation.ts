@@ -16,6 +16,7 @@ export interface ValidationViolation {
   rule: keyof ValidationRules;
   ruleValue: string;
   message: string;
+  severity: "error" | "warning";
 }
 
 /**
@@ -25,28 +26,22 @@ export interface ValidationViolation {
 export async function findMatchingValidationRule(
   workspace: Workspace,
 ): Promise<ValidationRules | null> {
-  console.log("Finding matching validation rule for workspace:", workspace.relativeCwd);
   const catalogsYml = await configReader.read(workspace.project);
 
   if (!catalogsYml?.validation || catalogsYml.validation.length === 0) {
-    console.log("No validation rules found");
     return null;
   }
 
   const workspaceName = workspace.manifest.raw.name;
-  console.log("Workspace name:", workspaceName);
 
   for (const rule of catalogsYml.validation) {
-    console.log("Checking rule:", rule);
     const matching = rule.workspaces.some((pattern) => isMatch(workspaceName, pattern));
 
     if (matching) {
-      console.log("Matching rule found:", rule.rules);
       return rule.rules;
     }
   }
 
-  console.log("No matching rule found");
   return null;
 }
 
@@ -62,8 +57,8 @@ async function validateCatalogProtocolUsage(
   const packageName = structUtils.stringifyIdent(descriptor);
 
   switch (ruleValue) {
-    case "always": {
-      // Must use catalog: protocol if package is in catalogs
+    case "strict": {
+      // MUST use catalog: protocol if package is in catalogs
       if (isUsingCatalogProtocol) {
         return null;
       }
@@ -82,25 +77,53 @@ async function validateCatalogProtocolUsage(
           rule: "catalog_protocol_usage",
           ruleValue,
           message: `Package "${packageName}" is available in catalogs but not using catalog: protocol`,
+          severity: "error",
+        };
+      }
+      break;
+    }
+
+    case "warn": {
+      // SHOULD use catalog: protocol. Warn if not.
+      if (isUsingCatalogProtocol) {
+        return null;
+      }
+
+      // Check if package exists in any catalog
+      const catalogs = await configReader.getAppliedCatalogs(workspace.project);
+      const existsInCatalog =
+        catalogs &&
+        Object.values(catalogs).some(
+          (catalog) => catalog[packageName] !== undefined,
+        );
+
+      if (existsInCatalog) {
+        return {
+          descriptor,
+          rule: "catalog_protocol_usage",
+          ruleValue,
+          message: `Package "${packageName}" is available in catalogs but not using catalog: protocol`,
+          severity: "warning",
         };
       }
       break;
     }
 
     case "restrict":
-      // Must NOT use catalog: protocol
+      // MUST NOT use catalog: protocol
       if (isUsingCatalogProtocol) {
         return {
           descriptor,
           rule: "catalog_protocol_usage",
           ruleValue,
           message: `Package "${packageName}" is using catalog: protocol but this is restricted in this workspace`,
+          severity: "error",
         };
       }
       break;
 
     case "optional":
-      // No validation
+      // CAN use catalog: protocol. No warning even if not.
       break;
   }
 

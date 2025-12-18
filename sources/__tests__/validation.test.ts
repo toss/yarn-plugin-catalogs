@@ -14,7 +14,7 @@ describe("validation", () => {
     }
   });
 
-  describe("catalog_protocol_usage: always", () => {
+  describe("catalog_protocol_usage: strict", () => {
     it("should error when not using catalog protocol for package in catalogs", async () => {
       workspace = await createTestWorkspace();
 
@@ -23,7 +23,7 @@ describe("validation", () => {
           {
             workspaces: ["*"],
             rules: {
-              catalog_protocol_usage: "always",
+              catalog_protocol_usage: "strict",
             },
           },
         ],
@@ -56,7 +56,7 @@ describe("validation", () => {
           {
             workspaces: ["*"],
             rules: {
-              catalog_protocol_usage: "always",
+              catalog_protocol_usage: "strict",
             },
           },
         ],
@@ -80,7 +80,7 @@ describe("validation", () => {
           {
             workspaces: ["*"],
             rules: {
-              catalog_protocol_usage: "always",
+              catalog_protocol_usage: "strict",
             },
           },
         ],
@@ -114,7 +114,7 @@ describe("validation", () => {
           {
             workspaces: ["*"],
             rules: {
-              catalog_protocol_usage: "always",
+              catalog_protocol_usage: "strict",
             },
           },
         ],
@@ -282,7 +282,7 @@ describe("validation", () => {
           {
             workspaces: ["test-package"],
             rules: {
-              catalog_protocol_usage: "always",
+              catalog_protocol_usage: "strict",
             },
           },
         ],
@@ -315,7 +315,7 @@ describe("validation", () => {
           {
             workspaces: ["packages/**"],
             rules: {
-              catalog_protocol_usage: "always",
+              catalog_protocol_usage: "strict",
             },
           },
         ],
@@ -357,7 +357,7 @@ describe("validation", () => {
           {
             workspaces: ["*"],
             rules: {
-              catalog_protocol_usage: "always",
+              catalog_protocol_usage: "strict",
             },
           },
         ],
@@ -448,7 +448,7 @@ describe("validation", () => {
           {
             workspaces: ["test-*", "service-*"],
             rules: {
-              catalog_protocol_usage: "always",
+              catalog_protocol_usage: "strict",
             },
           },
         ],

@@ -1,10 +1,11 @@
 /**
  * Rule for catalog protocol usage validation
- * - 'always': Must use catalog: protocol if package is in catalogs
- * - 'optional': No validation
- * - 'restrict': Must NOT use catalog: protocol
+ * - 'strict': MUST use catalog: protocol if package is in catalogs
+ * - 'warn': SHOULD use catalog: protocol. Warn if not.
+ * - 'optional': CAN use catalog: protocol. No warning even if not.
+ * - 'restrict': MUST NOT use catalog: protocol
  */
-export type CatalogProtocolUsageRule = "always" | "optional" | "restrict";
+export type CatalogProtocolUsageRule = "strict" | "warn" | "optional" | "restrict";
 
 /**
  * Validation rules that can be applied to workspaces

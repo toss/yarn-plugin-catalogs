@@ -81,8 +81,8 @@
       "properties": {
         "catalog_protocol_usage": {
           "type": "string",
-          "description": "Controls catalog: protocol usage validation. 'always' = must use catalog: if package is in catalogs, 'optional' = no validation, 'restrict' = must NOT use catalog:",
-          "enum": ["always", "optional", "restrict"]
+          "description": "Controls catalog: protocol usage validation. 'strict' = MUST use catalog: if package is in catalogs, 'warn' = SHOULD use catalog: (warn if not), 'optional' = CAN use catalog: (no warning), 'restrict' = MUST NOT use catalog:",
+          "enum": ["strict", "warn", "optional", "restrict"]
         }
       }
     }

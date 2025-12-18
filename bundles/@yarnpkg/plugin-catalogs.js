@@ -9382,7 +9382,7 @@ ${end.comment}` : end.comment;
     if (!Array.isArray(validation)) {
       return false;
     }
-    const validRuleValues = ["always", "optional", "restrict"];
+    const validRuleValues = ["strict", "warn", "optional", "restrict"];
     for (const rule of validation) {
       if (!rule || typeof rule !== "object") {
         return false;
@@ -9829,30 +9829,24 @@ ${end.comment}` : end.comment;
   var import_core2 = __require("@yarnpkg/core");
   var import_picomatch = __toESM(require_picomatch2());
   async function findMatchingValidationRule(workspace) {
-    console.log("Finding matching validation rule for workspace:", workspace.relativeCwd);
     const catalogsYml = await configReader.read(workspace.project);
     if (!catalogsYml?.validation || catalogsYml.validation.length === 0) {
-      console.log("No validation rules found");
       return null;
     }
     const workspaceName = workspace.manifest.raw.name;
-    console.log("Workspace name:", workspaceName);
     for (const rule of catalogsYml.validation) {
-      console.log("Checking rule:", rule);
       const matching = rule.workspaces.some((pattern) => (0, import_picomatch.isMatch)(workspaceName, pattern));
       if (matching) {
-        console.log("Matching rule found:", rule.rules);
         return rule.rules;
       }
     }
-    console.log("No matching rule found");
     return null;
   }
   async function validateCatalogProtocolUsage(workspace, descriptor, ruleValue) {
     const isUsingCatalogProtocol = descriptor.range.startsWith(CATALOG_PROTOCOL);
     const packageName = import_core2.structUtils.stringifyIdent(descriptor);
     switch (ruleValue) {
-      case "always": {
+      case "strict": {
         if (isUsingCatalogProtocol) {
           return null;
         }
@@ -9865,7 +9859,27 @@ ${end.comment}` : end.comment;
             descriptor,
             rule: "catalog_protocol_usage",
             ruleValue,
-            message: `Package "${packageName}" is available in catalogs but not using catalog: protocol`
+            message: `Package "${packageName}" is available in catalogs but not using catalog: protocol`,
+            severity: "error"
+          };
+        }
+        break;
+      }
+      case "warn": {
+        if (isUsingCatalogProtocol) {
+          return null;
+        }
+        const catalogs = await configReader.getAppliedCatalogs(workspace.project);
+        const existsInCatalog = catalogs && Object.values(catalogs).some(
+          (catalog) => catalog[packageName] !== void 0
+        );
+        if (existsInCatalog) {
+          return {
+            descriptor,
+            rule: "catalog_protocol_usage",
+            ruleValue,
+            message: `Package "${packageName}" is available in catalogs but not using catalog: protocol`,
+            severity: "warning"
           };
         }
         break;
@@ -9876,7 +9890,8 @@ ${end.comment}` : end.comment;
             descriptor,
             rule: "catalog_protocol_usage",
             ruleValue,
-            message: `Package "${packageName}" is using catalog: protocol but this is restricted in this workspace`
+            message: `Package "${packageName}" is using catalog: protocol but this is restricted in this workspace`,
+            severity: "error"
           };
         }
         break;
@@ -9945,9 +9960,18 @@ ${end.comment}` : end.comment;
         }
       }
     }
-    if (rules?.catalog_protocol_usage === "always") {
+    if (rules?.catalog_protocol_usage === "strict") {
       const message2 = `\u27A4 ${dependency.name} is listed in the catalogs config, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${applicableGroups[0] === ROOT_ALIAS_GROUP ? "" : applicableGroups[0]}' instead.`;
       throw new Error(source_default.red(message2));
+    }
+    if (rules?.catalog_protocol_usage === "warn") {
+      const aliasGroups2 = applicableGroups.map(
+        (groupName) => groupName === ROOT_ALIAS_GROUP ? "" : groupName
+      );
+      const aliasGroupsText2 = aliasGroups2.filter((aliasGroup) => aliasGroup !== "").length > 0 ? ` (${aliasGroups2.join(", ")})` : "";
+      const message2 = `\u27A4 ${dependency.name} is listed in the catalogs config${aliasGroupsText2}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups2[0]}' instead.`;
+      console.warn(source_default.yellow(message2));
+      return;
     }
     const aliasGroups = applicableGroups.map(
       (groupName) => groupName === ROOT_ALIAS_GROUP ? "" : groupName
@@ -10018,10 +10042,17 @@ ${end.comment}` : end.comment;
           return;
         }
         for (const violation of violations) {
-          report.reportError(
-            import_core3.MessageName.INVALID_MANIFEST,
-            `${source_default.yellow(import_core3.structUtils.stringifyDescriptor(violation.descriptor))}: ${violation.message}`
-          );
+          if (violation.severity === "error") {
+            report.reportError(
+              import_core3.MessageName.INVALID_MANIFEST,
+              `${source_default.yellow(import_core3.structUtils.stringifyDescriptor(violation.descriptor))}: ${violation.message}`
+            );
+          } else {
+            report.reportWarning(
+              import_core3.MessageName.UNNAMED,
+              `${source_default.yellow(import_core3.structUtils.stringifyDescriptor(violation.descriptor))}: ${violation.message}`
+            );
+          }
         }
       },
       afterWorkspaceDependencyAddition: async (workspace, __, dependency) => {

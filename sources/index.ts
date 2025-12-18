@@ -48,10 +48,17 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
       }
 
       for (const violation of violations) {
-        report.reportError(
-          MessageName.INVALID_MANIFEST,
-          `${chalk.yellow(structUtils.stringifyDescriptor(violation.descriptor))}: ${violation.message}`,
-        );
+        if (violation.severity === "error") {
+          report.reportError(
+            MessageName.INVALID_MANIFEST,
+            `${chalk.yellow(structUtils.stringifyDescriptor(violation.descriptor))}: ${violation.message}`,
+          );
+        } else {
+          report.reportWarning(
+            MessageName.UNNAMED,
+            `${chalk.yellow(structUtils.stringifyDescriptor(violation.descriptor))}: ${violation.message}`,
+          );
+        }
       }
     },
     afterWorkspaceDependencyAddition: async (
