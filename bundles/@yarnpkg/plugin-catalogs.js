@@ -9828,21 +9828,24 @@ ${end.comment}` : end.comment;
   // sources/utils/validation.ts
   var import_core2 = __require("@yarnpkg/core");
   var import_picomatch = __toESM(require_picomatch2());
-  function getWorkspaceRelativePath(workspace) {
-    return workspace.relativeCwd || ".";
-  }
   async function findMatchingValidationRule(workspace) {
+    console.log("Finding matching validation rule for workspace:", workspace.relativeCwd);
     const catalogsYml = await configReader.read(workspace.project);
     if (!catalogsYml?.validation || catalogsYml.validation.length === 0) {
+      console.log("No validation rules found");
       return null;
     }
-    const workspacePath = getWorkspaceRelativePath(workspace);
+    const workspaceName = workspace.manifest.raw.name;
+    console.log("Workspace name:", workspaceName);
     for (const rule of catalogsYml.validation) {
-      const matching = rule.workspaces.some((pattern) => (0, import_picomatch.isMatch)(workspacePath, pattern));
+      console.log("Checking rule:", rule);
+      const matching = rule.workspaces.some((pattern) => (0, import_picomatch.isMatch)(workspaceName, pattern));
       if (matching) {
+        console.log("Matching rule found:", rule.rules);
         return rule.rules;
       }
     }
+    console.log("No matching rule found");
     return null;
   }
   async function validateCatalogProtocolUsage(workspace, descriptor, ruleValue) {

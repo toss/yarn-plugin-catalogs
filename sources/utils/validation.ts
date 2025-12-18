@@ -19,35 +19,34 @@ export interface ValidationViolation {
 }
 
 /**
- * Get the workspace's relative path for matching against glob patterns
- */
-function getWorkspaceRelativePath(workspace: Workspace): string {
-  return workspace.relativeCwd || ".";
-}
-
-/**
  * Find the first matching validation rule for a workspace
  * Returns null if no rule matches (validation is off)
  */
 export async function findMatchingValidationRule(
   workspace: Workspace,
 ): Promise<ValidationRules | null> {
+  console.log("Finding matching validation rule for workspace:", workspace.relativeCwd);
   const catalogsYml = await configReader.read(workspace.project);
 
   if (!catalogsYml?.validation || catalogsYml.validation.length === 0) {
+    console.log("No validation rules found");
     return null;
   }
 
-  const workspacePath = getWorkspaceRelativePath(workspace);
+  const workspaceName = workspace.manifest.raw.name;
+  console.log("Workspace name:", workspaceName);
 
   for (const rule of catalogsYml.validation) {
-    const matching = rule.workspaces.some((pattern) => isMatch(workspacePath, pattern));
+    console.log("Checking rule:", rule);
+    const matching = rule.workspaces.some((pattern) => isMatch(workspaceName, pattern));
 
     if (matching) {
+      console.log("Matching rule found:", rule.rules);
       return rule.rules;
     }
   }
 
+  console.log("No matching rule found");
   return null;
 }
 

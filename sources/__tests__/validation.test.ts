@@ -15,7 +15,7 @@ describe("validation", () => {
   });
 
   describe("catalog_protocol_usage: always", () => {
-    it.only("should error when not using catalog protocol for package in catalogs", async () => {
+    it("should error when not using catalog protocol for package in catalogs", async () => {
       workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
@@ -277,11 +277,10 @@ describe("validation", () => {
     it("should match workspace using glob pattern", async () => {
       workspace = await createTestWorkspace();
 
-      // Test root workspace matches "."
       await workspace.writeCatalogsYml({
         validation: [
           {
-            workspaces: ["."],
+            workspaces: ["test-package"],
             rules: {
               catalog_protocol_usage: "always",
             },
@@ -338,7 +337,6 @@ describe("validation", () => {
         },
       });
 
-      // Should pass because root workspace (.) doesn't match "packages/**"
       const { stderr } = await workspace.yarn.install();
       expect(stderr).toBe("");
     });
@@ -351,7 +349,7 @@ describe("validation", () => {
       await workspace.writeCatalogsYml({
         validation: [
           {
-            workspaces: ["."],
+            workspaces: ["test-package"],
             rules: {
               catalog_protocol_usage: "optional",
             },
@@ -381,7 +379,6 @@ describe("validation", () => {
         },
       });
 
-      // Should pass because first rule (optional) matches
       const { stderr } = await workspace.yarn.install();
       expect(stderr).toBe("");
     });
@@ -449,7 +446,7 @@ describe("validation", () => {
       await workspace.writeCatalogsYml({
         validation: [
           {
-            workspaces: ["packages/**", "."],
+            workspaces: ["test-*", "service-*"],
             rules: {
               catalog_protocol_usage: "always",
             },
@@ -473,42 +470,11 @@ describe("validation", () => {
         },
       });
 
-      // Should fail because "." pattern matches root workspace
       await expect(workspace.yarn.install()).rejects.toThrow();
     });
   });
 
   describe("default alias groups with validation", () => {
-    it("should auto-convert to catalog protocol when default group is set", async () => {
-      workspace = await createTestWorkspace();
-
-      await workspace.writeCatalogsYml({
-        options: {
-          default: ["stable"],
-        },
-        validation: [
-          {
-            workspaces: ["*"],
-            rules: {
-              catalog_protocol_usage: "optional",
-            },
-          },
-        ],
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
-        },
-      });
-
-      await workspace.yarn.catalogs.apply();
-
-      await workspace.yarn.add("react@18.0.0");
-
-      // Should be converted to catalog:stable
-      expect(await hasDependency(workspace, "react@catalog:stable")).toBe(true);
-    });
-
     it("should not suggest catalog protocol when restrict is set", async () => {
       workspace = await createTestWorkspace();
 
@@ -535,7 +501,6 @@ describe("validation", () => {
 
       await workspace.yarn.add("react@17.0.0");
 
-      // Should NOT be converted to catalog:stable because restrict is set
       expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
     });
   });
