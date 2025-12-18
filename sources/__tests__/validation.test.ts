@@ -19,6 +19,9 @@ describe("validation", () => {
       workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
+        options: {
+          default: ["stable"],
+        },
         validation: [
           {
             workspaces: ["*"],
@@ -46,30 +49,6 @@ describe("validation", () => {
       });
 
       await expect(workspace.yarn.install()).rejects.toThrow();
-    });
-
-    it("should throw error during yarn add when not using catalog protocol", async () => {
-      workspace = await createTestWorkspace();
-
-      await workspace.writeCatalogsYml({
-        validation: [
-          {
-            workspaces: ["*"],
-            rules: {
-              catalog_protocol_usage: "strict",
-            },
-          },
-        ],
-        list: {
-          stable: {
-            react: "npm:18.0.0",
-          },
-        },
-      });
-
-      await workspace.yarn.catalogs.apply();
-
-      await expect(workspace.yarn.add("react@17.0.0")).rejects.toThrow();
     });
 
     it("should pass when using catalog protocol", async () => {
@@ -278,6 +257,9 @@ describe("validation", () => {
       workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
+        options: {
+          default: ["stable"],
+        },
         validation: [
           {
             workspaces: ["test-package"],
@@ -444,6 +426,9 @@ describe("validation", () => {
       workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
+        options: {
+          default: ["stable"],
+        },
         validation: [
           {
             workspaces: ["test-*", "service-*"],

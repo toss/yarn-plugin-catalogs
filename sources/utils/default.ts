@@ -33,7 +33,6 @@ export async function fallbackDefaultAliasGroup(
     }
   }
 
-  // If package is not in any catalog, nothing to do
   if (applicableGroups.length === 0) {
     return;
   }
@@ -82,44 +81,38 @@ export async function getDefaultAliasGroups(
 ): Promise<string[]> {
   const options = await configReader.getOptions(workspace.project);
 
-  if (options) {
-    if (options.default) {
-      // If default value is an list of alias groups, return it
-      if (Array.isArray(options.default)) {
-        return options.default;
-      }
+  if (options?.default) {
+    if (Array.isArray(options.default)) {
+      return options.default;
+    }
 
-      // If default value is "max", find the most frequently used alias group
-      if (options.default === "max") {
-        const catalogs = await configReader.getAppliedCatalogs(
-          workspace.project,
-        );
-        const aliasGroups = Object.keys(catalogs || {});
+    if (options.default === "max") {
+      const catalogs = await configReader.getAppliedCatalogs(workspace.project);
+      const aliasGroups = Object.keys(catalogs || {});
 
-        const dependencies = [
-          ...Object.entries<string>(workspace.manifest.raw.dependencies ?? {}),
-          ...Object.entries<string>(
-            workspace.manifest.raw.devDependencies ?? {},
-          ),
-        ];
-        const counts: Record<string, number> = Object.fromEntries(
-          aliasGroups.map((aliasGroup) => [aliasGroup, 0]),
-        );
+      const dependencies = [
+        ...Object.entries<string>(workspace.manifest.raw.dependencies ?? {}),
+        ...Object.entries<string>(
+          workspace.manifest.raw.devDependencies ?? {},
+        ),
+      ];
+      const counts: Record<string, number> = Object.fromEntries(
+        aliasGroups.map((aliasGroup) => [aliasGroup, 0]),
+      );
 
-        // Count the occurrences of each alias group in the dependencies
-        for (const [_, range] of dependencies) {
-          if (range.startsWith(CATALOG_PROTOCOL)) {
-            const aliasGroup = range.substring(CATALOG_PROTOCOL.length);
-            counts[aliasGroup] = (counts[aliasGroup] || 0) + 1;
-          }
+      // Count the occurrences of each alias group in the dependencies
+      for (const [_, range] of dependencies) {
+        if (range.startsWith(CATALOG_PROTOCOL)) {
+          const aliasGroup = range.substring(CATALOG_PROTOCOL.length);
+          counts[aliasGroup] = (counts[aliasGroup] || 0) + 1;
         }
-
-        // Find the alias group with the maximum count of dependencies
-        const maxCount = Math.max(...Object.values(counts));
-        return Object.keys(counts).filter(
-          (aliasGroup) => counts[aliasGroup] === maxCount,
-        );
       }
+
+      // Find the alias group with the maximum count of dependencies
+      const maxCount = Math.max(...Object.values(counts));
+      return Object.keys(counts).filter(
+        (aliasGroup) => counts[aliasGroup] === maxCount,
+      );
     }
   }
 

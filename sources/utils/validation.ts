@@ -10,6 +10,7 @@ import type {
   ValidationRules,
   CatalogProtocolUsageRule,
 } from "../configuration/types";
+import { getDefaultAliasGroups } from "./default";
 
 export interface ValidationViolation {
   descriptor: Descriptor;
@@ -58,25 +59,22 @@ async function validateCatalogProtocolUsage(
 
   switch (ruleValue) {
     case "strict": {
-      // MUST use catalog: protocol if package is in catalogs
+      // MUST use catalog: protocol if package is in default catalog tracks
       if (isUsingCatalogProtocol) {
         return null;
       }
 
-      // Check if package exists in any catalog
+      const defaultGroups = await getDefaultAliasGroups(workspace);
       const catalogs = await configReader.getAppliedCatalogs(workspace.project);
-      const existsInCatalog =
-        catalogs &&
-        Object.values(catalogs).some(
-          (catalog) => catalog[packageName] !== undefined,
-        );
 
-      if (existsInCatalog) {
+      const existsInDefaultCatalog = defaultGroups.some((groupName) => packageName in catalogs[groupName]);
+
+      if (existsInDefaultCatalog) {
         return {
           descriptor,
           rule: "catalog_protocol_usage",
           ruleValue,
-          message: `Package "${packageName}" is available in catalogs but not using catalog: protocol`,
+          message: `Package "${packageName}" is available in default catalog tracks but not using catalog: protocol`,
           severity: "error",
         };
       }
@@ -84,25 +82,32 @@ async function validateCatalogProtocolUsage(
     }
 
     case "warn": {
-      // SHOULD use catalog: protocol. Warn if not.
+      // SHOULD use catalog: protocol. Warn if not in default catalog tracks.
       if (isUsingCatalogProtocol) {
         return null;
       }
 
-      // Check if package exists in any catalog
+      // Get default catalog tracks for this workspace
+      const defaultGroups = await getDefaultAliasGroups(workspace);
+      if (defaultGroups.length === 0) {
+        // No default tracks configured, skip validation
+        return null;
+      }
+
+      // Check if package exists in any of the default catalog tracks
       const catalogs = await configReader.getAppliedCatalogs(workspace.project);
-      const existsInCatalog =
+      const existsInDefaultCatalog =
         catalogs &&
-        Object.values(catalogs).some(
-          (catalog) => catalog[packageName] !== undefined,
+        defaultGroups.some(
+          (groupName) => catalogs[groupName]?.[packageName] !== undefined,
         );
 
-      if (existsInCatalog) {
+      if (existsInDefaultCatalog) {
         return {
           descriptor,
           rule: "catalog_protocol_usage",
           ruleValue,
-          message: `Package "${packageName}" is available in catalogs but not using catalog: protocol`,
+          message: `Package "${packageName}" is available in default catalog tracks but not using catalog: protocol`,
           severity: "warning",
         };
       }

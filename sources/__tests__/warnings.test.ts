@@ -18,6 +18,9 @@ describe("warnings and recommendations", () => {
     workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
+      options: {
+        default: ["groupA"],
+      },
       list: {
         groupA: {
           react: "npm:18.0.0",

@@ -9850,16 +9850,15 @@ ${end.comment}` : end.comment;
         if (isUsingCatalogProtocol) {
           return null;
         }
+        const defaultGroups = await getDefaultAliasGroups(workspace);
         const catalogs = await configReader.getAppliedCatalogs(workspace.project);
-        const existsInCatalog = catalogs && Object.values(catalogs).some(
-          (catalog) => catalog[packageName] !== void 0
-        );
-        if (existsInCatalog) {
+        const existsInDefaultCatalog = defaultGroups.some((groupName) => packageName in catalogs[groupName]);
+        if (existsInDefaultCatalog) {
           return {
             descriptor,
             rule: "catalog_protocol_usage",
             ruleValue,
-            message: `Package "${packageName}" is available in catalogs but not using catalog: protocol`,
+            message: `Package "${packageName}" is available in default catalog tracks but not using catalog: protocol`,
             severity: "error"
           };
         }
@@ -9869,16 +9868,20 @@ ${end.comment}` : end.comment;
         if (isUsingCatalogProtocol) {
           return null;
         }
+        const defaultGroups = await getDefaultAliasGroups(workspace);
+        if (defaultGroups.length === 0) {
+          return null;
+        }
         const catalogs = await configReader.getAppliedCatalogs(workspace.project);
-        const existsInCatalog = catalogs && Object.values(catalogs).some(
-          (catalog) => catalog[packageName] !== void 0
+        const existsInDefaultCatalog = catalogs && defaultGroups.some(
+          (groupName) => catalogs[groupName]?.[packageName] !== void 0
         );
-        if (existsInCatalog) {
+        if (existsInDefaultCatalog) {
           return {
             descriptor,
             rule: "catalog_protocol_usage",
             ruleValue,
-            message: `Package "${packageName}" is available in catalogs but not using catalog: protocol`,
+            message: `Package "${packageName}" is available in default catalog tracks but not using catalog: protocol`,
             severity: "warning"
           };
         }
@@ -9970,41 +9973,36 @@ ${end.comment}` : end.comment;
     }
     if (rules?.catalog_protocol_usage === "warn") {
       console.warn(source_default.yellow(message));
-      return;
     }
   }
   async function getDefaultAliasGroups(workspace) {
     const options = await configReader.getOptions(workspace.project);
-    if (options) {
-      if (options.default) {
-        if (Array.isArray(options.default)) {
-          return options.default;
-        }
-        if (options.default === "max") {
-          const catalogs = await configReader.getAppliedCatalogs(
-            workspace.project
-          );
-          const aliasGroups = Object.keys(catalogs || {});
-          const dependencies = [
-            ...Object.entries(workspace.manifest.raw.dependencies ?? {}),
-            ...Object.entries(
-              workspace.manifest.raw.devDependencies ?? {}
-            )
-          ];
-          const counts = Object.fromEntries(
-            aliasGroups.map((aliasGroup) => [aliasGroup, 0])
-          );
-          for (const [_, range] of dependencies) {
-            if (range.startsWith(CATALOG_PROTOCOL)) {
-              const aliasGroup = range.substring(CATALOG_PROTOCOL.length);
-              counts[aliasGroup] = (counts[aliasGroup] || 0) + 1;
-            }
+    if (options?.default) {
+      if (Array.isArray(options.default)) {
+        return options.default;
+      }
+      if (options.default === "max") {
+        const catalogs = await configReader.getAppliedCatalogs(workspace.project);
+        const aliasGroups = Object.keys(catalogs || {});
+        const dependencies = [
+          ...Object.entries(workspace.manifest.raw.dependencies ?? {}),
+          ...Object.entries(
+            workspace.manifest.raw.devDependencies ?? {}
+          )
+        ];
+        const counts = Object.fromEntries(
+          aliasGroups.map((aliasGroup) => [aliasGroup, 0])
+        );
+        for (const [_, range] of dependencies) {
+          if (range.startsWith(CATALOG_PROTOCOL)) {
+            const aliasGroup = range.substring(CATALOG_PROTOCOL.length);
+            counts[aliasGroup] = (counts[aliasGroup] || 0) + 1;
           }
-          const maxCount = Math.max(...Object.values(counts));
-          return Object.keys(counts).filter(
-            (aliasGroup) => counts[aliasGroup] === maxCount
-          );
         }
+        const maxCount = Math.max(...Object.values(counts));
+        return Object.keys(counts).filter(
+          (aliasGroup) => counts[aliasGroup] === maxCount
+        );
       }
     }
     return [];

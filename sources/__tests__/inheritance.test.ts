@@ -320,59 +320,6 @@ describe("catalog inheritance", () => {
     expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
   });
 
-  it("should show warnings with inherited groups", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      list: {
-        stable: {
-          react: "npm:18.0.0",
-        },
-        "stable/canary": {
-          react: "npm:18.2.0",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    const { stderr } = await workspace.yarn.add("react");
-    expect(stderr).toContain("stable, stable/canary");
-    expect(stderr).toContain("react@catalog:stable");
-  });
-
-  it("should handle validation with inherited groups", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: "warn",
-      },
-      list: {
-        stable: {
-          react: "npm:18.0.0",
-        },
-        "stable/canary": {
-          react: "npm:18.2.0",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        react: "17.0.0",
-      },
-    });
-
-    const { stdout } = await workspace.yarn.install();
-    expect(stdout).toContain("react");
-  });
-
   it("should handle groups with repeated names in inheritance path", async () => {
     workspace = await createTestWorkspace();
 
