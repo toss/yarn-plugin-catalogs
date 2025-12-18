@@ -1,5 +1,51 @@
 import { ROOT_ALIAS_GROUP } from "../constants";
-import type { CatalogsConfiguration } from "./types";
+import type { CatalogsConfiguration, ValidationConfig } from "./types";
+
+/**
+ * Validate the new validation config structure
+ */
+export function isValidValidationConfig(
+  validation: unknown,
+): validation is ValidationConfig {
+  if (!Array.isArray(validation)) {
+    return false;
+  }
+
+  const validRuleValues = ["always", "optional", "restrict"];
+
+  for (const rule of validation) {
+    if (!rule || typeof rule !== "object") {
+      return false;
+    }
+
+    const { workspaces, rules } = rule as Record<string, unknown>;
+
+    // Validate workspaces array
+    if (!Array.isArray(workspaces) || workspaces.length === 0) {
+      return false;
+    }
+    if (!workspaces.every((w) => typeof w === "string")) {
+      return false;
+    }
+
+    // Validate rules object
+    if (!rules || typeof rules !== "object") {
+      return false;
+    }
+
+    const rulesObj = rules as Record<string, unknown>;
+    if (rulesObj.catalog_protocol_usage !== undefined) {
+      if (
+        typeof rulesObj.catalog_protocol_usage !== "string" ||
+        !validRuleValues.includes(rulesObj.catalog_protocol_usage)
+      ) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
 
 /**
  * Validate catalogs.yml structure
@@ -53,26 +99,12 @@ export function isValidCatalogsYml(
         return false;
       }
     }
+  }
 
-    if (opts.validation) {
-      const validLevels = ["warn", "strict", "off"];
-      const validation = opts.validation;
-
-      if (typeof validation === "string") {
-        if (!validLevels.includes(validation)) {
-          return false;
-        }
-      } else if (typeof validation === "object" && validation !== null) {
-        if (
-          !Object.values(validation).every(
-            (level) => typeof level === "string" && validLevels.includes(level),
-          )
-        ) {
-          return false;
-        }
-      } else {
-        return false;
-      }
+  // Validate validation config if present
+  if ("validation" in cfg && cfg.validation !== undefined) {
+    if (!isValidValidationConfig(cfg.validation)) {
+      return false;
     }
   }
 

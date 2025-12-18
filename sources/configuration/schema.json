@@ -20,13 +20,13 @@
               "items": { "$ref": "#/$defs/catalogGroupName" }
             }
           ]
-        },
-        "validation": {
-          "type": "string",
-          "description": "The level of dependency source validation",
-          "enum": ["warn", "strict", "off"]
         }
       }
+    },
+    "validation": {
+      "type": "array",
+      "description": "Workspace-based validation rules. First matching rule wins.",
+      "items": { "$ref": "#/$defs/validationRule" }
     },
     "list": {
       "type": "object",
@@ -58,6 +58,33 @@
       "additionalProperties": { "$ref": "#/$defs/sourceString" },
       "propertyNames": { "$ref": "#/$defs/packageName" },
       "minProperties": 0
+    },
+    "validationRule": {
+      "type": "object",
+      "description": "A validation rule entry with workspace patterns and rules to apply",
+      "additionalProperties": false,
+      "required": ["workspaces", "rules"],
+      "properties": {
+        "workspaces": {
+          "type": "array",
+          "description": "Glob patterns for matching workspace paths",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "rules": { "$ref": "#/$defs/validationRules" }
+      }
+    },
+    "validationRules": {
+      "type": "object",
+      "description": "Validation rules to apply to matched workspaces",
+      "additionalProperties": false,
+      "properties": {
+        "catalog_protocol_usage": {
+          "type": "string",
+          "description": "Controls catalog: protocol usage validation. 'always' = must use catalog: if package is in catalogs, 'optional' = no validation, 'restrict' = must NOT use catalog:",
+          "enum": ["always", "optional", "restrict"]
+        }
+      }
     }
   }
 }

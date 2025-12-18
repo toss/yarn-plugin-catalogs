@@ -2,7 +2,7 @@ import type { Descriptor, Workspace } from "@yarnpkg/core";
 import chalk from "chalk";
 import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "../constants";
 import { configReader } from "../configuration";
-import { validateCatalogUsability } from "./validation";
+import { findMatchingValidationRule } from "./validation";
 
 export async function fallbackDefaultAliasGroup(
   workspace: Workspace,
@@ -12,12 +12,31 @@ export async function fallbackDefaultAliasGroup(
     return;
   }
 
-  const validationInfo = await validateCatalogUsability(workspace, dependency);
+  // Check if validation rules apply to this workspace
+  const rules = await findMatchingValidationRule(workspace);
 
-  // If no applicable groups found, return early
-  if (!validationInfo) return;
+  // If using "restrict" rule, don't suggest catalog protocol
+  if (rules?.catalog_protocol_usage === "restrict") {
+    return;
+  }
 
-  const { validationLevel, applicableGroups } = validationInfo;
+  // Check if package exists in any catalog
+  const catalogs = await configReader.getAppliedCatalogs(workspace.project);
+  const packageName = dependency.name;
+  const applicableGroups: string[] = [];
+
+  if (catalogs) {
+    for (const [groupName, catalog] of Object.entries(catalogs)) {
+      if (catalog[packageName] !== undefined) {
+        applicableGroups.push(groupName);
+      }
+    }
+  }
+
+  // If package is not in any catalog, nothing to do
+  if (applicableGroups.length === 0) {
+    return;
+  }
 
   // If there's a default alias group, fallback to it
   const defaultAliasGroups = await getDefaultAliasGroups(workspace);
@@ -35,7 +54,13 @@ export async function fallbackDefaultAliasGroup(
     }
   }
 
-  // If no default alias group is specified, show warning message
+  // If "always" rule is set, throw error
+  if (rules?.catalog_protocol_usage === "always") {
+    const message = `➤ ${dependency.name} is listed in the catalogs config, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${applicableGroups[0] === ROOT_ALIAS_GROUP ? "" : applicableGroups[0]}' instead.`;
+    throw new Error(chalk.red(message));
+  }
+
+  // For "optional" or no rule, show suggestion message
   const aliasGroups = applicableGroups.map((groupName) =>
     groupName === ROOT_ALIAS_GROUP ? "" : groupName,
   );
@@ -46,13 +71,7 @@ export async function fallbackDefaultAliasGroup(
       : "";
 
   const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
-  if (validationLevel === "strict") {
-    throw new Error(chalk.red(message));
-  }
-
-  if (validationLevel === "warn") {
-    console.warn(chalk.yellow(message));
-  }
+  console.warn(chalk.yellow(message));
 }
 
 /**

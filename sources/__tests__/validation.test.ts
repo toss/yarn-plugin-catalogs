@@ -14,373 +14,176 @@ describe("validation", () => {
     }
   });
 
-  it("should show warnings when validation is 'warn' (default)", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: "warn",
-      },
-      list: {
-        stable: {
-          react: "npm:18.0.0",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    const { stderr } = await workspace.yarn.add("react@17.0.0");
-    expect(stderr).toContain("react");
-    expect(stderr).toContain("react@catalog:stable");
-
-    expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
-  });
-
-  it("should throw errors when validation is 'strict' during yarn add", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: "strict",
-      },
-      list: {
-        stable: {
-          react: "npm:18.0.0",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    await expect(workspace.yarn.add("react@17.0.0")).rejects.toThrow();
-  });
-
-  it("should enforce during yarn install when validation is 'strict'", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: "strict",
-      },
-      list: {
-        stable: {
-          react: "npm:18.0.0",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        react: "17.0.0",
-      },
-    });
-
-    await expect(workspace.yarn.install()).rejects.toThrow();
-  });
-
-  it("should warn during yarn install when validation is 'warn'", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: "warn",
-      },
-      list: {
-        stable: {
-          react: "npm:18.0.0",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        react: "17.0.0",
-      },
-    });
-
-    const { stdout } = await workspace.yarn.install();
-    expect(stdout).toContain("react");
-  });
-
-  it("should not enforce on dependencies not in catalogs", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: "strict",
-      },
-      list: {
-        stable: {
-          react: "npm:18.0.0",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    const { stderr } = await workspace.yarn.add("lodash@4.17.21");
-    expect(stderr).toBe("");
-
-    expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
-  });
-
-  it("should enforce with multiple catalog groups available", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: "warn",
-      },
-      list: {
-        stable: {
-          react: "npm:18.0.0",
-        },
-        beta: {
-          react: "npm:19.0.0-beta",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    const { stderr } = await workspace.yarn.add("react@17.0.0");
-    expect(stderr).toContain("react");
-    expect(stderr).toContain("stable, beta");
-    expect(stderr).toContain("react@catalog:");
-  });
-
-  it("should handle root catalog groups with validation", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: "warn",
-      },
-      list: {
-        root: {
-          react: "npm:18.0.0",
-          lodash: "npm:4.17.21",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    const { stderr } = await workspace.yarn.add("react@17.0.0");
-    expect(stderr).toContain("react");
-    expect(stderr).toContain("react@catalog:");
-  });
-
-  it("should apply different validation levels per group", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: {
-          beta: "warn",
-          stable: "strict",
-          legacy: "off",
-        },
-      },
-      list: {
-        beta: {
-          react: "npm:18.0.0",
-        },
-        stable: {
-          next: "npm:14.0.0",
-        },
-        legacy: {
-          jquery: "npm:3.6.0",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        react: "17.0.0",
-        next: "13.0.0",
-        jquery: "3.5.0",
-      },
-    });
-
-    await expect(workspace.yarn.install()).rejects.toThrow();
-  });
-
-  it("should apply most strict validation when package accessible from multiple groups", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: {
-          beta: "warn",
-          stable: "strict",
-          legacy: "off",
-        },
-      },
-      list: {
-        beta: {
-          lodash: "npm:4.17.21",
-        },
-        stable: {
-          lodash: "npm:4.17.21",
-        },
-        legacy: {
-          lodash: "npm:4.17.21",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        lodash: "4.17.20",
-      },
-    });
-
-    await expect(workspace.yarn.install()).rejects.toThrow();
-  });
-
-  it("should inherit validation settings through group hierarchy", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: {
-          stable: "off",
-          "stable/canary": "strict",
-        },
-      },
-      list: {
-        stable: {
-          react: "npm:18.0.0",
-        },
-        "stable/canary": {
-          react: "npm:18.0.0",
-          lodash: "npm:4.17.21",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        react: "17.0.0",
-      },
-    });
-
-    await expect(workspace.yarn.install()).rejects.toThrow();
-  });
-
-  it("should handle validation inheritance for packages that do not exist in the parent", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: {
-          stable: "strict",
-          "stable/canary": "off",
-        },
-      },
-      list: {
-        stable: {
-          react: "npm:18.0.0",
-        },
-        "stable/canary": {
-          react: "npm:18.0.0",
-          lodash: "npm:4.17.21",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        lodash: "4.17.20",
-      },
-    });
-
-    const { stderr } = await workspace.yarn.install();
-    expect(stderr).toBe("");
-
-    expect(await hasDependency(workspace, "lodash@npm:4.17.20")).toBe(true);
-  });
-
-  it("should handle validation for root group", async () => {
-    workspace = await createTestWorkspace();
-
-    await workspace.writeCatalogsYml({
-      options: {
-        validation: {
-          root: "strict",
-        },
-      },
-      list: {
-        root: {
-          react: "npm:18.0.0",
-        },
-      },
-    });
-
-    await workspace.yarn.catalogs.apply();
-
-    await workspace.writeJson("package.json", {
-      name: "test-package",
-      version: "1.0.0",
-      private: true,
-      dependencies: {
-        react: "17.0.0",
-      },
-    });
-
-    await expect(workspace.yarn.install()).rejects.toThrow();
-  });
-
-  describe("validation with default groups", () => {
-    it("should only apply validation from catalogs in default groups", async () => {
+  describe("catalog_protocol_usage: always", () => {
+    it.only("should error when not using catalog protocol for package in catalogs", async () => {
       workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
-        options: {
-          default: ["stable"],
-          validation: {
-            stable: "off",
-            experimental: "strict",
+        validation: [
+          {
+            workspaces: ["*"],
+            rules: {
+              catalog_protocol_usage: "always",
+            },
           },
-        },
+        ],
         list: {
           stable: {
             react: "npm:18.0.0",
           },
-          experimental: {
-            react: "npm:19.0.0-alpha",
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "test-package",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          react: "17.0.0",
+        },
+      });
+
+      await expect(workspace.yarn.install()).rejects.toThrow();
+    });
+
+    it("should throw error during yarn add when not using catalog protocol", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        validation: [
+          {
+            workspaces: ["*"],
+            rules: {
+              catalog_protocol_usage: "always",
+            },
+          },
+        ],
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await expect(workspace.yarn.add("react@17.0.0")).rejects.toThrow();
+    });
+
+    it("should pass when using catalog protocol", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        validation: [
+          {
+            workspaces: ["*"],
+            rules: {
+              catalog_protocol_usage: "always",
+            },
+          },
+        ],
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "test-package",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          react: "catalog:stable",
+        },
+      });
+
+      const { stderr } = await workspace.yarn.install();
+      expect(stderr).toBe("");
+    });
+
+    it("should not validate packages not in catalogs", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        validation: [
+          {
+            workspaces: ["*"],
+            rules: {
+              catalog_protocol_usage: "always",
+            },
+          },
+        ],
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      const { stderr } = await workspace.yarn.add("lodash@4.17.21");
+      expect(stderr).toBe("");
+
+      expect(await hasDependency(workspace, "lodash@npm:4.17.21")).toBe(true);
+    });
+  });
+
+  describe("catalog_protocol_usage: optional", () => {
+    it("should allow using catalog protocol", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        validation: [
+          {
+            workspaces: ["*"],
+            rules: {
+              catalog_protocol_usage: "optional",
+            },
+          },
+        ],
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "test-package",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          react: "catalog:stable",
+        },
+      });
+
+      const { stderr } = await workspace.yarn.install();
+      expect(stderr).toBe("");
+    });
+
+    it("should allow not using catalog protocol", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        validation: [
+          {
+            workspaces: ["*"],
+            rules: {
+              catalog_protocol_usage: "optional",
+            },
+          },
+        ],
+        list: {
+          stable: {
+            react: "npm:18.0.0",
           },
         },
       });
@@ -398,26 +201,25 @@ describe("validation", () => {
 
       const { stderr } = await workspace.yarn.install();
       expect(stderr).toBe("");
-      expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
     });
+  });
 
-    it("should not validate packages only in non-default groups", async () => {
+  describe("catalog_protocol_usage: restrict", () => {
+    it("should error when using catalog protocol", async () => {
       workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
-        options: {
-          default: ["stable"],
-          validation: {
-            stable: "strict",
-            experimental: "strict",
+        validation: [
+          {
+            workspaces: ["*"],
+            rules: {
+              catalog_protocol_usage: "restrict",
+            },
           },
-        },
+        ],
         list: {
           stable: {
             react: "npm:18.0.0",
-          },
-          experimental: {
-            lodash: "npm:4.17.21",
           },
         },
       });
@@ -429,36 +231,28 @@ describe("validation", () => {
         version: "1.0.0",
         private: true,
         dependencies: {
-          lodash: "4.17.20",
+          react: "catalog:stable",
         },
       });
 
-      const { stderr } = await workspace.yarn.install();
-      expect(stderr).toBe("");
-      expect(await hasDependency(workspace, "lodash@npm:4.17.20")).toBe(true);
+      await expect(workspace.yarn.install()).rejects.toThrow();
     });
 
-    it("should calculate validation level only within default groups", async () => {
+    it("should pass when not using catalog protocol", async () => {
       workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
-        options: {
-          default: ["beta", "experimental"],
-          validation: {
-            stable: "strict",
-            beta: "off",
-            experimental: "off",
+        validation: [
+          {
+            workspaces: ["*"],
+            rules: {
+              catalog_protocol_usage: "restrict",
+            },
           },
-        },
+        ],
         list: {
           stable: {
             react: "npm:18.0.0",
-          },
-          beta: {
-            react: "npm:18.2.0",
-          },
-          experimental: {
-            react: "npm:19.0.0-alpha",
           },
         },
       });
@@ -476,6 +270,272 @@ describe("validation", () => {
 
       const { stderr } = await workspace.yarn.install();
       expect(stderr).toBe("");
+    });
+  });
+
+  describe("workspace pattern matching", () => {
+    it("should match workspace using glob pattern", async () => {
+      workspace = await createTestWorkspace();
+
+      // Test root workspace matches "."
+      await workspace.writeCatalogsYml({
+        validation: [
+          {
+            workspaces: ["."],
+            rules: {
+              catalog_protocol_usage: "always",
+            },
+          },
+        ],
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "test-package",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          react: "17.0.0",
+        },
+      });
+
+      await expect(workspace.yarn.install()).rejects.toThrow();
+    });
+
+    it("should skip validation when no pattern matches", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        validation: [
+          {
+            workspaces: ["packages/**"],
+            rules: {
+              catalog_protocol_usage: "always",
+            },
+          },
+        ],
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "test-package",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          react: "17.0.0",
+        },
+      });
+
+      // Should pass because root workspace (.) doesn't match "packages/**"
+      const { stderr } = await workspace.yarn.install();
+      expect(stderr).toBe("");
+    });
+  });
+
+  describe("first-match-wins semantics", () => {
+    it("should use first matching rule", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        validation: [
+          {
+            workspaces: ["."],
+            rules: {
+              catalog_protocol_usage: "optional",
+            },
+          },
+          {
+            workspaces: ["*"],
+            rules: {
+              catalog_protocol_usage: "always",
+            },
+          },
+        ],
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "test-package",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          react: "17.0.0",
+        },
+      });
+
+      // Should pass because first rule (optional) matches
+      const { stderr } = await workspace.yarn.install();
+      expect(stderr).toBe("");
+    });
+  });
+
+  describe("no validation config", () => {
+    it("should skip validation when no validation config is specified", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "test-package",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          react: "17.0.0",
+        },
+      });
+
+      const { stderr } = await workspace.yarn.install();
+      expect(stderr).toBe("");
+    });
+
+    it("should skip validation when validation array is empty", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        validation: [],
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "test-package",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          react: "17.0.0",
+        },
+      });
+
+      const { stderr } = await workspace.yarn.install();
+      expect(stderr).toBe("");
+    });
+  });
+
+  describe("multiple workspace patterns in a rule", () => {
+    it("should match if any pattern in workspaces array matches", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        validation: [
+          {
+            workspaces: ["packages/**", "."],
+            rules: {
+              catalog_protocol_usage: "always",
+            },
+          },
+        ],
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.writeJson("package.json", {
+        name: "test-package",
+        version: "1.0.0",
+        private: true,
+        dependencies: {
+          react: "17.0.0",
+        },
+      });
+
+      // Should fail because "." pattern matches root workspace
+      await expect(workspace.yarn.install()).rejects.toThrow();
+    });
+  });
+
+  describe("default alias groups with validation", () => {
+    it("should auto-convert to catalog protocol when default group is set", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        options: {
+          default: ["stable"],
+        },
+        validation: [
+          {
+            workspaces: ["*"],
+            rules: {
+              catalog_protocol_usage: "optional",
+            },
+          },
+        ],
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.yarn.add("react@18.0.0");
+
+      // Should be converted to catalog:stable
+      expect(await hasDependency(workspace, "react@catalog:stable")).toBe(true);
+    });
+
+    it("should not suggest catalog protocol when restrict is set", async () => {
+      workspace = await createTestWorkspace();
+
+      await workspace.writeCatalogsYml({
+        options: {
+          default: ["stable"],
+        },
+        validation: [
+          {
+            workspaces: ["*"],
+            rules: {
+              catalog_protocol_usage: "restrict",
+            },
+          },
+        ],
+        list: {
+          stable: {
+            react: "npm:18.0.0",
+          },
+        },
+      });
+
+      await workspace.yarn.catalogs.apply();
+
+      await workspace.yarn.add("react@17.0.0");
+
+      // Should NOT be converted to catalog:stable because restrict is set
       expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
     });
   });

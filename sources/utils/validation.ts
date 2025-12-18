@@ -1,76 +1,129 @@
 import {
   type Descriptor,
-  type Project,
   type Workspace,
   structUtils,
 } from "@yarnpkg/core";
+import { isMatch } from "picomatch";
 import { CATALOG_PROTOCOL } from "../constants";
-import type { ValidationLevel } from "../types";
 import { configReader } from "../configuration";
-import { getDefaultAliasGroups } from "./default";
+import type {
+  ValidationRules,
+  CatalogProtocolUsageRule,
+} from "../configuration/types";
 
-export interface ValidationResult {
-  catalogProtocolViolations: Array<{
-    descriptor: Descriptor;
-    validationLevel: Omit<ValidationLevel, "off">;
-    applicableGroups: string[];
-  }>;
+export interface ValidationViolation {
+  descriptor: Descriptor;
+  rule: keyof ValidationRules;
+  ruleValue: string;
+  message: string;
 }
 
 /**
- * Check if a package can be used with the catalog protocol
+ * Get the workspace's relative path for matching against glob patterns
  */
-export async function validateCatalogUsability(
-  workspace: Workspace,
-  descriptor: Descriptor,
-): Promise<{
-  validationLevel: "warn" | "strict" | "off";
-  applicableGroups: string[];
-} | null> {
-  // Skip if already using catalog protocol
-  if (descriptor.range.startsWith(CATALOG_PROTOCOL)) {
-    return null;
-  }
-
-  const defaultAliasGroups = await getDefaultAliasGroups(workspace);
-
-  // Find all groups that can access this package
-  const packageName = structUtils.stringifyIdent(descriptor);
-  const groupsWithDependency = await findAllGroupsWithSpecificDependency(
-    workspace.project,
-    packageName,
-  );
-  const accessibleGroups = groupsWithDependency.flatMap(({ groupName }) =>
-    defaultAliasGroups.length === 0 || defaultAliasGroups.includes(groupName)
-      ? [groupName]
-      : [],
-  );
-
-  if (accessibleGroups.length === 0) {
-    return null;
-  }
-
-  // Get validation level for the package
-  const validationLevel = await getPackageValidationLevel(
-    workspace,
-    accessibleGroups,
-  );
-
-  return {
-    validationLevel,
-    applicableGroups: accessibleGroups,
-  };
+function getWorkspaceRelativePath(workspace: Workspace): string {
+  return workspace.relativeCwd || ".";
 }
 
-export async function validateWorkspaceCatalogUsability(
+/**
+ * Find the first matching validation rule for a workspace
+ * Returns null if no rule matches (validation is off)
+ */
+export async function findMatchingValidationRule(
   workspace: Workspace,
-): Promise<
-  Array<{
-    descriptor: Descriptor;
-    validationLevel: Omit<ValidationLevel, "off">;
-    applicableGroups: string[];
-  }>
-> {
+): Promise<ValidationRules | null> {
+  const catalogsYml = await configReader.read(workspace.project);
+
+  if (!catalogsYml?.validation || catalogsYml.validation.length === 0) {
+    return null;
+  }
+
+  const workspacePath = getWorkspaceRelativePath(workspace);
+
+  for (const rule of catalogsYml.validation) {
+    const matching = rule.workspaces.some((pattern) => isMatch(workspacePath, pattern));
+
+    if (matching) {
+      return rule.rules;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validate catalog protocol usage for a single dependency
+ */
+async function validateCatalogProtocolUsage(
+  workspace: Workspace,
+  descriptor: Descriptor,
+  ruleValue: CatalogProtocolUsageRule,
+): Promise<ValidationViolation | null> {
+  const isUsingCatalogProtocol = descriptor.range.startsWith(CATALOG_PROTOCOL);
+  const packageName = structUtils.stringifyIdent(descriptor);
+
+  switch (ruleValue) {
+    case "always": {
+      // Must use catalog: protocol if package is in catalogs
+      if (isUsingCatalogProtocol) {
+        return null;
+      }
+
+      // Check if package exists in any catalog
+      const catalogs = await configReader.getAppliedCatalogs(workspace.project);
+      const existsInCatalog =
+        catalogs &&
+        Object.values(catalogs).some(
+          (catalog) => catalog[packageName] !== undefined,
+        );
+
+      if (existsInCatalog) {
+        return {
+          descriptor,
+          rule: "catalog_protocol_usage",
+          ruleValue,
+          message: `Package "${packageName}" is available in catalogs but not using catalog: protocol`,
+        };
+      }
+      break;
+    }
+
+    case "restrict":
+      // Must NOT use catalog: protocol
+      if (isUsingCatalogProtocol) {
+        return {
+          descriptor,
+          rule: "catalog_protocol_usage",
+          ruleValue,
+          message: `Package "${packageName}" is using catalog: protocol but this is restricted in this workspace`,
+        };
+      }
+      break;
+
+    case "optional":
+      // No validation
+      break;
+  }
+
+  return null;
+}
+
+/**
+ * Validate all dependencies in a workspace against the matching rules
+ */
+export async function validateWorkspaceDependencies(
+  workspace: Workspace,
+): Promise<ValidationViolation[]> {
+  const rules = await findMatchingValidationRule(workspace);
+
+  // No matching rule = validation off for this workspace
+  if (!rules) {
+    return [];
+  }
+
+  const violations: ValidationViolation[] = [];
+
+  // Collect all dependencies
   const dependencyDescriptors = [
     ...Object.entries<string>(workspace.manifest.raw.dependencies ?? {}),
     ...Object.entries<string>(workspace.manifest.raw.devDependencies ?? {}),
@@ -79,97 +132,20 @@ export async function validateWorkspaceCatalogUsability(
     return structUtils.makeDescriptor(ident, version);
   });
 
-  const results = [];
-
+  // Validate each dependency against active rules
   for (const descriptor of dependencyDescriptors) {
-    const validationInfo = await validateCatalogUsability(
-      workspace,
-      descriptor,
-    );
-
-    // Only include packages that have validation enabled (not 'off')
-    if (validationInfo && validationInfo.validationLevel !== "off") {
-      results.push({
+    // Validate catalog_protocol_usage rule if defined
+    if (rules.catalog_protocol_usage) {
+      const violation = await validateCatalogProtocolUsage(
+        workspace,
         descriptor,
-        validationLevel: validationInfo.validationLevel,
-        applicableGroups: validationInfo.applicableGroups,
-      });
+        rules.catalog_protocol_usage,
+      );
+      if (violation) {
+        violations.push(violation);
+      }
     }
   }
 
-  return results;
-}
-
-/**
- * Get validation level for a specific group (considering inheritance)
- */
-async function getGroupValidationLevel(
-  workspace: Workspace,
-  groupName: string,
-): Promise<ValidationLevel> {
-  const options = await configReader.getOptions(workspace.project);
-  const validationConfig = options?.validation || "warn";
-
-  if (typeof validationConfig === "string") {
-    return validationConfig;
-  }
-
-  const inheritanceChain = configReader.getInheritanceChain(groupName);
-
-  for (let i = inheritanceChain.length - 1; i >= 0; i--) {
-    const currentGroup = inheritanceChain[i];
-    if (validationConfig[currentGroup] !== undefined) {
-      return validationConfig[currentGroup];
-    }
-  }
-
-  return "warn";
-}
-
-/**
- * Get the strictest validation level for a package across the specified accessible groups
- */
-async function getPackageValidationLevel(
-  workspace: Workspace,
-  accessibleGroups: string[],
-): Promise<ValidationLevel> {
-  if (accessibleGroups.length === 0) {
-    return "off";
-  }
-
-  const validationLevels: ValidationLevel[] = [];
-  for (const groupName of accessibleGroups) {
-    const level = await getGroupValidationLevel(workspace, groupName);
-    validationLevels.push(level);
-  }
-
-  // Return the strictest level (strict > warn > off)
-  if (validationLevels.includes("strict")) return "strict";
-  if (validationLevels.includes("warn")) return "warn";
-  return "off";
-}
-
-/**
- * Find all groups that contain a specific dependency
- * Note: Catalogs from .yarnrc.yml already have inheritance resolved
- */
-async function findAllGroupsWithSpecificDependency(
-  project: Project,
-  packageName: string,
-): Promise<Array<{ groupName: string; version: string }>> {
-  const catalogs = await configReader.getAppliedCatalogs(project);
-  const results: Array<{ groupName: string; version: string }> = [];
-
-  if (!catalogs || Object.keys(catalogs).length === 0) {
-    return results;
-  }
-
-  for (const [groupName, group] of Object.entries(catalogs)) {
-    const version = group[packageName];
-    if (version) {
-      results.push({ groupName, version });
-    }
-  }
-
-  return results;
+  return violations;
 }

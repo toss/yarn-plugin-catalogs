@@ -11,6 +11,7 @@
     "@yarnpkg/plugin-pack": "^4.0.1",
     "chalk": "^5.4.1",
     "clipanion": "^4.0.0-rc.2",
+    "picomatch": "^4.0.0",
     "yaml": "^2.8.1"
   },
   "devDependencies": {

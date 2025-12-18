@@ -16,7 +16,7 @@ import {
 } from "./commands/apply";
 import { configReader } from "./configuration";
 import { fallbackDefaultAliasGroup } from "./utils/default";
-import { validateWorkspaceCatalogUsability } from "./utils/validation";
+import { validateWorkspaceDependencies } from "./utils/validation";
 
 const plugin: Plugin<Hooks & EssentialHooks> = {
   commands: [ApplyCommand],
@@ -41,41 +41,17 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
       }
     },
     validateWorkspace: async (workspace: Workspace, report) => {
-      const catalogProtocolViolations = await validateWorkspaceCatalogUsability(workspace);
+      const violations = await validateWorkspaceDependencies(workspace);
 
-      // Report catalog protocol violations
-      if (catalogProtocolViolations.length > 0) {
-        const strictViolations = catalogProtocolViolations.filter(
-          (dep) => dep.validationLevel === "strict",
+      if (violations.length === 0) {
+        return;
+      }
+
+      for (const violation of violations) {
+        report.reportError(
+          MessageName.INVALID_MANIFEST,
+          `${chalk.yellow(structUtils.stringifyDescriptor(violation.descriptor))}: ${violation.message}`,
         );
-        const warnViolations = catalogProtocolViolations.filter(
-          (dep) => dep.validationLevel === "warn",
-        );
-
-        const formatMessage = (
-          violations: typeof strictViolations | typeof warnViolations,
-        ) => {
-          const packageList = violations
-            .map((dep) =>
-              chalk.yellow(structUtils.stringifyDescriptor(dep.descriptor)),
-            )
-            .join(", ");
-          return `The following dependencies are listed in the catalogs but not using the catalog protocol: ${packageList}. Consider using the catalog protocol instead.`;
-        };
-
-        if (strictViolations.length > 0) {
-          report.reportError(
-            MessageName.INVALID_MANIFEST,
-            formatMessage(strictViolations),
-          );
-        }
-
-        if (warnViolations.length > 0) {
-          report.reportWarning(
-            MessageName.INVALID_MANIFEST,
-            formatMessage(warnViolations),
-          );
-        }
       }
     },
     afterWorkspaceDependencyAddition: async (

@@ -1,8 +1,30 @@
-import type { ValidationLevel } from "../types";
+/**
+ * Rule for catalog protocol usage validation
+ * - 'always': Must use catalog: protocol if package is in catalogs
+ * - 'optional': No validation
+ * - 'restrict': Must NOT use catalog: protocol
+ */
+export type CatalogProtocolUsageRule = "always" | "optional" | "restrict";
 
-type ValidationConfig =
-  | ValidationLevel
-  | { [groupName: string]: ValidationLevel };
+/**
+ * Validation rules that can be applied to workspaces
+ */
+export interface ValidationRules {
+  catalog_protocol_usage?: CatalogProtocolUsageRule;
+}
+
+/**
+ * A validation rule entry with workspace patterns and rules
+ */
+export interface ValidationRule {
+  workspaces: string[];
+  rules: ValidationRules;
+}
+
+/**
+ * Validation configuration - array of rules matched in order (first match wins)
+ */
+export type ValidationConfig = ValidationRule[];
 
 /**
  * Options for catalog management (plugin-specific features)
@@ -14,14 +36,6 @@ interface CatalogsOptions {
    * - if 'max', the most frequently used alias group will be used
    */
   default?: string[] | "max";
-  /**
-   * Validation level for catalog usage
-   * - 'warn': Show warnings when catalog versions are not used (default)
-   * - 'strict': Throw errors when catalog versions are not used
-   * - 'off': Disable validation
-   * Can also be an object with group-specific settings
-   */
-  validation?: ValidationConfig;
 }
 
 /**
@@ -29,6 +43,7 @@ interface CatalogsOptions {
  */
 export interface CatalogsConfiguration {
   options?: CatalogsOptions;
+  validation?: ValidationConfig;
   list: {
     [alias: string]: {
       [packageName: string]: string;
