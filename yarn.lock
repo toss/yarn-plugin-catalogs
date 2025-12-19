@@ -639,7 +639,7 @@ __metadata:
 
 "@types/picomatch@npm:^4.0.2":
   version: 4.0.2
-  resolution: "@types/picomatch@npm:4.0.2::__archiveUrl=http%3A%2F%2Fnexus.toss.bz%2Frepository%2Fnpm-group%2F%40types%2Fpicomatch%2F-%2Fpicomatch-4.0.2.tgz"
+  resolution: "@types/picomatch@npm:4.0.2"
   checksum: 10c0/0f46198c2d1beb5061816745355888e94a80a449a49af1ef69723f50e850c678b50cff299bd461f71e8009d46705e7cdeda8c8ffa23815b2e942c83877f855b9
   languageName: node
   linkType: hard
