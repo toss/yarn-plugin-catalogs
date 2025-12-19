@@ -8855,6 +8855,11 @@ ${end.comment}` : end.comment;
   });
   var import_core3 = __require("@yarnpkg/core");
 
+  // sources/commands/apply.ts
+  var import_cli = __require("@yarnpkg/cli");
+  var import_core = __require("@yarnpkg/core");
+  var import_fslib2 = __require("@yarnpkg/fslib");
+
   // ../../.yarn/berry/cache/chalk-npm-5.4.1-2f3fe4660a-10c0.zip/node_modules/chalk/source/vendor/ansi-styles/index.js
   var ANSI_BACKGROUND_OFFSET = 10;
   var wrapAnsi16 = (offset = 0) => (code) => `\x1B[${code + offset}m`;
@@ -9345,9 +9350,6 @@ ${end.comment}` : end.comment;
   var source_default = chalk;
 
   // sources/commands/apply.ts
-  var import_cli = __require("@yarnpkg/cli");
-  var import_core = __require("@yarnpkg/core");
-  var import_fslib2 = __require("@yarnpkg/fslib");
   var import_clipanion = __require("clipanion");
   var import_yaml2 = __toESM(require_dist());
 
@@ -9856,9 +9858,7 @@ ${end.comment}` : end.comment;
         if (existsInDefaultCatalog) {
           return {
             descriptor,
-            rule: "catalog_protocol_usage",
-            ruleValue,
-            message: `Package "${packageName}" is available in default catalog tracks but not using catalog: protocol`,
+            message: `${packageName} is listed in the catalogs config, but not using catalog protocol.`,
             severity: "error"
           };
         }
@@ -9879,9 +9879,7 @@ ${end.comment}` : end.comment;
         if (existsInDefaultCatalog) {
           return {
             descriptor,
-            rule: "catalog_protocol_usage",
-            ruleValue,
-            message: `Package "${packageName}" is available in default catalog tracks but not using catalog: protocol`,
+            message: `${packageName} is listed in the catalogs config, but not using catalog protocol.`,
             severity: "warning"
           };
         }
@@ -9891,9 +9889,7 @@ ${end.comment}` : end.comment;
         if (isUsingCatalogProtocol) {
           return {
             descriptor,
-            rule: "catalog_protocol_usage",
-            ruleValue,
-            message: `Package "${packageName}" is using catalog: protocol but this is restricted in this workspace`,
+            message: `${packageName} is using catalog protocol but this is restricted in this workspace.`,
             severity: "error"
           };
         }
@@ -9941,26 +9937,21 @@ ${end.comment}` : end.comment;
       return;
     }
     const catalogs = await configReader.getAppliedCatalogs(workspace.project);
-    const packageName = dependency.name;
     const applicableGroups = [];
-    if (catalogs) {
-      for (const [groupName, catalog] of Object.entries(catalogs)) {
-        if (catalog[packageName] !== void 0) {
-          applicableGroups.push(groupName);
-        }
+    for (const [groupName, catalog] of Object.entries(catalogs)) {
+      if (catalog[dependency.name] !== void 0) {
+        applicableGroups.push(groupName);
       }
     }
     if (applicableGroups.length === 0) {
       return;
     }
     const defaultAliasGroups = await getDefaultAliasGroups(workspace);
-    if (defaultAliasGroups.length > 0) {
-      for (const aliasGroup of defaultAliasGroups) {
-        if (applicableGroups.includes(aliasGroup)) {
-          const catalogRange = aliasGroup === ROOT_ALIAS_GROUP ? CATALOG_PROTOCOL : `${CATALOG_PROTOCOL}${aliasGroup}`;
-          dependency.range = catalogRange;
-          return;
-        }
+    for (const aliasGroup of defaultAliasGroups) {
+      if (applicableGroups.includes(aliasGroup)) {
+        const catalogRange = aliasGroup === ROOT_ALIAS_GROUP ? CATALOG_PROTOCOL : `${CATALOG_PROTOCOL}${aliasGroup}`;
+        dependency.range = catalogRange;
+        return;
       }
     }
     const aliasGroups = applicableGroups.map(
@@ -10029,20 +10020,11 @@ ${end.comment}` : end.comment;
       },
       validateWorkspace: async (workspace, report) => {
         const violations = await validateWorkspaceDependencies(workspace);
-        if (violations.length === 0) {
-          return;
-        }
         for (const violation of violations) {
           if (violation.severity === "error") {
-            report.reportError(
-              import_core3.MessageName.INVALID_MANIFEST,
-              `${source_default.yellow(import_core3.structUtils.stringifyDescriptor(violation.descriptor))}: ${violation.message}`
-            );
+            report.reportError(import_core3.MessageName.INVALID_MANIFEST, violation.message);
           } else {
-            report.reportWarning(
-              import_core3.MessageName.UNNAMED,
-              `${source_default.yellow(import_core3.structUtils.stringifyDescriptor(violation.descriptor))}: ${violation.message}`
-            );
+            report.reportWarning(import_core3.MessageName.UNNAMED, violation.message);
           }
         }
       },

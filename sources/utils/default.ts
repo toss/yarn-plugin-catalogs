@@ -22,14 +22,11 @@ export async function fallbackDefaultAliasGroup(
 
   // Check if package exists in any catalog
   const catalogs = await configReader.getAppliedCatalogs(workspace.project);
-  const packageName = dependency.name;
   const applicableGroups: string[] = [];
 
-  if (catalogs) {
-    for (const [groupName, catalog] of Object.entries(catalogs)) {
-      if (catalog[packageName] !== undefined) {
-        applicableGroups.push(groupName);
-      }
+  for (const [groupName, catalog] of Object.entries(catalogs)) {
+    if (catalog[dependency.name] !== undefined) {
+      applicableGroups.push(groupName);
     }
   }
 
@@ -39,17 +36,17 @@ export async function fallbackDefaultAliasGroup(
 
   // If there's a default alias group, fallback to it
   const defaultAliasGroups = await getDefaultAliasGroups(workspace);
-  if (defaultAliasGroups.length > 0) {
-    for (const aliasGroup of defaultAliasGroups) {
-      if (applicableGroups.includes(aliasGroup)) {
-        // Root catalog uses "catalog:" without group name, others use "catalog:groupName"
-        const catalogRange =
-          aliasGroup === ROOT_ALIAS_GROUP
-            ? CATALOG_PROTOCOL
-            : `${CATALOG_PROTOCOL}${aliasGroup}`;
-        dependency.range = catalogRange;
-        return;
-      }
+
+  for (const aliasGroup of defaultAliasGroups) {
+    if (applicableGroups.includes(aliasGroup)) {
+      // Root catalog uses "catalog:" without group name, others use "catalog:groupName"
+      const catalogRange =
+        aliasGroup === ROOT_ALIAS_GROUP
+          ? CATALOG_PROTOCOL
+          : `${CATALOG_PROTOCOL}${aliasGroup}`;
+
+      dependency.range = catalogRange;
+      return;
     }
   }
 

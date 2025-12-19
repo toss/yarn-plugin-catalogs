@@ -14,8 +14,6 @@ import { getDefaultAliasGroups } from "./default";
 
 export interface ValidationViolation {
   descriptor: Descriptor;
-  rule: keyof ValidationRules;
-  ruleValue: string;
   message: string;
   severity: "error" | "warning";
 }
@@ -72,9 +70,7 @@ async function validateCatalogProtocolUsage(
       if (existsInDefaultCatalog) {
         return {
           descriptor,
-          rule: "catalog_protocol_usage",
-          ruleValue,
-          message: `Package "${packageName}" is available in default catalog tracks but not using catalog: protocol`,
+          message: `${packageName} is listed in the catalogs config, but not using catalog protocol.`,
           severity: "error",
         };
       }
@@ -105,9 +101,7 @@ async function validateCatalogProtocolUsage(
       if (existsInDefaultCatalog) {
         return {
           descriptor,
-          rule: "catalog_protocol_usage",
-          ruleValue,
-          message: `Package "${packageName}" is available in default catalog tracks but not using catalog: protocol`,
+          message: `${packageName} is listed in the catalogs config, but not using catalog protocol.`,
           severity: "warning",
         };
       }
@@ -119,9 +113,7 @@ async function validateCatalogProtocolUsage(
       if (isUsingCatalogProtocol) {
         return {
           descriptor,
-          rule: "catalog_protocol_usage",
-          ruleValue,
-          message: `Package "${packageName}" is using catalog: protocol but this is restricted in this workspace`,
+          message: `${packageName} is using catalog protocol but this is restricted in this workspace.`,
           severity: "error",
         };
       }

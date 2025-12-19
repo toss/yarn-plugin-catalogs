@@ -43,21 +43,11 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
     validateWorkspace: async (workspace: Workspace, report) => {
       const violations = await validateWorkspaceDependencies(workspace);
 
-      if (violations.length === 0) {
-        return;
-      }
-
       for (const violation of violations) {
         if (violation.severity === "error") {
-          report.reportError(
-            MessageName.INVALID_MANIFEST,
-            `${chalk.yellow(structUtils.stringifyDescriptor(violation.descriptor))}: ${violation.message}`,
-          );
+          report.reportError(MessageName.INVALID_MANIFEST, violation.message);
         } else {
-          report.reportWarning(
-            MessageName.UNNAMED,
-            `${chalk.yellow(structUtils.stringifyDescriptor(violation.descriptor))}: ${violation.message}`,
-          );
+          report.reportWarning(MessageName.UNNAMED, violation.message);
         }
       }
     },

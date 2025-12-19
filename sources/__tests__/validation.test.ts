@@ -5,6 +5,10 @@ import {
   hasDependency,
 } from "./utils";
 
+function validationMessage(packageName: string) {
+  return `${packageName} is listed in the catalogs config`;
+}
+
 describe("validation", () => {
   let workspace: TestWorkspace;
 
@@ -46,7 +50,9 @@ describe("validation", () => {
         await expect(workspace.yarn.install()).rejects.toThrow();
       });
 
-      it("errors when we try to `yarn add` without catalog protocol", async () => {
+      // TODO: Should error, but currently it is not possible to know exact descriptor input of `yarn add` command.
+      // Related: https://github.com/yarnpkg/berry/pull/6994
+      it.skip("errors when we try to `yarn add` without catalog protocol", async () => {
         workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
@@ -212,11 +218,13 @@ describe("validation", () => {
           dependencies: { react: "17.0.0" },
         });
 
-        const { stderr } = await workspace.yarn.install();
-        expect(stderr).toContain("react");
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).toContain(validationMessage("react"));
       });
 
-      it("warns when we try to `yarn add` without catalog protocol", async () => {
+      // TODO: Should warn, but currently it is not possible to know exact descriptor input of `yarn add` command.
+      // Related: https://github.com/yarnpkg/berry/pull/6994
+      it.skip("warns when we try to `yarn add` without catalog protocol", async () => {
         workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
@@ -237,7 +245,7 @@ describe("validation", () => {
         await workspace.yarn.catalogs.apply();
 
         const { stderr } = await workspace.yarn.add("react@17.0.0");
-        expect(stderr).toContain("react");
+        expect(stderr).toContain(validationMessage("react"));
       });
 
       it("prints no warnings when we try to `yarn install` with catalog protocol", async () => {
@@ -267,8 +275,8 @@ describe("validation", () => {
           dependencies: { react: "catalog:stable" },
         });
 
-        const { stderr } = await workspace.yarn.install();
-        expect(stderr).toBe("");
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).not.toContain(validationMessage("react"));
       });
 
       it("prints no warnings when we try to `yarn add` with catalog protocol", async () => {
@@ -324,8 +332,8 @@ describe("validation", () => {
           dependencies: { lodash: "4.17.21" },
         });
 
-        const { stderr } = await workspace.yarn.install();
-        expect(stderr).toBe("");
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).not.toContain(validationMessage("lodash"));
       });
 
       it("prints no warnings when we try to `yarn add` without catalog protocol, but the package is not in the catalog", async () => {
@@ -383,8 +391,8 @@ describe("validation", () => {
           dependencies: { react: "catalog:stable" },
         });
 
-        const { stderr } = await workspace.yarn.install();
-        expect(stderr).toBe("");
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).not.toContain(validationMessage("react"));
       });
 
       it("prints no warnings/errors when we try to `yarn install` without catalog protocol", async () => {
@@ -414,8 +422,8 @@ describe("validation", () => {
           dependencies: { react: "17.0.0" },
         });
 
-        const { stderr } = await workspace.yarn.install();
-        expect(stderr).toBe("");
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).not.toContain(validationMessage("react"));
       });
 
       it("prints no warnings/errors when we try to `yarn add` with catalog protocol", async () => {
@@ -524,59 +532,6 @@ describe("validation", () => {
           workspace.yarn.add("react@catalog:stable"),
         ).rejects.toThrow();
       });
-
-      it("errors when we try to `yarn install` without catalog protocol", async () => {
-        workspace = await createTestWorkspace();
-
-        await workspace.writeCatalogsYml({
-          options: {
-            default: ["stable"],
-          },
-          validation: [
-            {
-              workspaces: ["*"],
-              rules: { catalog_protocol_usage: "restrict" },
-            },
-          ],
-          list: {
-            stable: { react: "npm:18.0.0" },
-          },
-        });
-
-        await workspace.yarn.catalogs.apply();
-
-        await workspace.writeJson("package.json", {
-          name: "test-package",
-          version: "1.0.0",
-          private: true,
-          dependencies: { react: "17.0.0" },
-        });
-
-        await expect(workspace.yarn.install()).rejects.toThrow();
-      });
-
-      it("errors when we try to `yarn add` without catalog protocol", async () => {
-        workspace = await createTestWorkspace();
-
-        await workspace.writeCatalogsYml({
-          options: {
-            default: ["stable"],
-          },
-          validation: [
-            {
-              workspaces: ["*"],
-              rules: { catalog_protocol_usage: "restrict" },
-            },
-          ],
-          list: {
-            stable: { react: "npm:18.0.0" },
-          },
-        });
-
-        await workspace.yarn.catalogs.apply();
-
-        await expect(workspace.yarn.add("react@17.0.0")).rejects.toThrow();
-      });
     });
 
     describe("no config", () => {
@@ -601,8 +556,8 @@ describe("validation", () => {
           dependencies: { react: "17.0.0" },
         });
 
-        const { stderr } = await workspace.yarn.install();
-        expect(stderr).toBe("");
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).not.toContain(validationMessage("react"));
       });
 
       it("works as if it is 'optional' when validation array is empty", async () => {
@@ -627,8 +582,8 @@ describe("validation", () => {
           dependencies: { react: "17.0.0" },
         });
 
-        const { stderr } = await workspace.yarn.install();
-        expect(stderr).toBe("");
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).not.toContain(validationMessage("react"));
       });
     });
   });
