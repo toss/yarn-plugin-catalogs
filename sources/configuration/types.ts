@@ -1,30 +1,21 @@
 /**
  * Rule for catalog protocol usage validation
- * - 'strict': MUST use catalog: protocol if package is in catalogs
- * - 'warn': SHOULD use catalog: protocol. Warn if not.
- * - 'optional': CAN use catalog: protocol. No warning even if not.
- * - 'restrict': MUST NOT use catalog: protocol
+ * - 'strict': MUST use catalog protocol.
+ * - 'warn': SHOULD use catalog protocol. Print warnings if not.
+ * - 'optional': CAN use catalog protocol. No errors/warnings.
+ * - 'restrict': MUST NOT use catalog protocol.
  */
 export type CatalogProtocolUsageRule = "strict" | "warn" | "optional" | "restrict";
 
-/**
- * Validation rules that can be applied to workspaces
- */
 export interface ValidationRules {
   catalog_protocol_usage?: CatalogProtocolUsageRule;
 }
 
-/**
- * A validation rule entry with workspace patterns and rules
- */
 export interface ValidationRule {
   workspaces: string[];
   rules: ValidationRules;
 }
 
-/**
- * Validation configuration - array of rules matched in order (first match wins)
- */
 export type ValidationConfig = ValidationRule[];
 
 /**
