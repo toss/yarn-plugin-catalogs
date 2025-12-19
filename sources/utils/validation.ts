@@ -57,7 +57,6 @@ async function validateCatalogProtocolUsage(
 
   switch (ruleValue) {
     case "strict": {
-      // MUST use catalog: protocol if package is in default catalog tracks
       if (isUsingCatalogProtocol) {
         return null;
       }
@@ -78,25 +77,14 @@ async function validateCatalogProtocolUsage(
     }
 
     case "warn": {
-      // SHOULD use catalog: protocol. Warn if not in default catalog tracks.
       if (isUsingCatalogProtocol) {
         return null;
       }
 
-      // Get default catalog tracks for this workspace
       const defaultGroups = await getDefaultAliasGroups(workspace);
-      if (defaultGroups.length === 0) {
-        // No default tracks configured, skip validation
-        return null;
-      }
-
-      // Check if package exists in any of the default catalog tracks
       const catalogs = await configReader.getAppliedCatalogs(workspace.project);
-      const existsInDefaultCatalog =
-        catalogs &&
-        defaultGroups.some(
-          (groupName) => catalogs[groupName]?.[packageName] !== undefined,
-        );
+
+      const existsInDefaultCatalog = defaultGroups.some((groupName) => packageName in catalogs[groupName]);
 
       if (existsInDefaultCatalog) {
         return {
@@ -109,7 +97,6 @@ async function validateCatalogProtocolUsage(
     }
 
     case "restrict":
-      // MUST NOT use catalog: protocol
       if (isUsingCatalogProtocol) {
         return {
           descriptor,
@@ -120,7 +107,6 @@ async function validateCatalogProtocolUsage(
       break;
 
     case "optional":
-      // CAN use catalog: protocol. No warning even if not.
       break;
   }
 
@@ -151,15 +137,14 @@ export async function validateWorkspaceDependencies(
     return structUtils.makeDescriptor(ident, version);
   });
 
-  // Validate each dependency against active rules
   for (const descriptor of dependencyDescriptors) {
-    // Validate catalog_protocol_usage rule if defined
     if (rules.catalog_protocol_usage) {
       const violation = await validateCatalogProtocolUsage(
         workspace,
         descriptor,
         rules.catalog_protocol_usage,
       );
+
       if (violation) {
         violations.push(violation);
       }
