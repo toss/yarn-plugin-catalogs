@@ -8,15 +8,14 @@ export async function fallbackDefaultAliasGroup(
   workspace: Workspace,
   dependency: Descriptor,
 ) {
-  if (dependency.range.startsWith(CATALOG_PROTOCOL)) {
-    return;
-  }
-
-  // Check if validation rules apply to this workspace
   const rules = await findMatchingValidationRule(workspace);
 
-  // If using "restrict" rule, don't suggest catalog protocol
   if (rules?.catalog_protocol_usage === "restrict") {
+    if (dependency.range.startsWith(CATALOG_PROTOCOL)) {
+      const message = `➤ ${dependency.name} is using catalog protocol but this is restricted in this workspace.`;
+      throw new Error(chalk.red(message));
+    }
+
     return;
   }
 

@@ -9929,11 +9929,12 @@ ${end.comment}` : end.comment;
 
   // sources/utils/default.ts
   async function fallbackDefaultAliasGroup(workspace, dependency) {
-    if (dependency.range.startsWith(CATALOG_PROTOCOL)) {
-      return;
-    }
     const rules = await findMatchingValidationRule(workspace);
     if (rules?.catalog_protocol_usage === "restrict") {
+      if (dependency.range.startsWith(CATALOG_PROTOCOL)) {
+        const message2 = `\u27A4 ${dependency.name} is using catalog protocol but this is restricted in this workspace.`;
+        throw new Error(source_default.red(message2));
+      }
       return;
     }
     const catalogs = await configReader.getAppliedCatalogs(workspace.project);
