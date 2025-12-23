@@ -4,7 +4,7 @@ import type { CatalogsConfiguration, ValidationConfig } from "./types";
 /**
  * Validate the new validation config structure
  */
-export function isValidValidationConfig(
+function isValidValidationConfig(
   validation: unknown,
 ): validation is ValidationConfig {
   if (!Array.isArray(validation)) {
