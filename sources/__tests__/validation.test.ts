@@ -683,6 +683,109 @@ describe("validation", () => {
         expect(stderr).toBe("");
       });
 
+      it("should apply broader rule when it appears before a more specific pattern", async () => {
+        workspace = await createTestWorkspace();
+
+        await workspace.writeCatalogsYml({
+          options: {
+            default: ["stable"],
+          },
+          validation: [
+            {
+              workspaces: ["*"],
+              rules: { catalog_protocol_usage: "strict" },
+            },
+            {
+              workspaces: ["test-package"],
+              rules: { catalog_protocol_usage: "optional" },
+            },
+          ],
+          list: {
+            stable: { react: "npm:18.0.0" },
+          },
+        });
+
+        await workspace.yarn.catalogs.apply();
+
+        await workspace.writeJson("package.json", {
+          name: "test-package",
+          version: "1.0.0",
+          private: true,
+          dependencies: { react: "17.0.0" },
+        });
+
+        await expect(workspace.yarn.install()).rejects.toThrow();
+      });
+
+      it("should use the first rule when two conflicting rules have the same pattern", async () => {
+        workspace = await createTestWorkspace();
+
+        await workspace.writeCatalogsYml({
+          options: {
+            default: ["stable"],
+          },
+          validation: [
+            {
+              workspaces: ["test-*"],
+              rules: { catalog_protocol_usage: "optional" },
+            },
+            {
+              workspaces: ["test-*"],
+              rules: { catalog_protocol_usage: "strict" },
+            },
+          ],
+          list: {
+            stable: { react: "npm:18.0.0" },
+          },
+        });
+
+        await workspace.yarn.catalogs.apply();
+
+        await workspace.writeJson("package.json", {
+          name: "test-package",
+          version: "1.0.0",
+          private: true,
+          dependencies: { react: "17.0.0" },
+        });
+
+        const { stderr } = await workspace.yarn.install();
+        expect(stderr).toBe("");
+      });
+
+      it("should use the first rule when conflicting rules have overlapping wildcard patterns", async () => {
+        workspace = await createTestWorkspace();
+
+        await workspace.writeCatalogsYml({
+          options: {
+            default: ["stable"],
+          },
+          validation: [
+            {
+              workspaces: ["test-*"],
+              rules: { catalog_protocol_usage: "strict" },
+            },
+            {
+              workspaces: ["*-package"],
+              rules: { catalog_protocol_usage: "optional" },
+            },
+          ],
+          list: {
+            stable: { react: "npm:18.0.0" },
+          },
+        });
+
+        await workspace.yarn.catalogs.apply();
+
+        await workspace.writeJson("package.json", {
+          name: "test-package",
+          version: "1.0.0",
+          private: true,
+          dependencies: { react: "17.0.0" },
+        });
+
+        await expect(workspace.yarn.install()).rejects.toThrow();
+      });
+
       it("should match if any pattern in the workspaces array matches", async () => {
         workspace = await createTestWorkspace();
 
