@@ -12,11 +12,20 @@ import type {
 } from "../configuration/types";
 import { getDefaultAliasGroups } from "./default";
 
-export interface ValidationViolation {
+interface ValidationViolation {
   descriptor: Descriptor;
   message: string;
   severity: "error" | "warning";
 }
+
+/**
+ * Generic type for rule checker functions
+ */
+type RuleChecker<T> = (
+  workspace: Workspace,
+  descriptor: Descriptor,
+  ruleValue: T,
+) => Promise<ValidationViolation | null>;
 
 /**
  * Find the first matching validation rule for a workspace
@@ -47,11 +56,7 @@ export async function findMatchingValidationRule(
 /**
  * Validate catalog protocol usage for a single dependency
  */
-async function validateCatalogProtocolUsage(
-  workspace: Workspace,
-  descriptor: Descriptor,
-  ruleValue: CatalogProtocolUsageRule,
-): Promise<ValidationViolation | null> {
+const validateCatalogProtocolUsage: RuleChecker<CatalogProtocolUsageRule> = async (workspace, descriptor, ruleValue) => {
   const isUsingCatalogProtocol = descriptor.range.startsWith(CATALOG_PROTOCOL);
   const packageName = structUtils.stringifyIdent(descriptor);
 
@@ -113,6 +118,12 @@ async function validateCatalogProtocolUsage(
   return null;
 }
 
+const ruleCheckers = {
+  catalog_protocol_usage: validateCatalogProtocolUsage,
+} satisfies {
+  [K in keyof ValidationRules]: RuleChecker<NonNullable<ValidationRules[K]>>;
+};
+
 /**
  * Validate all dependencies in a workspace against the matching rules
  */
@@ -138,15 +149,15 @@ export async function validateWorkspaceDependencies(
   });
 
   for (const descriptor of dependencyDescriptors) {
-    if (rules.catalog_protocol_usage) {
-      const violation = await validateCatalogProtocolUsage(
-        workspace,
-        descriptor,
-        rules.catalog_protocol_usage,
-      );
+    for (const [ruleName, checker] of Object.entries(ruleCheckers)) {
+      const ruleValue = rules[ruleName as keyof ValidationRules];
 
-      if (violation) {
-        violations.push(violation);
+      if (ruleValue) {
+        const violation = await checker(workspace, descriptor, ruleValue);
+
+        if (violation) {
+          violations.push(violation);
+        }
       }
     }
   }
