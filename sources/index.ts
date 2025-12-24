@@ -16,7 +16,7 @@ import {
 } from "./commands/apply";
 import { configReader } from "./configuration";
 import { fallbackDefaultAliasGroup } from "./utils/default";
-import { validateWorkspace } from "./utils/validation";
+import { validateWorkspaceDependencies } from "./utils/validation";
 
 const plugin: Plugin<Hooks & EssentialHooks> = {
   commands: [ApplyCommand],
@@ -41,49 +41,14 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
       }
     },
     validateWorkspace: async (workspace: Workspace, report) => {
-      const result = await validateWorkspace(workspace);
+      const violations = await validateWorkspaceDependencies(workspace);
 
-      // Report catalog protocol violations
-      if (result.catalogProtocolViolations.length > 0) {
-        const strictViolations = result.catalogProtocolViolations.filter(
-          (dep) => dep.validationLevel === "strict",
-        );
-        const warnViolations = result.catalogProtocolViolations.filter(
-          (dep) => dep.validationLevel === "warn",
-        );
-
-        const formatMessage = (
-          violations: typeof strictViolations | typeof warnViolations,
-        ) => {
-          const packageList = violations
-            .map((dep) =>
-              chalk.yellow(structUtils.stringifyDescriptor(dep.descriptor)),
-            )
-            .join(", ");
-          return `The following dependencies are listed in the catalogs but not using the catalog protocol: ${packageList}. Consider using the catalog protocol instead.`;
-        };
-
-        if (strictViolations.length > 0) {
-          report.reportError(
-            MessageName.INVALID_MANIFEST,
-            formatMessage(strictViolations),
-          );
+      for (const violation of violations) {
+        if (violation.severity === "error") {
+          report.reportError(MessageName.INVALID_MANIFEST, violation.message);
+        } else {
+          report.reportWarning(MessageName.UNNAMED, violation.message);
         }
-
-        if (warnViolations.length > 0) {
-          report.reportWarning(
-            MessageName.INVALID_MANIFEST,
-            formatMessage(warnViolations),
-          );
-        }
-      }
-
-      // Report if ignored workspace uses catalog protocol
-      if (result.ignoredWorkspaceWithCatalogProtocol) {
-        report.reportError(
-          MessageName.INVALID_MANIFEST,
-          "Workspace is ignored from the catalogs, but it has dependencies with the catalog protocol. Consider removing the protocol.",
-        );
       }
     },
     afterWorkspaceDependencyAddition: async (

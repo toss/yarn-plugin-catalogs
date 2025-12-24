@@ -12,7 +12,6 @@ Since Yarn 4.10.0, Yarn natively supports catalogs for managing dependency versi
 - **Supporting hierarchical catalog inheritance** (e.g., `stable/canary` inherits from `stable`)
 - **Providing validation** to ensure consistent catalog usage across workspaces
 - **Auto-applying default catalogs** when adding dependencies
-- **Filtering workspaces** with opt-in (`includedWorkspaces`) and opt-out (`ignoredWorkspaces`) options
 
 ## Requirements
 
@@ -32,10 +31,12 @@ yarn plugin import https://raw.githubusercontent.com/toss/yarn-plugin-catalogs/m
 # catalogs.yml
 
 options:
-  default: [stable]           # Optional: Default catalog groups for 'yarn add'
-  validation: warn            # Optional: 'warn' | 'strict' | 'off'
-  includedWorkspaces: []       # Optional: Workspaces to include 
-  ignoredWorkspaces: []       # Optional: Workspaces to ignore 
+  default: [stable]  # Optional: Default catalog groups for 'yarn add'
+
+validation:  # Optional: Workspace-based validation rules
+  - workspaces: ["*"]
+    rules:
+      catalog_protocol_usage: warn
 
 list:
   root:  # Special alias for the root catalog (accessed via catalog:)
@@ -258,111 +259,62 @@ list:
 
 If your `package.json` has more `catalog:stable` dependencies than `catalog:beta`, running `yarn add next` will automatically use `catalog:stable`.
 
-### Workspace Filtering
-
-Control which workspaces are included in catalog protocol processing using `includedWorkspaces` and `ignoredWorkspaces` options.
-
-#### Including Workspaces 
-
-Use `includedWorkspaces` to specify which workspaces should be processed for catalogs. Only matching workspaces will receive catalog validation and default catalog auto-application:
-
-```yaml
-# In catalogs.yml
-options:
-  includedWorkspaces: [apps-*, packages]
-
-list:
-  stable:
-    react: npm:18.0.0
-```
-
-When `includedWorkspaces` is specified:
-- Only matching workspaces receive validation warnings/errors
-- Only matching workspaces have default catalogs auto-applied
-
-If `includedWorkspaces` is not specified, all workspaces are included by default.
-
-#### Ignoring Workspaces
-
-Use `ignoredWorkspaces` to exclude specific workspaces from catalog processing:
-
-```yaml
-# In catalogs.yml
-options:
-  ignoredWorkspaces: [test-*, scripts]
-
-list:
-  stable:
-    react: npm:18.0.0
-```
-
-Ignored workspaces:
-- Won't receive validation warnings/errors
-- Won't have default catalogs auto-applied
-
-`ignoredWorkspaces` takes precedence over `includedWorkspaces`.
-
 ### Validation
 
-Control how strictly catalog usage is enforced:
+The plugin provides a workspace-based validation system for running pre-checks on your dependencies. The `validation` field is a top-level array where each entry specifies workspace patterns and the rules to apply:
 
 ```yaml
 # In catalogs.yml
-options:
-  validation: warn  # 'warn' | 'strict' | 'off'
+validation:
+  - workspaces: ["*"]  # Match all workspaces
+    rules:
+      catalog_protocol_usage: warn
 
 list:
   stable:
     react: npm:18.0.0
 ```
 
-- **`warn`** (default): Show warnings for dependencies that should use catalogs
-- **`strict`**: Throw errors and prevent installation
-- **`off`**: Disable validation entirely
+#### Available Rules
 
-#### Per-Catalog Validation
+##### `catalog_protocol_usage`
 
-Set different validation levels for each catalog:
+Controls whether dependencies should use the `catalog:` protocol:
+
+- **`strict`**: MUST use catalog protocol. Throws errors if a dependency exists in the catalog but doesn't use `catalog:`.
+- **`warn`**: SHOULD use catalog protocol. Shows warnings if a dependency exists in the catalog but doesn't use `catalog:`.
+- **`optional`**: CAN use catalog protocol. No errors or warnings.
+- **`restrict`**: MUST NOT use catalog protocol. Throws errors if `catalog:` protocol is used.
+
+#### Workspace-Based Validation
+
+You can apply different validation rules to different workspaces using glob patterns. The first matching rule wins:
 
 ```yaml
 # In catalogs.yml
-options:
-  validation:
-    stable: strict    # Strictly enforce stable catalog
-    beta: warn        # Warn for beta catalog
-    experimental: off # No validation for experimental
+validation:
+  - workspaces: ["@myorg/server-*"]  # Server packages must use catalogs
+    rules:
+      catalog_protocol_usage: strict
+
+  - workspaces: ["@myorg/experimental-*"]  # Experimental packages can't use catalogs
+    rules:
+      catalog_protocol_usage: restrict
+
+  - workspaces: ["*"]  # All other packages get warnings
+    rules:
+      catalog_protocol_usage: warn
 
 list:
   stable:
     react: npm:18.0.0
-  beta:
-    react: npm:19.0.0-rc
-  experimental:
-    react: npm:19.0.0-alpha
-```
-
-**Validation Rules:**
-- When a package exists in multiple catalogs, the strictest level applies (`strict` > `warn` > `off`)
-- Hierarchical catalogs inherit validation settings from their parent groups:
-
-```yaml
-# In catalogs.yml
-options:
-  validation:
-    stable: off           # Parent group has validation off
-    stable/canary: strict # Child group enforces strictly
-
-list:
-  stable:
-    react: npm:18.0.0
-  stable/canary:
-    react: npm:18.2.0
-    lodash: npm:4.17.21
+    typescript: npm:5.1.0
 ```
 
 In this example:
-- `react` will use `strict` validation (from `stable/canary`)
-- `lodash` will use `strict` validation (from `stable/canary` since it's not in parent)
+- Workspaces matching `@myorg/server-*` must use `catalog:` for dependencies listed in catalogs
+- Workspaces matching `@myorg/experimental-*` cannot use `catalog:` protocol at all
+- All other workspaces will see warnings if they don't use `catalog:` for listed dependencies
 
 ## Contributing
 

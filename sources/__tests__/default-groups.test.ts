@@ -134,4 +134,32 @@ describe("default alias groups", () => {
       true,
     );
   });
+
+  it("should not automatically suggest default catalog group when validation rule is 'restrict'", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeCatalogsYml({
+      options: {
+        default: ["stable"],
+      },
+      validation: [
+        {
+          workspaces: ["*"],
+          rules: { catalog_protocol_usage: "restrict" },
+        },
+      ],
+      list: {
+        stable: {
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    await workspace.yarn.catalogs.apply();
+
+    const { stderr } = await workspace.yarn.add("react@17.0.0");
+    expect(stderr).toBe("");
+
+    expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
+  });
 });

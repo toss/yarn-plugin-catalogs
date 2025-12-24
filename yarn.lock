@@ -637,10 +637,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/picomatch@npm:^4":
-  version: 4.0.0
-  resolution: "@types/picomatch@npm:4.0.0"
-  checksum: 10c0/6455234501d3829301cc7291d5322b1737fd96fae7f0617c3b3ec97a58c41a3a3f40df65117714e502c245f603184a4511883c74727b7a9f9957b3fec0777e97
+"@types/picomatch@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "@types/picomatch@npm:4.0.2"
+  checksum: 10c0/0f46198c2d1beb5061816745355888e94a80a449a49af1ef69723f50e850c678b50cff299bd461f71e8009d46705e7cdeda8c8ffa23815b2e942c83877f855b9
   languageName: node
   linkType: hard
 
@@ -4559,7 +4559,7 @@ __metadata:
   resolution: "yarn-plugin-catalogs@workspace:."
   dependencies:
     "@types/node": "npm:^22.0.0"
-    "@types/picomatch": "npm:^4"
+    "@types/picomatch": "npm:^4.0.2"
     "@types/tmp": "npm:^0.2.6"
     "@yarnpkg/builder": "npm:^4.2.0"
     "@yarnpkg/cli": "npm:^4.8.0"

@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@types/picomatch": "^4",
+    "@types/picomatch": "^4.0.2",
     "@types/tmp": "^0.2.6",
     "@yarnpkg/builder": "^4.2.0",
     "rimraf": "5.0.0",
