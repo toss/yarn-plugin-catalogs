@@ -162,4 +162,57 @@ describe("default alias groups", () => {
 
     expect(await hasDependency(workspace, "react@npm:17.0.0")).toBe(true);
   });
+
+  it("should install normally when package is not in any catalog", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeCatalogsYml({
+      options: {
+        default: ["stable"],
+      },
+      list: {
+        stable: {
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    await workspace.yarn.catalogs.apply();
+
+    const { stderr } = await workspace.yarn.add("@module-federation/vite");
+    expect(stderr).toBe("");
+
+    const packageJson = await workspace.readPackageJson();
+    const version = packageJson.dependencies["@module-federation/vite"];
+
+    expect(version).toBeDefined();
+    expect(version).not.toContain("catalog:");
+  });
+
+  it("should not match scoped package with unscoped package of same name in catalog", async () => {
+    workspace = await createTestWorkspace();
+
+    await workspace.writeCatalogsYml({
+      options: {
+        default: ["stable"],
+      },
+      list: {
+        stable: {
+          vite: "npm:5.0.0",
+          react: "npm:18.0.0",
+        },
+      },
+    });
+
+    await workspace.yarn.catalogs.apply();
+
+    const { stderr } = await workspace.yarn.add("@module-federation/vite");
+    expect(stderr).toBe("");
+
+    const packageJson = await workspace.readPackageJson();
+    const version = packageJson.dependencies["@module-federation/vite"];
+
+    expect(version).toBeDefined();
+    expect(version).not.toContain("catalog:");
+  });
 });
