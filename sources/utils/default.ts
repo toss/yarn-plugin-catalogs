@@ -9,10 +9,11 @@ export async function fallbackDefaultAliasGroup(
   dependency: Descriptor,
 ) {
   const rules = await findMatchingValidationRule(workspace);
+  const packageName = structUtils.stringifyIdent(dependency);
 
   if (rules?.catalog_protocol_usage === "restrict") {
     if (dependency.range.startsWith(CATALOG_PROTOCOL)) {
-      const message = `➤ ${dependency.name} is using catalog protocol but this is restricted in this workspace.`;
+      const message = `➤ ${packageName} is using catalog protocol but this is restricted in this workspace.`;
       throw new Error(chalk.red(message));
     }
 
@@ -22,7 +23,6 @@ export async function fallbackDefaultAliasGroup(
   // Check if package exists in any catalog
   const catalogs = await configReader.getAppliedCatalogs(workspace.project);
   const applicableGroups: string[] = [];
-  const packageName = structUtils.stringifyIdent(dependency);
 
   for (const [groupName, catalog] of Object.entries(catalogs)) {
     if (catalog[packageName] !== undefined) {
@@ -59,7 +59,7 @@ export async function fallbackDefaultAliasGroup(
       ? ` (${aliasGroups.join(", ")})`
       : "";
 
-  const message = `➤ ${dependency.name} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${dependency.name}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
+  const message = `➤ ${packageName} is listed in the catalogs config${aliasGroupsText}, but it seems you're adding it without the catalog protocol. Consider running 'yarn add ${packageName}@${CATALOG_PROTOCOL}${aliasGroups[0]}' instead.`;
 
   if (rules?.catalog_protocol_usage === "strict") {
     throw new Error(chalk.red(message));
