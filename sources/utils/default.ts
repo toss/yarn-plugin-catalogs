@@ -1,4 +1,4 @@
-import type { Descriptor, Workspace } from "@yarnpkg/core";
+import { type Descriptor, type Workspace, structUtils } from "@yarnpkg/core";
 import chalk from "chalk";
 import { CATALOG_PROTOCOL, ROOT_ALIAS_GROUP } from "../constants";
 import { configReader } from "../configuration";
@@ -22,9 +22,10 @@ export async function fallbackDefaultAliasGroup(
   // Check if package exists in any catalog
   const catalogs = await configReader.getAppliedCatalogs(workspace.project);
   const applicableGroups: string[] = [];
+  const packageName = structUtils.stringifyIdent(dependency);
 
   for (const [groupName, catalog] of Object.entries(catalogs)) {
-    if (catalog[dependency.name] !== undefined) {
+    if (catalog[packageName] !== undefined) {
       applicableGroups.push(groupName);
     }
   }
