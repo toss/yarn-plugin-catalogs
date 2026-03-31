@@ -286,6 +286,25 @@ Controls whether dependencies should use the `catalog:` protocol:
 - **`optional`**: CAN use catalog protocol. No errors or warnings.
 - **`restrict`**: MUST NOT use catalog protocol. Throws errors if `catalog:` protocol is used.
 
+##### `allow_protocols`
+
+When using `strict` or `warn`, you may need to exempt certain protocols (e.g., `portal:`, `file:`, `link:`) that can't be replaced by `catalog:`. Use the object form of `catalog_protocol_usage` with `allow_protocols`:
+
+```yaml
+validation:
+  - workspaces: ["*"]
+    rules:
+      catalog_protocol_usage:
+        level: strict
+        allow_protocols:
+          - "portal:"
+          - "file:"
+```
+
+Dependencies using an allowed protocol will be exempt from the `strict`/`warn` check. The trailing colon is optional — `"portal"` and `"portal:"` are both accepted.
+
+`allow_protocols` is only valid with `strict` or `warn` level. Using it with `optional` or `restrict` will result in an invalid configuration error.
+
 #### Workspace-Based Validation
 
 You can apply different validation rules to different workspaces using glob patterns. The first matching rule wins:
