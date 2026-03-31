@@ -57,12 +57,14 @@ export async function findMatchingValidationRule(
  * Validate catalog protocol usage for a single dependency
  */
 const validateCatalogProtocolUsage: RuleChecker<CatalogProtocolUsageRule> = async (workspace, descriptor, ruleValue) => {
+  const { level, allowProtocols } = normalizeCatalogProtocolUsageRule(ruleValue);
   const isUsingCatalogProtocol = descriptor.range.startsWith(CATALOG_PROTOCOL);
+  const isUsingAllowedProtocol = allowProtocols.some(p => descriptor.range.startsWith(p));
   const packageName = structUtils.stringifyIdent(descriptor);
 
-  switch (ruleValue) {
+  switch (level) {
     case "strict": {
-      if (isUsingCatalogProtocol) {
+      if (isUsingCatalogProtocol || isUsingAllowedProtocol) {
         return null;
       }
 
@@ -82,7 +84,7 @@ const validateCatalogProtocolUsage: RuleChecker<CatalogProtocolUsageRule> = asyn
     }
 
     case "warn": {
-      if (isUsingCatalogProtocol) {
+      if (isUsingCatalogProtocol || isUsingAllowedProtocol) {
         return null;
       }
 
@@ -116,6 +118,15 @@ const validateCatalogProtocolUsage: RuleChecker<CatalogProtocolUsageRule> = asyn
   }
 
   return null;
+}
+
+export function normalizeCatalogProtocolUsageRule(rule: CatalogProtocolUsageRule) {
+  if (typeof rule === "string") return { level: rule, allowProtocols: [] as string[] };
+
+  const allowProtocols = ("allow_protocols" in rule ? rule.allow_protocols ?? [] : [])
+    .map(p => p.endsWith(":") ? p : `${p}:`);
+
+  return { level: rule.level, allowProtocols };
 }
 
 const ruleCheckers = {

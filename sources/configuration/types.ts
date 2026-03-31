@@ -1,11 +1,20 @@
 /**
- * Rule for catalog protocol usage validation
+ * Rule levels for catalog protocol usage validation
  * - 'strict': MUST use catalog protocol.
  * - 'warn': SHOULD use catalog protocol. Print warnings if not.
  * - 'optional': CAN use catalog protocol. No errors/warnings.
  * - 'restrict': MUST NOT use catalog protocol.
  */
-export type CatalogProtocolUsageRule = "strict" | "warn" | "optional" | "restrict";
+type CatalogProtocolUsageLevel = "strict" | "warn" | "optional" | "restrict";
+
+/**
+ * Rule for catalog protocol usage validation.
+ * Can be a simple string level or an object with level and allow_protocols.
+ */
+export type CatalogProtocolUsageRule =
+  | CatalogProtocolUsageLevel
+  | { level: Extract<CatalogProtocolUsageLevel, "strict" | "warn">; allow_protocols?: string[] }
+  | { level: Exclude<CatalogProtocolUsageLevel, Extract<CatalogProtocolUsageLevel, "strict" | "warn">> };
 
 export interface ValidationRules {
   catalog_protocol_usage?: CatalogProtocolUsageRule;
