@@ -14,7 +14,7 @@ type CatalogProtocolUsageLevel = "strict" | "warn" | "optional" | "restrict";
 export type CatalogProtocolUsageRule =
   | CatalogProtocolUsageLevel
   | { level: Extract<CatalogProtocolUsageLevel, "strict" | "warn">; allow_protocols?: string[] }
-  | { level: Exclude<CatalogProtocolUsageLevel, Extract<CatalogProtocolUsageLevel, "strict" | "warn">> };
+  | { level: Exclude<CatalogProtocolUsageLevel, "strict" | "warn"> };
 
 export interface ValidationRules {
   catalog_protocol_usage?: CatalogProtocolUsageRule;

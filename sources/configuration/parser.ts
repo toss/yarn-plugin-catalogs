@@ -11,7 +11,8 @@ function isValidValidationConfig(
     return false;
   }
 
-  const validRuleValues = ["strict", "warn", "optional", "restrict"];
+  const validLevelValues = ["strict", "warn", "optional", "restrict"];
+  const allowProtocolsLevels = ["strict", "warn"];
 
   for (const rule of validation) {
     if (!rule || typeof rule !== "object") {
@@ -35,10 +36,32 @@ function isValidValidationConfig(
 
     const rulesObj = rules as Record<string, unknown>;
     if (rulesObj.catalog_protocol_usage !== undefined) {
-      if (
-        typeof rulesObj.catalog_protocol_usage !== "string" ||
-        !validRuleValues.includes(rulesObj.catalog_protocol_usage)
-      ) {
+      const usage = rulesObj.catalog_protocol_usage;
+
+      if (typeof usage === "string") {
+        if (!validLevelValues.includes(usage)) {
+          return false;
+        }
+      } else if (typeof usage === "object" && usage !== null) {
+        const usageObj = usage as Record<string, unknown>;
+
+        if (typeof usageObj.level !== "string" || !validLevelValues.includes(usageObj.level)) {
+          return false;
+        }
+
+        if (usageObj.allow_protocols !== undefined) {
+          if (!allowProtocolsLevels.includes(usageObj.level)) {
+            return false;
+          }
+
+          if (
+            !Array.isArray(usageObj.allow_protocols) ||
+            !usageObj.allow_protocols.every((p) => typeof p === "string")
+          ) {
+            return false;
+          }
+        }
+      } else {
         return false;
       }
     }
