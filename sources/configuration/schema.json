@@ -80,9 +80,35 @@
       "additionalProperties": false,
       "properties": {
         "catalog_protocol_usage": {
-          "type": "string",
-          "description": "Controls catalog: protocol usage validation. 'strict' = MUST use catalog protocol, 'warn' = SHOULD use catalog protocol (warn if not), 'optional' = CAN use catalog protocol (no errors/warnings), 'restrict' = MUST NOT use catalog protocol",
-          "enum": ["strict", "warn", "optional", "restrict"]
+          "description": "Controls catalog: protocol usage validation. Can be a level string or an object with level and allow_protocols.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": ["strict", "warn", "optional", "restrict"]
+            },
+            {
+              "type": "object",
+              "required": ["level"],
+              "additionalProperties": false,
+              "properties": {
+                "level": {
+                  "type": "string",
+                  "enum": ["strict", "warn", "optional", "restrict"]
+                },
+                "allow_protocols": {
+                  "type": "array",
+                  "description": "Protocols to exempt from catalog protocol usage validation (e.g., 'portal:', 'file:'). Only valid with 'strict' or 'warn' level.",
+                  "items": { "type": "string" }
+                }
+              },
+              "if": {
+                "properties": { "level": { "enum": ["optional", "restrict"] } }
+              },
+              "then": {
+                "not": { "required": ["allow_protocols"] }
+              }
+            }
+          ]
         }
       }
     }
