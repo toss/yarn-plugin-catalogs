@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   type TestWorkspace,
   createTestWorkspace,
+  createTestProtocolPlugin,
   hasDependency,
 } from "./utils";
 
@@ -583,6 +584,240 @@ describe("validation", () => {
 
         const { stderr } = await workspace.yarn.add("react@17.0.0");
         expect(stderr).toBe("");
+      });
+    });
+
+    describe("allow_protocols", () => {
+      it("should pass when using an allowed protocol in strict mode", async () => {
+        workspace = await createTestWorkspace();
+        await createTestProtocolPlugin(workspace, "test");
+
+        await workspace.writeCatalogsYml({
+          options: {
+            default: ["stable"],
+          },
+          validation: [
+            {
+              workspaces: ["*"],
+              rules: {
+                catalog_protocol_usage: {
+                  level: "strict",
+                  allow_protocols: ["test:"],
+                },
+              },
+            },
+          ],
+          list: {
+            stable: { react: "npm:18.0.0" },
+          },
+        });
+
+        await workspace.yarn.catalogs.apply();
+
+        await workspace.writeJson("package.json", {
+          name: "test-package",
+          version: "1.0.0",
+          private: true,
+          dependencies: { react: "test:18.0.0" },
+        });
+
+        const { stderr } = await workspace.yarn.install();
+        expect(stderr).toBe("");
+      });
+
+      it("should error when using a non-allowed protocol in strict mode", async () => {
+        workspace = await createTestWorkspace();
+        await createTestProtocolPlugin(workspace, "test");
+        await createTestProtocolPlugin(workspace, "other");
+
+        await workspace.writeCatalogsYml({
+          options: {
+            default: ["stable"],
+          },
+          validation: [
+            {
+              workspaces: ["*"],
+              rules: {
+                catalog_protocol_usage: {
+                  level: "strict",
+                  allow_protocols: ["test:"],
+                },
+              },
+            },
+          ],
+          list: {
+            stable: { react: "npm:18.0.0" },
+          },
+        });
+
+        await workspace.yarn.catalogs.apply();
+
+        await workspace.writeJson("package.json", {
+          name: "test-package",
+          version: "1.0.0",
+          private: true,
+          dependencies: { react: "other:18.0.0" },
+        });
+
+        await expect(workspace.yarn.install()).rejects.toThrow();
+      });
+
+      it("should not warn when using an allowed protocol in warn mode", async () => {
+        workspace = await createTestWorkspace();
+        await createTestProtocolPlugin(workspace, "test");
+
+        await workspace.writeCatalogsYml({
+          options: {
+            default: ["stable"],
+          },
+          validation: [
+            {
+              workspaces: ["*"],
+              rules: {
+                catalog_protocol_usage: {
+                  level: "warn",
+                  allow_protocols: ["test:"],
+                },
+              },
+            },
+          ],
+          list: {
+            stable: { react: "npm:18.0.0" },
+          },
+        });
+
+        await workspace.yarn.catalogs.apply();
+
+        await workspace.writeJson("package.json", {
+          name: "test-package",
+          version: "1.0.0",
+          private: true,
+          dependencies: { react: "test:18.0.0" },
+        });
+
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).not.toContain(validationMessage("react"));
+      });
+
+      it("should normalize protocol strings without trailing colon", async () => {
+        workspace = await createTestWorkspace();
+        await createTestProtocolPlugin(workspace, "test");
+
+        await workspace.writeCatalogsYml({
+          options: {
+            default: ["stable"],
+          },
+          validation: [
+            {
+              workspaces: ["*"],
+              rules: {
+                catalog_protocol_usage: {
+                  level: "strict",
+                  allow_protocols: ["test"],
+                },
+              },
+            },
+          ],
+          list: {
+            stable: { react: "npm:18.0.0" },
+          },
+        });
+
+        await workspace.yarn.catalogs.apply();
+
+        await workspace.writeJson("package.json", {
+          name: "test-package",
+          version: "1.0.0",
+          private: true,
+          dependencies: { react: "test:18.0.0" },
+        });
+
+        const { stderr } = await workspace.yarn.install();
+        expect(stderr).toBe("");
+      });
+
+      it("should reject allow_protocols with optional level", async () => {
+        workspace = await createTestWorkspace();
+
+        await expect(
+          workspace.writeCatalogsYml({
+            options: {
+              default: ["stable"],
+            },
+            validation: [
+              {
+                workspaces: ["*"],
+                rules: {
+                  catalog_protocol_usage: {
+                    level: "optional",
+                    allow_protocols: ["test:"],
+                  },
+                },
+              },
+            ],
+            list: {
+              stable: { react: "npm:18.0.0" },
+            },
+          }).then(() => workspace.yarn.catalogs.apply()),
+        ).rejects.toThrow();
+      });
+
+      it("should reject allow_protocols with restrict level", async () => {
+        workspace = await createTestWorkspace();
+
+        await expect(
+          workspace.writeCatalogsYml({
+            options: {
+              default: ["stable"],
+            },
+            validation: [
+              {
+                workspaces: ["*"],
+                rules: {
+                  catalog_protocol_usage: {
+                    level: "restrict",
+                    allow_protocols: ["test:"],
+                  },
+                },
+              },
+            ],
+            list: {
+              stable: { react: "npm:18.0.0" },
+            },
+          }).then(() => workspace.yarn.catalogs.apply()),
+        ).rejects.toThrow();
+      });
+
+      it("should work with object form without allow_protocols", async () => {
+        workspace = await createTestWorkspace();
+
+        await workspace.writeCatalogsYml({
+          options: {
+            default: ["stable"],
+          },
+          validation: [
+            {
+              workspaces: ["*"],
+              rules: {
+                catalog_protocol_usage: { level: "strict" },
+              },
+            },
+          ],
+          list: {
+            stable: { react: "npm:18.0.0" },
+          },
+        });
+
+        await workspace.yarn.catalogs.apply();
+
+        await workspace.writeJson("package.json", {
+          name: "test-package",
+          version: "1.0.0",
+          private: true,
+          dependencies: { react: "17.0.0" },
+        });
+
+        await expect(workspace.yarn.install()).rejects.toThrow();
       });
     });
 
