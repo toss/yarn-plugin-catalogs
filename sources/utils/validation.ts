@@ -12,7 +12,7 @@ import type {
 } from "../configuration/types";
 import { getDefaultAliasGroups } from "./default";
 
-interface ValidationViolation {
+export interface ValidationViolation {
   descriptor: Descriptor;
   message: string;
   severity: "error" | "warning";
