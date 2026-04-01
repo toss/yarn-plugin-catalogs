@@ -20,7 +20,7 @@ describe("validation", () => {
 
   describe("catalog_protocol_usage rule", () => {
     describe("strict", () => {
-      it("should error when running `yarn install` without catalog protocol", async () => {
+      it("should warn when running `yarn install` without catalog protocol", async () => {
         workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
@@ -47,7 +47,8 @@ describe("validation", () => {
           dependencies: { react: "17.0.0" },
         });
 
-        await expect(workspace.yarn.install()).rejects.toThrow();
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).toContain(validationMessage("react"));
       });
 
       // TODO: Should error, but currently it is not possible to know exact descriptor input of `yarn add` command.
@@ -478,7 +479,7 @@ describe("validation", () => {
     });
 
     describe("restrict", () => {
-      it("should error when running `yarn install` with catalog protocol", async () => {
+      it("should warn when running `yarn install` with catalog protocol", async () => {
         workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
@@ -505,7 +506,8 @@ describe("validation", () => {
           dependencies: { react: "catalog:stable" },
         });
 
-        await expect(workspace.yarn.install()).rejects.toThrow();
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).toContain("restricted");
       });
 
       it("should error when running `yarn add` with catalog protocol", async () => {
@@ -618,7 +620,7 @@ describe("validation", () => {
         expect(stdout).not.toContain(validationMessage("react"));
       });
 
-      it("should apply validation when pattern matches with wildcard", async () => {
+      it("should warn when pattern matches with wildcard", async () => {
         workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
@@ -645,7 +647,8 @@ describe("validation", () => {
           dependencies: { react: "17.0.0" },
         });
 
-        await expect(workspace.yarn.install()).rejects.toThrow();
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).toContain(validationMessage("react"));
       });
 
       it("should use the first matching rule when multiple rules could match", async () => {
@@ -683,7 +686,7 @@ describe("validation", () => {
         expect(stderr).toBe("");
       });
 
-      it("should apply broader rule when it appears before a more specific pattern", async () => {
+      it("should warn when broader rule appears before a more specific pattern", async () => {
         workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
@@ -714,7 +717,8 @@ describe("validation", () => {
           dependencies: { react: "17.0.0" },
         });
 
-        await expect(workspace.yarn.install()).rejects.toThrow();
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).toContain(validationMessage("react"));
       });
 
       it("should use the first rule when two conflicting rules have the same pattern", async () => {
@@ -752,7 +756,7 @@ describe("validation", () => {
         expect(stderr).toBe("");
       });
 
-      it("should use the first rule when conflicting rules have overlapping wildcard patterns", async () => {
+      it("should warn when conflicting rules have overlapping wildcard patterns", async () => {
         workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
@@ -783,10 +787,11 @@ describe("validation", () => {
           dependencies: { react: "17.0.0" },
         });
 
-        await expect(workspace.yarn.install()).rejects.toThrow();
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).toContain(validationMessage("react"));
       });
 
-      it("should match if any pattern in the workspaces array matches", async () => {
+      it("should warn when any pattern in the workspaces array matches", async () => {
         workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
@@ -813,10 +818,11 @@ describe("validation", () => {
           dependencies: { react: "17.0.0" },
         });
 
-        await expect(workspace.yarn.install()).rejects.toThrow();
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).toContain(validationMessage("react"));
       });
 
-      it("should match the exact workspace name", async () => {
+      it("should warn when the exact workspace name matches", async () => {
         workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
@@ -843,7 +849,8 @@ describe("validation", () => {
           dependencies: { react: "17.0.0" },
         });
 
-        await expect(workspace.yarn.install()).rejects.toThrow();
+        const { stdout } = await workspace.yarn.install();
+        expect(stdout).toContain(validationMessage("react"));
       });
 
       it("should not match when the exact name differs", async () => {

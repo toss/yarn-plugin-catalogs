@@ -26,6 +26,7 @@ export interface TestWorkspace {
     ): Promise<{ stdout: string; stderr: string }>;
     catalogs: {
       apply(check?: boolean): Promise<{ stdout: string; stderr: string }>;
+      validate(): Promise<{ stdout: string; stderr: string }>;
     };
   };
 }
@@ -51,6 +52,9 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
       const args = ["catalogs", "apply"];
       if (check) args.push("--check");
       return await yarn(args);
+    },
+    validate: async () => {
+      return await yarn(["catalogs", "validate"]);
     },
   };
 
