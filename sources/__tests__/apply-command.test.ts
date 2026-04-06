@@ -1,17 +1,9 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { type TestWorkspace, createTestWorkspace } from "./utils";
+import { describe, expect, it } from "vitest";
+import { createTestWorkspace } from "./utils";
 
 describe("catalogs apply command", () => {
-  let workspace: TestWorkspace;
-
-  afterEach(async () => {
-    if (workspace) {
-      await workspace.cleanup();
-    }
-  });
-
   it("should apply named catalogs to .yarnrc.yml", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -40,7 +32,7 @@ describe("catalogs apply command", () => {
   });
 
   it("should apply root catalog to .yarnrc.yml", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -63,7 +55,7 @@ describe("catalogs apply command", () => {
   });
 
   it("should apply both root and named catalogs", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -89,7 +81,7 @@ describe("catalogs apply command", () => {
   });
 
   it("should resolve inheritance when applying", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -119,7 +111,7 @@ describe("catalogs apply command", () => {
   });
 
   it("should resolve multi-level inheritance", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -163,7 +155,7 @@ describe("catalogs apply command", () => {
   });
 
   it("should preserve existing .yarnrc.yml fields", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     // Write some custom config to .yarnrc.yml
     await workspace.writeYarnrc({
@@ -195,7 +187,7 @@ describe("catalogs apply command", () => {
   });
 
   it("should overwrite existing catalogs", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     // Write initial catalogs
     await workspace.writeCatalogsYml({
@@ -229,7 +221,7 @@ describe("catalogs apply command", () => {
   });
 
   it("should show success message", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -248,7 +240,7 @@ describe("catalogs apply command", () => {
   });
 
   it("should handle check mode when changes are needed", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -263,7 +255,7 @@ describe("catalogs apply command", () => {
   });
 
   it("should handle check mode when up to date", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -281,14 +273,14 @@ describe("catalogs apply command", () => {
   });
 
   it("should fail when catalogs.yml does not exist", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     // Don't create catalogs.yml
     await expect(workspace.yarn.catalogs.apply()).rejects.toThrow();
   });
 
   it("should handle empty catalogs list", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {},
@@ -304,7 +296,7 @@ describe("catalogs apply command", () => {
   });
 
   it("should remove catalogs when list becomes empty", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     // First apply with some catalogs
     await workspace.writeCatalogsYml({
@@ -330,7 +322,7 @@ describe("catalogs apply command", () => {
   });
 
   it("should preserve comments and formatting when updating catalogs", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     const existingYarnrc = await workspace.readYarnrcRaw();
     await workspace.writeYarnrcRaw(`${existingYarnrc}
@@ -364,7 +356,7 @@ catalogs:
   });
 
   it("should preserve comments when updating both root and named catalogs", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     const existingYarnrc = await workspace.readYarnrcRaw();
     await workspace.writeYarnrcRaw(`${existingYarnrc}
@@ -397,7 +389,7 @@ catalogs:
   });
 
   it("should preserve comments when removing catalogs", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     const existingYarnrc = await workspace.readYarnrcRaw();
     await workspace.writeYarnrcRaw(`${existingYarnrc}

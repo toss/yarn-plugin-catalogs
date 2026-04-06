@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  type TestWorkspace,
   createTestWorkspace,
   hasDependency,
 } from "./utils";
@@ -10,18 +9,10 @@ function validationMessage(packageName: string) {
 }
 
 describe("validation", () => {
-  let workspace: TestWorkspace;
-
-  afterEach(async () => {
-    if (workspace) {
-      await workspace.cleanup();
-    }
-  });
-
   describe("catalog_protocol_usage rule", () => {
     describe("strict", () => {
       it("should warn when running `yarn install` without catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -54,7 +45,7 @@ describe("validation", () => {
       // TODO: Should error, but currently it is not possible to know exact descriptor input of `yarn add` command.
       // Related: https://github.com/yarnpkg/berry/pull/6994
       it.skip("should error when running `yarn add` without catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -77,7 +68,7 @@ describe("validation", () => {
       });
 
       it("should pass when running `yarn install` with catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -108,7 +99,7 @@ describe("validation", () => {
       });
 
       it("should pass when running `yarn add` with catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -134,7 +125,7 @@ describe("validation", () => {
       });
 
       it("should pass when running `yarn install` without catalog protocol if the package is not in the catalog", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -165,7 +156,7 @@ describe("validation", () => {
       });
 
       it("should pass when running `yarn add` without catalog protocol if the package is not in the catalog", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -193,7 +184,7 @@ describe("validation", () => {
 
     describe("warn", () => {
       it("should warn when running `yarn install` without catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -226,7 +217,7 @@ describe("validation", () => {
       // TODO: Should warn, but currently it is not possible to know exact descriptor input of `yarn add` command.
       // Related: https://github.com/yarnpkg/berry/pull/6994
       it.skip("should warn when running `yarn add` without catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -250,7 +241,7 @@ describe("validation", () => {
       });
 
       it("should not print warnings when running `yarn install` with catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -281,7 +272,7 @@ describe("validation", () => {
       });
 
       it("should not print warnings when running `yarn add` with catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -307,7 +298,7 @@ describe("validation", () => {
       });
 
       it("should not print warnings when running `yarn install` without catalog protocol if the package is not in the catalog", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -338,7 +329,7 @@ describe("validation", () => {
       });
 
       it("should not print warnings when running `yarn add` without catalog protocol if the package is not in the catalog", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -366,7 +357,7 @@ describe("validation", () => {
 
     describe("optional", () => {
       it("should not print warnings when running `yarn install` with catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -397,7 +388,7 @@ describe("validation", () => {
       });
 
       it("should not print warnings when running `yarn install` without catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -428,7 +419,7 @@ describe("validation", () => {
       });
 
       it("should not print warnings when running `yarn add` with catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -454,7 +445,7 @@ describe("validation", () => {
       });
 
       it("should not print warnings when running `yarn add` without catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -480,7 +471,7 @@ describe("validation", () => {
 
     describe("restrict", () => {
       it("should warn when running `yarn install` with catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -511,7 +502,7 @@ describe("validation", () => {
       });
 
       it("should error when running `yarn add` with catalog protocol", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -538,7 +529,7 @@ describe("validation", () => {
 
     describe("no config", () => {
       it("should behave as 'optional' for `yarn install` when no validation config is provided", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -563,7 +554,7 @@ describe("validation", () => {
       });
 
       it("should behave as 'optional' for `yarn add` when no validation config is provided", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -590,7 +581,7 @@ describe("validation", () => {
 
     describe("workspace pattern matching", () => {
       it("should skip validation when no pattern matches", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -621,7 +612,7 @@ describe("validation", () => {
       });
 
       it("should warn when pattern matches with wildcard", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -652,7 +643,7 @@ describe("validation", () => {
       });
 
       it("should use the first matching rule when multiple rules could match", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -687,7 +678,7 @@ describe("validation", () => {
       });
 
       it("should warn when broader rule appears before a more specific pattern", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -722,7 +713,7 @@ describe("validation", () => {
       });
 
       it("should use the first rule when two conflicting rules have the same pattern", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -757,7 +748,7 @@ describe("validation", () => {
       });
 
       it("should warn when conflicting rules have overlapping wildcard patterns", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -792,7 +783,7 @@ describe("validation", () => {
       });
 
       it("should warn when any pattern in the workspaces array matches", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -823,7 +814,7 @@ describe("validation", () => {
       });
 
       it("should warn when the exact workspace name matches", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {
@@ -854,7 +845,7 @@ describe("validation", () => {
       });
 
       it("should not match when the exact name differs", async () => {
-        workspace = await createTestWorkspace();
+        await using workspace = await createTestWorkspace();
 
         await workspace.writeCatalogsYml({
           options: {

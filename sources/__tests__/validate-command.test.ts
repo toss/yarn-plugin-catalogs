@@ -1,27 +1,19 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { type TestWorkspace, createTestWorkspace } from "./utils";
+import { describe, expect, it } from "vitest";
+import { createTestWorkspace } from "./utils";
 
 function validationMessage(packageName: string) {
   return `${packageName} is listed in the catalogs config`;
 }
 
 describe("yarn catalogs validate", () => {
-  let workspace: TestWorkspace;
-
-  afterEach(async () => {
-    if (workspace) {
-      await workspace.cleanup();
-    }
-  });
-
   it("should error when no catalogs.yml exists", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await expect(workspace.yarn.catalogs.validate()).rejects.toThrow();
   });
 
   it("should pass when no validation rules are configured", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -36,7 +28,7 @@ describe("yarn catalogs validate", () => {
   });
 
   it("should error when catalogs are not applied", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       validation: [
@@ -55,7 +47,7 @@ describe("yarn catalogs validate", () => {
 
   describe("strict", () => {
     it("should error when a package is not using catalog protocol", async () => {
-      workspace = await createTestWorkspace();
+      await using workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
         options: {
@@ -85,7 +77,7 @@ describe("yarn catalogs validate", () => {
     });
 
     it("should pass when a package is using catalog protocol", async () => {
-      workspace = await createTestWorkspace();
+      await using workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
         options: {
@@ -118,7 +110,7 @@ describe("yarn catalogs validate", () => {
 
   describe("warn", () => {
     it("should warn but succeed when a package is not using catalog protocol", async () => {
-      workspace = await createTestWorkspace();
+      await using workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
         options: {
@@ -151,7 +143,7 @@ describe("yarn catalogs validate", () => {
 
   describe("restrict", () => {
     it("should error when a package is using catalog protocol", async () => {
-      workspace = await createTestWorkspace();
+      await using workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
         options: {
@@ -183,7 +175,7 @@ describe("yarn catalogs validate", () => {
 
   describe("workspace pattern matching", () => {
     it("should skip validation when no pattern matches", async () => {
-      workspace = await createTestWorkspace();
+      await using workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
         options: {
@@ -214,7 +206,7 @@ describe("yarn catalogs validate", () => {
     });
 
     it("should validate when pattern matches", async () => {
-      workspace = await createTestWorkspace();
+      await using workspace = await createTestWorkspace();
 
       await workspace.writeCatalogsYml({
         options: {

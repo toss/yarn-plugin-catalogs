@@ -6,7 +6,7 @@ import { dir as tmpDir } from "tmp-promise";
 
 const execFileAsync = promisify(execFile);
 
-export interface TestWorkspace {
+export interface TestWorkspace extends AsyncDisposable {
   path: string;
   cleanup: () => Promise<void>;
   writeJson: (path: string, content: unknown) => Promise<void>;
@@ -119,6 +119,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
   return {
     path,
     cleanup,
+    [Symbol.asyncDispose]: cleanup,
     writeJson,
     readPackageJson,
     readYarnrc,

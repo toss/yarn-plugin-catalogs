@@ -1,22 +1,13 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  type TestWorkspace,
   createTestProtocolPlugin,
   createTestWorkspace,
   hasDependency,
 } from "./utils";
 
 describe("basic catalog functionality", () => {
-  let workspace: TestWorkspace;
-
-  afterEach(async () => {
-    if (workspace) {
-      await workspace.cleanup();
-    }
-  });
-
   it("should add dependency using catalog protocol with named group", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -35,7 +26,7 @@ describe("basic catalog functionality", () => {
   });
 
   it("should add dependency using catalog protocol with root group", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -55,7 +46,7 @@ describe("basic catalog functionality", () => {
   });
 
   it("should handle multiple catalog groups", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -83,7 +74,7 @@ describe("basic catalog functionality", () => {
   });
 
   it("should add multiple dependencies from the same catalog", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -107,7 +98,7 @@ describe("basic catalog functionality", () => {
   });
 
   it("should fail when catalog group doesn't exist", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -124,7 +115,7 @@ describe("basic catalog functionality", () => {
   });
 
   it("should fail when package doesn't exist in catalog", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -141,7 +132,7 @@ describe("basic catalog functionality", () => {
   });
 
   it("should work with both root and named catalogs", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -166,7 +157,7 @@ describe("basic catalog functionality", () => {
   });
 
   it("should handle devDependencies with catalog protocol", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -189,7 +180,7 @@ describe("basic catalog functionality", () => {
   });
 
   it("should apply catalogs when catalogs.yml exists but is empty", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {},
@@ -200,7 +191,7 @@ describe("basic catalog functionality", () => {
   });
 
   it("should add regular dependencies without catalog protocol", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -220,7 +211,7 @@ describe("basic catalog functionality", () => {
   });
 
   it("should work with custom protocol in catalog", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await createTestProtocolPlugin(workspace, "custom");
 
