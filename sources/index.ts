@@ -5,21 +5,20 @@ import {
   type Plugin,
   type Project,
   type Workspace,
-  structUtils,
 } from "@yarnpkg/core";
 import type { Hooks as EssentialHooks } from "@yarnpkg/plugin-essentials";
-import chalk from "chalk";
 import {
   ApplyCommand,
   checkForChanges,
   readExistingYarnrc,
 } from "./commands/apply";
+import { ValidateCommand } from "./commands/validate";
 import { configReader } from "./configuration";
 import { fallbackDefaultAliasGroup } from "./utils/default";
 import { validateWorkspaceDependencies } from "./utils/validation";
 
 const plugin: Plugin<Hooks & EssentialHooks> = {
-  commands: [ApplyCommand],
+  commands: [ApplyCommand, ValidateCommand],
   hooks: {
     validateProject: async (project: Project, report) => {
       const catalogsYml = await configReader.read(project);
@@ -44,11 +43,7 @@ const plugin: Plugin<Hooks & EssentialHooks> = {
       const violations = await validateWorkspaceDependencies(workspace);
 
       for (const violation of violations) {
-        if (violation.severity === "error") {
-          report.reportError(MessageName.INVALID_MANIFEST, violation.message);
-        } else {
-          report.reportWarning(MessageName.UNNAMED, violation.message);
-        }
+        report.reportWarning(MessageName.UNNAMED, violation.message);
       }
     },
     afterWorkspaceDependencyAddition: async (

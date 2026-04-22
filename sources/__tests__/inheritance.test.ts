@@ -1,21 +1,12 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  type TestWorkspace,
   createTestWorkspace,
   hasDependency,
 } from "./utils";
 
 describe("catalog inheritance", () => {
-  let workspace: TestWorkspace;
-
-  afterEach(async () => {
-    if (workspace) {
-      await workspace.cleanup();
-    }
-  });
-
   it("should resolve single-level inheritance", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -46,7 +37,7 @@ describe("catalog inheritance", () => {
   });
 
   it("should resolve multi-level inheritance", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -91,7 +82,7 @@ describe("catalog inheritance", () => {
   });
 
   it("should handle root catalog in inheritance", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -122,7 +113,7 @@ describe("catalog inheritance", () => {
   });
 
   it("should fail when parent group is not defined", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -137,7 +128,7 @@ describe("catalog inheritance", () => {
   });
 
   it("should work with default groups and inheritance", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       options: {
@@ -163,7 +154,7 @@ describe("catalog inheritance", () => {
   });
 
   it("should resolve package from parent group when not found in child", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -203,7 +194,7 @@ describe("catalog inheritance", () => {
   });
 
   it("should override parent group versions with child group versions", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -240,7 +231,7 @@ describe("catalog inheritance", () => {
   });
 
   it("should handle deep inheritance chains", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -286,7 +277,7 @@ describe("catalog inheritance", () => {
   });
 
   it("should handle inheritance with root level packages", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {
@@ -321,7 +312,7 @@ describe("catalog inheritance", () => {
   });
 
   it("should handle groups with repeated names in inheritance path", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       list: {

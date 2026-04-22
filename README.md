@@ -261,7 +261,7 @@ If your `package.json` has more `catalog:stable` dependencies than `catalog:beta
 
 ### Validation
 
-The plugin provides a workspace-based validation system for running pre-checks on your dependencies. The `validation` field is a top-level array where each entry specifies workspace patterns and the rules to apply:
+The plugin provides a workspace-based validation system for checking catalog protocol usage across your dependencies. Validation rules are defined in the `validation` field of `catalogs.yml`:
 
 ```yaml
 # In catalogs.yml
@@ -275,16 +275,47 @@ list:
     react: npm:18.0.0
 ```
 
+#### Running Validation
+
+Use the `yarn catalogs validate` command to check all workspaces against the configured rules:
+
+```bash
+$ yarn catalogs validate
+```
+
+This command will:
+- Report errors for `strict` and `restrict` rule violations (exits with non-zero code)
+- Report warnings for `warn` rule violations (exits with zero code)
+- Verify that `.yarnrc.yml` is in sync with `catalogs.yml` before validating
+
+**Example output with violations:**
+
+```bash
+$ yarn catalogs validate
+➤ YN0000: test-package
+➤ YN0001:   react is listed in the catalogs config, but not using catalog protocol.
+➤ YN0000: Failed with errors in 0s 2ms
+```
+
+**Example output when all rules pass:**
+
+```bash
+$ yarn catalogs validate
+➤ YN0000: Done in 0s 1ms
+```
+
+> **Note:** During `yarn install`, the same rules are checked but all violations are reported as warnings instead of errors. Use `yarn catalogs validate` in CI to enforce rules strictly.
+
 #### Available Rules
 
 ##### `catalog_protocol_usage`
 
 Controls whether dependencies should use the `catalog:` protocol:
 
-- **`strict`**: MUST use catalog protocol. Throws errors if a dependency exists in the catalog but doesn't use `catalog:`.
-- **`warn`**: SHOULD use catalog protocol. Shows warnings if a dependency exists in the catalog but doesn't use `catalog:`.
+- **`strict`**: MUST use catalog protocol. Reports an error if a dependency exists in the catalog but doesn't use `catalog:`.
+- **`warn`**: SHOULD use catalog protocol. Reports a warning if a dependency exists in the catalog but doesn't use `catalog:`.
 - **`optional`**: CAN use catalog protocol. No errors or warnings.
-- **`restrict`**: MUST NOT use catalog protocol. Throws errors if `catalog:` protocol is used.
+- **`restrict`**: MUST NOT use catalog protocol. Reports an error if `catalog:` protocol is used.
 
 #### Workspace-Based Validation
 

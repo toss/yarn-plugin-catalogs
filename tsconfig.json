@@ -3,8 +3,8 @@
     "strict": true,
     "experimentalDecorators": true,
     "module": "commonjs",
-    "target": "ES2021",
-    "lib": ["ES2021"],
+    "target": "esnext",
+    "lib": ["esnext"],
     "skipLibCheck": true
   },
   "include": ["sources/**/*.ts"]

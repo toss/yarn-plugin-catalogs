@@ -6,7 +6,7 @@ import { dir as tmpDir } from "tmp-promise";
 
 const execFileAsync = promisify(execFile);
 
-export interface TestWorkspace {
+export interface TestWorkspace extends AsyncDisposable {
   path: string;
   cleanup: () => Promise<void>;
   writeJson: (path: string, content: unknown) => Promise<void>;
@@ -26,6 +26,7 @@ export interface TestWorkspace {
     ): Promise<{ stdout: string; stderr: string }>;
     catalogs: {
       apply(check?: boolean): Promise<{ stdout: string; stderr: string }>;
+      validate(): Promise<{ stdout: string; stderr: string }>;
     };
   };
 }
@@ -51,6 +52,9 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
       const args = ["catalogs", "apply"];
       if (check) args.push("--check");
       return await yarn(args);
+    },
+    validate: async () => {
+      return await yarn(["catalogs", "validate"]);
     },
   };
 
@@ -115,6 +119,7 @@ export async function createTestWorkspace(): Promise<TestWorkspace> {
   return {
     path,
     cleanup,
+    [Symbol.asyncDispose]: cleanup,
     writeJson,
     readPackageJson,
     readYarnrc,

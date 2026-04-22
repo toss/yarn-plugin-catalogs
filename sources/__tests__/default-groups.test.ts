@@ -1,21 +1,12 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  type TestWorkspace,
   createTestWorkspace,
   hasDependency,
 } from "./utils";
 
 describe("default alias groups", () => {
-  let workspace: TestWorkspace;
-
-  afterEach(async () => {
-    if (workspace) {
-      await workspace.cleanup();
-    }
-  });
-
   it("should use the default alias group if no group is provided", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       options: {
@@ -40,7 +31,7 @@ describe("default alias groups", () => {
   });
 
   it("should use the root alias group if it is specified", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       options: {
@@ -62,7 +53,7 @@ describe("default alias groups", () => {
   });
 
   it("should follow the priority based on the order of default alias groups", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       options: {
@@ -92,7 +83,7 @@ describe("default alias groups", () => {
   });
 
   it("should use the most frequently used alias group if 'max' is specified", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       options: {
@@ -136,7 +127,7 @@ describe("default alias groups", () => {
   });
 
   it("should not automatically suggest default catalog group when validation rule is 'restrict'", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       options: {
@@ -164,7 +155,7 @@ describe("default alias groups", () => {
   });
 
   it("should install normally when package is not in any catalog", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       options: {
@@ -190,7 +181,7 @@ describe("default alias groups", () => {
   });
 
   it("should not match scoped package with unscoped package of same name in catalog", async () => {
-    workspace = await createTestWorkspace();
+    await using workspace = await createTestWorkspace();
 
     await workspace.writeCatalogsYml({
       options: {
